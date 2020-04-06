@@ -117,7 +117,7 @@ index 4465af1..5592c57 100644
 2.17.1
 
 
-From e8b4b2736a8d01cbe3f84723e6f1dd7d325d4502 Mon Sep 17 00:00:00 2001
+From 93f9f1bcf61a11a1e9af9469e4f26c6517fb8956 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 6 Apr 2020 12:16:26 +0200
 Subject: [PATCH 2/2] The dragcfact patch allow you resize clients' size (i.e.
@@ -125,8 +125,8 @@ Subject: [PATCH 2/2] The dragcfact patch allow you resize clients' size (i.e.
 
 ---
  config.def.h |  1 +
- dwm.c        | 76 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 77 insertions(+)
+ dwm.c        | 94 ++++++++++++++++++++++++++++++++++++++++++++++++----
+ 2 files changed, 89 insertions(+), 6 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 83910c1..dd482f8 100644
@@ -141,7 +141,7 @@ index 83910c1..dd482f8 100644
  	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
  	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
 diff --git a/dwm.c b/dwm.c
-index 5592c57..d5e3169 100644
+index 5592c57..2d591e3 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -162,6 +162,7 @@ static void destroynotify(XEvent *e);
@@ -234,6 +234,38 @@ index 5592c57..d5e3169 100644
  void
  drawbar(Monitor *m)
  {
+@@ -1515,19 +1591,25 @@ setlayout(const Arg *arg)
+ }
+ 
+ void
+-setcfact(const Arg *arg) {
++setcfact(const Arg *arg)
++{
+ 	float f;
+ 	Client *c;
+ 
+ 	c = selmon->sel;
+ 
+-	if(!arg || !c || !selmon->lt[selmon->sellt]->arrange)
++	if (!arg || !c || !selmon->lt[selmon->sellt]->arrange)
+ 		return;
+-	f = arg->f + c->cfact;
+-	if(arg->f == 0.0)
++	if (!arg->f)
+ 		f = 1.0;
+-	else if(f < 0.25 || f > 4.0)
+-		return;
++	else if (arg->f > 4.0) // set fact absolutely
++		f = arg->f - 4.0;
++	else
++		f = arg->f + c->cfact;
++	if (f < 0.25)
++		f = 0.25;
++	else if (f > 4.0)
++		f = 4.0;
+ 	c->cfact = f;
+ 	arrange(selmon);
+ }
 -- 
 2.17.1
 
