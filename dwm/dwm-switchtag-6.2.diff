@@ -1,0 +1,71 @@
+From 7a591391e5e1b9740ab71f69e3875c120240322e Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Tue, 7 Apr 2020 12:01:30 +0200
+Subject: [PATCH] Adding switchtag option for rules allowing auto-moving 
+ dedicated tags for specific applications
+
+dwm allow you to set application specific rules so that you can have your browser, for example,
+start up on tag 9 optionally on a given monitor.
+When you open your browser it is then automatically moved to the configured tag, but you have
+to manually enable the tag to see the newly opened application.
+This patch adds an extra configuration option for individual rules where:
+   - 0 is default behaviour
+   - 1 automatically moves you to the tag of the newly opened application and
+   - 2 enables the tag of the newly opened application in addition to your existing enabled tags
+---
+ config.def.h |  6 +++---
+ dwm.c        | 14 ++++++++++++++
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 1c0b587..4ea7156 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -26,9 +26,9 @@ static const Rule rules[] = {
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class            instance    title   tags mask  switchtag  isfloating   monitor */
++	{ "Gimp",           NULL,       NULL,   0,         1,         1,           -1 },
++	{ "Firefox",        NULL,       NULL,   1 << 8,    1,         0,           -1 },
+ };
+ 
+ /* layout(s) */
+diff --git a/dwm.c b/dwm.c
+index 4465af1..9e727fc 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -137,6 +137,7 @@ typedef struct {
+ 	const char *instance;
+ 	const char *title;
+ 	unsigned int tags;
++	int switchtag;
+ 	int isfloating;
+ 	int monitor;
+ } Rule;
+@@ -302,6 +303,19 @@ applyrules(Client *c)
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+ 			if (m)
+ 				c->mon = m;
++
++			if (r->switchtag) {
++				unsigned int newtagset;
++				if (r->switchtag == 2)
++					newtagset = c->mon->tagset[c->mon->seltags] ^ c->tags;
++				else
++					newtagset = c->tags;
++
++				if (newtagset) {
++					c->mon->tagset[c->mon->seltags] = newtagset;
++					arrange(c->mon);
++				}
++			}
+ 		}
+ 	}
+ 	if (ch.res_class)
+-- 
+2.17.1
+

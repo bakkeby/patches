@@ -1,0 +1,106 @@
+From 9e67b8a4fd30635d9d30d62948d458c243d7c056 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Tue, 7 Apr 2020 11:45:42 +0200
+Subject: [PATCH] zoomswap, swap positions when a window becomes the new master
+
+The default behaviour in dwm when using zoom (i.e. moving a window to become the new master)
+is to use pop to re-attach the window on top of the chain. This has the side effect of moving
+every window down as well, resulting in every window on the screen changing position. The
+zoomswap patch changes this behaviour so that the current master swaps position with the other
+window that is to become the new master. Applying zoom on the current master will result in it
+swapping back to the previous master.
+
+This patch includes some slight alteration of code compared to the original.
+
+Original author:
+   Jan Christoph Ebersbach - <jceb at e-jc dot de>
+
+Refer to https://dwm.suckless.org/patches/zoomswap/
+---
+ dwm.c | 46 +++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 41 insertions(+), 5 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index 4465af1..49dfda2 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -185,6 +185,7 @@ static void motionnotify(XEvent *e);
+ static void movemouse(const Arg *arg);
+ static Client *nexttiled(Client *c);
+ static void pop(Client *);
++static Client *prevtiled(Client *c);
+ static void propertynotify(XEvent *e);
+ static void quit(const Arg *arg);
+ static Monitor *recttomon(int x, int y, int w, int h);
+@@ -235,6 +236,7 @@ static int xerrorstart(Display *dpy, XErrorEvent *ee);
+ static void zoom(const Arg *arg);
+ 
+ /* variables */
++static Client *prevzoom = NULL;
+ static const char broken[] = "broken";
+ static char stext[256];
+ static int screen;
+@@ -1208,6 +1210,15 @@ pop(Client *c)
+ 	arrange(c->mon);
+ }
+ 
++Client *
++prevtiled(Client *c) {
++	Client *p;
++	if (!c || c == c->mon->clients)
++		return NULL;
++	for (p = c->mon->clients; p && p->next != c; p = p->next);
++	return p;
++}
++
+ void
+ propertynotify(XEvent *e)
+ {
+@@ -2114,14 +2125,39 @@ void
+ zoom(const Arg *arg)
+ {
+ 	Client *c = selmon->sel;
++	Client *at = NULL, *cold, *cprevious = NULL;
+ 
+ 	if (!selmon->lt[selmon->sellt]->arrange
+-	|| (selmon->sel && selmon->sel->isfloating))
++	|| (selmon->sel && selmon->sel->isfloating) || !c)
+ 		return;
+-	if (c == nexttiled(selmon->clients))
+-		if (!c || !(c = nexttiled(c->next)))
+-			return;
+-	pop(c);
++
++	if (c == nexttiled(selmon->clients)) {
++		at = prevtiled(prevzoom);
++		if (at)
++			cprevious = nexttiled(at->next);
++		if (!cprevious || cprevious != prevzoom) {
++			prevzoom = NULL;
++			if (!c || !(c = nexttiled(c->next)))
++				return;
++		} else
++			c = cprevious;
++	}
++	cold = nexttiled(selmon->clients);
++	if (c != cold && !at)
++		at = prevtiled(c);
++	detach(c);
++	attach(c);
++	/* swap windows instead of pushing the previous one down */
++	if (c != cold && at) {
++		prevzoom = cold;
++		if (cold && at != cold) {
++			detach(cold);
++			cold->next = at->next;
++			at->next = cold;
++		}
++	}
++	focus(c);
++	arrange(c->mon);
+ }
+ 
+ int
+-- 
+2.17.1
+

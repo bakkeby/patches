@@ -1,0 +1,121 @@
+From ce8b86167696bf5ffd3048dfee61f8e0f7949e67 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Tue, 7 Apr 2020 12:35:26 +0200
+Subject: [PATCH] rotatestack, allows you to scroll through the stack
+
+Stack rotation moves a client from the bottom to the top of the stack (or the other way round). This effectively rotates the clients by one position clockwise (or CCW, respectively).
+
+It should play well with arbitrary stack layouts and nmaster values.
+
+One may think of it as moving the zoom through the list of clients, very much in the same way as scrolling moves the view port around a pane.
+
+Refer to https://dwm.suckless.org/patches/rotatestack/
+---
+ config.def.h |  2 ++
+ dwm.c        | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 58 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index 1c0b587..bd609fe 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -66,6 +66,8 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_b,      togglebar,      {0} },
+ 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
+ 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
++	{ MODKEY|ShiftMask,             XK_j,      rotatestack,    {.i = +1 } },
++	{ MODKEY|ShiftMask,             XK_k,      rotatestack,    {.i = -1 } },
+ 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
+ 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
+ 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+diff --git a/dwm.c b/dwm.c
+index 4465af1..cf76ad3 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -163,6 +163,8 @@ static void detachstack(Client *c);
+ static Monitor *dirtomon(int dir);
+ static void drawbar(Monitor *m);
+ static void drawbars(void);
++static void enqueue(Client *c);
++static void enqueuestack(Client *c);
+ static void enternotify(XEvent *e);
+ static void expose(XEvent *e);
+ static void focus(Client *c);
+@@ -192,6 +194,7 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
+ static void resizeclient(Client *c, int x, int y, int w, int h);
+ static void resizemouse(const Arg *arg);
+ static void restack(Monitor *m);
++static void rotatestack(const Arg *arg);
+ static void run(void);
+ static void scan(void);
+ static int sendevent(Client *c, Atom proto);
+@@ -751,6 +754,28 @@ drawbars(void)
+ 		drawbar(m);
+ }
+ 
++void
++enqueue(Client *c)
++{
++	Client *l;
++	for (l = c->mon->clients; l && l->next; l = l->next);
++	if (l) {
++		l->next = c;
++		c->next = NULL;
++	}
++}
++
++void
++enqueuestack(Client *c)
++{
++	Client *l;
++	for (l = c->mon->stack; l && l->snext; l = l->snext);
++	if (l) {
++		l->snext = c;
++		c->snext = NULL;
++	}
++}
++
+ void
+ enternotify(XEvent *e)
+ {
+@@ -1369,6 +1394,37 @@ restack(Monitor *m)
+ 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+ }
+ 
++void
++rotatestack(const Arg *arg)
++{
++	Client *c = NULL, *f;
++
++	if (!selmon->sel)
++		return;
++	f = selmon->sel;
++	if (arg->i > 0) {
++		for (c = nexttiled(selmon->clients); c && nexttiled(c->next); c = nexttiled(c->next));
++		if (c){
++			detach(c);
++			attach(c);
++			detachstack(c);
++			attachstack(c);
++		}
++	} else {
++		if ((c = nexttiled(selmon->clients))){
++			detach(c);
++			enqueue(c);
++			detachstack(c);
++			enqueuestack(c);
++		}
++	}
++	if (c){
++		arrange(selmon);
++		focus(f);
++		restack(selmon);
++	}
++}
++
+ void
+ run(void)
+ {
+-- 
+2.17.1
+

@@ -1,0 +1,77 @@
+From 4e43b3e8d60a16ab63cfff480e073a44f4abfeec Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Tue, 7 Apr 2020 12:02:43 +0200
+Subject: [PATCH] tagallmon, move all visible windows to an adjacent monitor
+
+---
+ config.def.h |  2 ++
+ dwm.c        | 33 +++++++++++++++++++++++++++++++++
+ 2 files changed, 35 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index 1c0b587..4852ae2 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -84,6 +84,8 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+ 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
+ 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
++	{ MODKEY|Mod4Mask|ShiftMask,    XK_comma,  tagallmon,      {.i = +1 } },
++	{ MODKEY|Mod4Mask|ShiftMask,    XK_period, tagallmon,      {.i = -1 } },
+ 	TAGKEYS(                        XK_1,                      0)
+ 	TAGKEYS(                        XK_2,                      1)
+ 	TAGKEYS(                        XK_3,                      2)
+diff --git a/dwm.c b/dwm.c
+index 4465af1..5048970 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -208,6 +208,7 @@ static void sigchld(int unused);
+ static void spawn(const Arg *arg);
+ static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
++static void tagallmon(const Arg *arg);
+ static void tile(Monitor *);
+ static void togglebar(const Arg *arg);
+ static void togglefloating(const Arg *arg);
+@@ -1670,6 +1671,38 @@ tagmon(const Arg *arg)
+ 	sendmon(selmon->sel, dirtomon(arg->i));
+ }
+ 
++void
++tagallmon(const Arg *arg)
++{
++	Monitor *m;
++	Client *c;
++	Client *next;
++
++	if (!mons->next)
++		return;
++
++	m = dirtomon(arg->i);
++	for (c = selmon->clients; c; c = next) {
++		next = c->next;
++		if (!ISVISIBLE(c))
++			continue;
++		unfocus(c, 1);
++		detach(c);
++		detachstack(c);
++		c->mon = m;
++		c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
++		attach(c);
++		attachstack(c);
++		if (c->isfullscreen) {
++			setfullscreen(c, 0);
++			setfullscreen(c, 1);
++		}
++	}
++
++	focus(NULL);
++	arrange(NULL);
++}
++
+ void
+ tile(Monitor *m)
+ {
+-- 
+2.17.1
+

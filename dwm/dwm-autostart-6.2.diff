@@ -1,0 +1,51 @@
+From 0fd06555d523bd015e683d65002e59643fd5e2ca Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Tue, 7 Apr 2020 12:28:17 +0200
+Subject: [PATCH] Adding autostart patch
+
+Refer to https://dwm.suckless.org/patches/autostart/
+---
+ dwm.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/dwm.c b/dwm.c
+index 4465af1..e634dc1 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -193,6 +193,7 @@ static void resizeclient(Client *c, int x, int y, int w, int h);
+ static void resizemouse(const Arg *arg);
+ static void restack(Monitor *m);
+ static void run(void);
++static void runAutostart(void);
+ static void scan(void);
+ static int sendevent(Client *c, Atom proto);
+ static void sendmon(Client *c, Monitor *m);
+@@ -1380,6 +1381,17 @@ run(void)
+ 			handler[ev.type](&ev); /* call handler */
+ }
+ 
++void
++runAutostart(void) {
++
++	int ret;
++
++	ret = system("cd ~/.config/dwm; ./autostart_blocking.sh");
++	ret = system("cd ~/.config/dwm; ./autostart.sh &");
++
++	if (ret); // ignore, hide compilation warnings
++}
++
+ void
+ scan(void)
+ {
+@@ -2142,6 +2154,7 @@ main(int argc, char *argv[])
+ 		die("pledge");
+ #endif /* __OpenBSD__ */
+ 	scan();
++	runAutostart();
+ 	run();
+ 	cleanup();
+ 	XCloseDisplay(dpy);
+-- 
+2.17.1
+
