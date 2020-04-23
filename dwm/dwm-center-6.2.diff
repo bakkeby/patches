@@ -1,7 +1,7 @@
-From 1234c41e4baca6094f6e292f84791944d493cc5d Mon Sep 17 00:00:00 2001
+From 69f91089d9248fa9695eb925956e255a215171b8 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:29:08 +0200
-Subject: [PATCH] Adding 6.2 center patch with multi-monitor fix and 
+Subject: [PATCH] Adding 6.2 center patch with multi-monitor fix and
  auto-centering of floating popup windows
 
 Refer to https://dwm.suckless.org/patches/center/
@@ -28,7 +28,7 @@ index 1c0b587..44b46e5 100644
  
  /* layout(s) */
 diff --git a/dwm.c b/dwm.c
-index 4465af1..5b8722d 100644
+index 4465af1..ab33757 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -92,7 +92,7 @@ struct Client {
@@ -68,7 +68,7 @@ index 4465af1..5b8722d 100644
  	updatewindowtype(c);
  	updatesizehints(c);
  	updatewmhints(c);
-+	if(c->iscentered) {
++	if (c->iscentered) {
 +		c->x = c->mon->mx + (c->mon->mw - WIDTH(c)) / 2;
 +		c->y = c->mon->my + (c->mon->mh - HEIGHT(c)) / 2;
 +	}
