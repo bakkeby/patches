@@ -1,4 +1,4 @@
-From 6d5d6363d9841d812d762dce70bf9e8962a92ab2 Mon Sep 17 00:00:00 2001
+From a61429d4ac9e1154703533effc619068c20c3075 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:34:15 +0200
 Subject: [PATCH] pertag patch, keeps layout, mwfact, barpos and nmaster per
@@ -10,7 +10,7 @@ Refer to https://dwm.suckless.org/patches/pertag/
  1 file changed, 86 insertions(+), 7 deletions(-)
 
 diff --git a/dwm.c b/dwm.c
-index 4465af1..4578b1c 100644
+index 4465af1..55f8f92 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -111,6 +111,7 @@ typedef struct {
@@ -61,7 +61,7 @@ index 4465af1..4578b1c 100644
 +	if (!(m->pertag = (Pertag *)calloc(1, sizeof(Pertag))))
 +		die("fatal: could not malloc() %u bytes\n", sizeof(Pertag));
 +	m->pertag->curtag = m->pertag->prevtag = 1;
-+	for(i=0; i <= LENGTH(tags); i++) {
++	for (i = 0; i <= LENGTH(tags); i++) {
 +		/* init nmaster */
 +		m->pertag->nmasters[i] = m->nmaster;
 +
