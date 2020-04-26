@@ -1,4 +1,4 @@
-From 6e51c02e249e08561ecd49f1ad4eb3108a1bcb07 Mon Sep 17 00:00:00 2001
+From 55b7865fbba68924308a12f7ffc56b304ad7bbe5 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:27:21 +0200
 Subject: [PATCH] Adding attachx patch (combined attach
@@ -19,8 +19,8 @@ Refer to:
    https://dwm.suckless.org/patches/attachbottom/
 ---
  config.def.h |  1 +
- dwm.c        | 58 +++++++++++++++++++++++++++++++++++++++++++++++++---
- 2 files changed, 56 insertions(+), 3 deletions(-)
+ dwm.c        | 59 +++++++++++++++++++++++++++++++++++++++++++++++++---
+ 2 files changed, 57 insertions(+), 3 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..5e81b92 100644
@@ -35,7 +35,7 @@ index 1c0b587..5e81b92 100644
  static const char dmenufont[]       = "monospace:size=10";
  static const char col_gray1[]       = "#222222";
 diff --git a/dwm.c b/dwm.c
-index 4465af1..7f14718 100644
+index 4465af1..8667baa 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -49,7 +49,8 @@
@@ -56,7 +56,7 @@ index 4465af1..7f14718 100644
  static void buttonpress(XEvent *e);
  static void checkotherwm(void);
  static void cleanup(void);
-@@ -399,6 +401,56 @@ arrangemon(Monitor *m)
+@@ -399,6 +401,57 @@ arrangemon(Monitor *m)
  		m->lt[m->sellt]->arrange(m);
  }
  
@@ -103,6 +103,7 @@ index 4465af1..7f14718 100644
 +				break;
 +
 +			at->next = c;
++			c->next = NULL;
 +			return;
 +	}
 +
@@ -113,7 +114,7 @@ index 4465af1..7f14718 100644
  void
  attach(Client *c)
  {
-@@ -1062,7 +1114,7 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1062,7 +1115,7 @@ manage(Window w, XWindowAttributes *wa)
  		c->isfloating = c->oldstate = trans != None || c->isfixed;
  	if (c->isfloating)
  		XRaiseWindow(dpy, c->win);
@@ -122,7 +123,7 @@ index 4465af1..7f14718 100644
  	attachstack(c);
  	XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
  		(unsigned char *) &(c->win), 1);
-@@ -1417,7 +1469,7 @@ sendmon(Client *c, Monitor *m)
+@@ -1417,7 +1470,7 @@ sendmon(Client *c, Monitor *m)
  	detachstack(c);
  	c->mon = m;
  	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
