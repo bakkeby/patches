@@ -1,4 +1,4 @@
-From 947edb123d4f77357ca0d72a7ed2c121075e0d86 Mon Sep 17 00:00:00 2001
+From d8a4a789342073568f7e49d48a71c66b0c874aa1 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 11:36:24 +0200
 Subject: [PATCH] Savefloats, saves size and position of floating windows
@@ -51,5 +51,5 @@ index 4465af1..96b0b26 100644
  }
  
 -- 
-2.17.1
+2.19.1
 

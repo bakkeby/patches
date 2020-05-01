@@ -1,4 +1,4 @@
-From 889e53e38ae19fae0c25046af48b0b4f3b4e4a4c Mon Sep 17 00:00:00 2001
+From baaeaa28dfc361b38e218c7c089edd7867b15c53 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 11:40:30 +0200
 Subject: [PATCH] Lose fullscreen on focus change
@@ -21,5 +21,5 @@ index 4465af1..520a794 100644
  	XSetWindowBorder(dpy, c->win, scheme[SchemeNorm][ColBorder].pixel);
  	if (setfocus) {
 -- 
-2.17.1
+2.19.1
 

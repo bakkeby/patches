@@ -1,4 +1,4 @@
-From a651c9e15d1d9191ce8a7790d352603ae356d9d5 Mon Sep 17 00:00:00 2001
+From d4387f13bfc45aa4103ffd51e76730eb0135f8f0 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:30:57 +0200
 Subject: [PATCH] fancybar, shows the titles of all visible windows in the 
@@ -92,5 +92,5 @@ index 4465af1..eff2da6 100644
  	drw_map(drw, m->barwin, 0, 0, m->ww, bh);
  }
 -- 
-2.17.1
+2.19.1
 

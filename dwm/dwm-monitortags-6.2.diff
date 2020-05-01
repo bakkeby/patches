@@ -1,4 +1,4 @@
-From 555ba7661eaed73ee47d57cd583a1c86ca792c39 Mon Sep 17 00:00:00 2001
+From e92b0373f8ebb59121cbb9f514f7bc977f7c5066 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 26 Apr 2020 14:38:59 +0200
 Subject: [PATCH] Monitor tags patch
@@ -127,5 +127,5 @@ index 4465af1..54b346a 100644
  tile(Monitor *m)
  {
 -- 
-2.17.1
+2.19.1
 

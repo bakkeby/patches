@@ -1,4 +1,4 @@
-From 80867c7d8c8186972f16e230e2910b20b4296895 Mon Sep 17 00:00:00 2001
+From 7e64cf33b56a4ad51a12f6e391c224defdf62255 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:36:21 +0200
 Subject: [PATCH] Resize a floating window from any corner
@@ -85,5 +85,5 @@ index 4465af1..9922271 100644
  	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
  	if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
 -- 
-2.17.1
+2.19.1
 

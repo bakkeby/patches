@@ -1,9 +1,8 @@
-From 7a9b2a8f26b6692082e6392b2781e1cdc1223bde Mon Sep 17 00:00:00 2001
+From 1f9992ae1a745a86294a555051ea17ba4ef5ce5f Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 6 Apr 2020 12:04:55 +0200
-Subject: [PATCH 1/2] [PATCH] Adding cfacts patch which provides the ability to
- assign different weights to clients in their respective stack in tiled
- layout.
+Subject: [PATCH 1/2] Adding cfacts patch which provides the ability to assign
+ different weights to clients in their respective stack in tiled layout.
 
 Refer to https://dwm.suckless.org/patches/cfacts/
 ---
@@ -114,10 +113,10 @@ index 4465af1..5592c57 100644
  }
  
 -- 
-2.17.1
+2.19.1
 
 
-From 93f9f1bcf61a11a1e9af9469e4f26c6517fb8956 Mon Sep 17 00:00:00 2001
+From ee8e7b96d6f36f244d68753c2e795a29a7118913 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 6 Apr 2020 12:16:26 +0200
 Subject: [PATCH 2/2] The dragcfact patch allow you resize clients' size (i.e.
@@ -267,5 +266,5 @@ index 5592c57..2d591e3 100644
  	arrange(selmon);
  }
 -- 
-2.17.1
+2.19.1
 

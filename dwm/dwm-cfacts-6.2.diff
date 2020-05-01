@@ -1,4 +1,4 @@
-From 521c7445948f467ad4d3021b31433d1a711c7226 Mon Sep 17 00:00:00 2001
+From 1f9992ae1a745a86294a555051ea17ba4ef5ce5f Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 6 Apr 2020 12:04:55 +0200
 Subject: [PATCH] Adding cfacts patch which provides the ability to assign
@@ -113,5 +113,5 @@ index 4465af1..5592c57 100644
  }
  
 -- 
-2.17.1
+2.19.1
 

@@ -1,4 +1,4 @@
-From 8dfae1aad85aa7ac03852196d3b77121dfe60aee Mon Sep 17 00:00:00 2001
+From e738df9d539b0c8106d1a04ff8d78af65e2ac748 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:32:08 +0200
 Subject: [PATCH] Adding flextile patch
@@ -240,5 +240,5 @@ index 4465af1..5a31822 100644
  	arrange(selmon);
  }
 -- 
-2.17.1
+2.19.1
 

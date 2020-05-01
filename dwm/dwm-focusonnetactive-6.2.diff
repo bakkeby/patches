@@ -1,4 +1,4 @@
-From 286ca3bb1af08b452bf8140abcc23d4ef61baaa2 Mon Sep 17 00:00:00 2001
+From 9484f887c623ec16d90c7a25ec1160bdb884258b Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:33:04 +0200
 Subject: [PATCH] Activate a window in response to _NET_ACTIVE_WINDOW
@@ -55,5 +55,5 @@ index 4465af1..3919d47 100644
  }
  
 -- 
-2.17.1
+2.19.1
 

@@ -1,4 +1,4 @@
-From 6d5d6363d9841d812d762dce70bf9e8962a92ab2 Mon Sep 17 00:00:00 2001
+From fdc70c7b54add4c668fa3ae7458e4c5f5e1bd854 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:34:15 +0200
 Subject: [PATCH 1/2] pertag patch, keeps layout, mwfact, barpos and nmaster
@@ -192,10 +192,10 @@ index 4465af1..4578b1c 100644
  	arrange(selmon);
  }
 -- 
-2.17.1
+2.19.1
 
 
-From a895591cf19f1230c15adf8c1ebbdd5dea4a490d Mon Sep 17 00:00:00 2001
+From d9754b776789858914525dc457a84f8bc1b5f640 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 26 Apr 2020 11:35:53 +0200
 Subject: [PATCH 2/2] Monitor rules patch on top of pertag
@@ -325,5 +325,5 @@ index 4578b1c..22a657f 100644
  	return m;
  }
 -- 
-2.17.1
+2.19.1
 

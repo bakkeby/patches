@@ -1,4 +1,4 @@
-From 9e67b8a4fd30635d9d30d62948d458c243d7c056 Mon Sep 17 00:00:00 2001
+From 29d0e6a66b9151410b81460dfe919542e9771936 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 11:45:42 +0200
 Subject: [PATCH] zoomswap, swap positions when a window becomes the new master
@@ -102,5 +102,5 @@ index 4465af1..49dfda2 100644
  
  int
 -- 
-2.17.1
+2.19.1
 

@@ -1,4 +1,4 @@
-From fdddb1d6bca7cf57c15c63e28994441f7fe4997d Mon Sep 17 00:00:00 2001
+From 986ee6a3ae3dcdd704b69f1dbd954115246021bf Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 10:47:07 +0200
 Subject: [PATCH 1/2] Alpha, adds transparency for the status bar.
@@ -44,7 +44,7 @@ index 1c0b587..4f68fe8 100644
  /* tagging */
  static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 diff --git a/config.mk b/config.mk
-index 7084c33..21b5404 100644
+index 6d36cb7..3cb1518 100644
 --- a/config.mk
 +++ b/config.mk
 @@ -22,7 +22,7 @@ FREETYPEINC = /usr/include/freetype2
@@ -55,7 +55,7 @@ index 7084c33..21b5404 100644
 +LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} -lXrender
  
  # flags
- CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
+ CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/drw.c b/drw.c
 index 8fd1ca4..c202cb3 100644
 --- a/drw.c
@@ -293,10 +293,10 @@ index 4465af1..20f8309 100644
  zoom(const Arg *arg)
  {
 -- 
-2.17.1
+2.19.1
 
 
-From 2c9055147266ac062dfe82ea946b4c5a5b9bfe81 Mon Sep 17 00:00:00 2001
+From 1a36b6c4952bd1e9a6d86deef96996fbea1e481e Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 10:53:35 +0200
 Subject: [PATCH 2/2] Adding systray patch
@@ -323,7 +323,7 @@ index 4f68fe8..1952613 100644
  static const char dmenufont[]       = "monospace:size=10";
  static const char col_gray1[]       = "#222222";
 diff --git a/dwm.c b/dwm.c
-index 20f8309..209c906 100644
+index 20f8309..6e57ef8 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -59,12 +59,30 @@
@@ -959,7 +959,7 @@ index 20f8309..209c906 100644
 +			i->mon = m;
 +	}
 +	w = w ? w + systrayspacing : 1;
-+ 	x -= w;
++	x -= w;
 +	XMoveResizeWindow(dpy, systray->win, x - xpad, m->by + ypad, w, bh);
 +	wc.x = x - xpad;
 +	wc.y = m->by + ypad;
@@ -1045,5 +1045,5 @@ index 20f8309..209c906 100644
   * ignored (especially on UnmapNotify's). Other types of errors call Xlibs
   * default error handler, which may call exit. */
 -- 
-2.17.1
+2.19.1
 

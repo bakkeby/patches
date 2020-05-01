@@ -1,4 +1,4 @@
-From a61429d4ac9e1154703533effc619068c20c3075 Mon Sep 17 00:00:00 2001
+From e293b80a74a060446c431971034ebd91834f13cb Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:34:15 +0200
 Subject: [PATCH] pertag patch, keeps layout, mwfact, barpos and nmaster per
@@ -192,5 +192,5 @@ index 4465af1..55f8f92 100644
  	arrange(selmon);
  }
 -- 
-2.17.1
+2.19.1
 

@@ -1,4 +1,4 @@
-From 4e43b3e8d60a16ab63cfff480e073a44f4abfeec Mon Sep 17 00:00:00 2001
+From 24b096ef83d05de74b3d91c25e799f2906a0bac1 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:02:43 +0200
 Subject: [PATCH] tagallmon, move all visible windows to an adjacent monitor
@@ -73,5 +73,5 @@ index 4465af1..5048970 100644
  tile(Monitor *m)
  {
 -- 
-2.17.1
+2.19.1
 
