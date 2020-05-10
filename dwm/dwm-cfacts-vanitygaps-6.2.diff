@@ -116,7 +116,7 @@ index 4465af1..5592c57 100644
 2.19.1
 
 
-From b8ca2fe0de3b79afe2c4132d046f9b81ea8e2762 Mon Sep 17 00:00:00 2001
+From 051e4de72079bb0b8e50d2faa61b9a0ef36434b5 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Fri, 8 May 2020 16:51:00 +0200
 Subject: [PATCH 2/2] vanitygaps - adds gaps to layouts
@@ -130,8 +130,8 @@ among the available clients.
 ---
  config.def.h |  38 ++-
  dwm.c        |  43 +--
- vanitygaps.c | 823 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 868 insertions(+), 36 deletions(-)
+ vanitygaps.c | 822 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 867 insertions(+), 36 deletions(-)
  create mode 100644 vanitygaps.c
 
 diff --git a/config.def.h b/config.def.h
@@ -278,10 +278,10 @@ index 5592c57..7d503cb 100644
  {
 diff --git a/vanitygaps.c b/vanitygaps.c
 new file mode 100644
-index 0000000..95788e8
+index 0000000..1a816b6
 --- /dev/null
 +++ b/vanitygaps.c
-@@ -0,0 +1,823 @@
+@@ -0,0 +1,822 @@
 +/* Key binding functions */
 +static void defaultgaps(const Arg *arg);
 +static void incrgaps(const Arg *arg);
@@ -768,7 +768,7 @@ index 0000000..95788e8
 +		return;
 +
 +	nx = m->wx + ov;
-+	ny = oh;
++	ny = m->wy + oh;
 +	nw = m->ww - 2*ov;
 +	nh = m->wh - 2*oh;
 +
@@ -796,7 +796,6 @@ index 0000000..95788e8
 +			}
 +
 +			if ((i % 4) == 0) {
-+
 +				if (s) {
 +					ny += nh + ih;
 +					nh += hrest;
