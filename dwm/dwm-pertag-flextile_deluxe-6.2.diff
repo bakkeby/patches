@@ -1,4 +1,4 @@
-From f679a0a266e4d8c86018612e91ccdf2746ddd654 Mon Sep 17 00:00:00 2001
+From 30075c8e9b05d0eca1214eb3a4af9269b2b63296 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Fri, 1 May 2020 22:46:52 +0200
 Subject: [PATCH] flextile-deluxe layout - a re-envisoned and revamped 
@@ -29,9 +29,9 @@ Features:
 ---
  config.def.h      |  32 +-
  dwm.c             | 189 ++++++++----
- flextile-deluxe.c | 727 ++++++++++++++++++++++++++++++++++++++++++++++
+ flextile-deluxe.c | 741 ++++++++++++++++++++++++++++++++++++++++++++++
  flextile-deluxe.h | 113 +++++++
- 4 files changed, 1007 insertions(+), 54 deletions(-)
+ 4 files changed, 1021 insertions(+), 54 deletions(-)
  create mode 100644 flextile-deluxe.c
  create mode 100644 flextile-deluxe.h
 
@@ -417,10 +417,10 @@ index 4465af1..efd00e7 100644
  }
 diff --git a/flextile-deluxe.c b/flextile-deluxe.c
 new file mode 100644
-index 0000000..7d265e5
+index 0000000..d5e5317
 --- /dev/null
 +++ b/flextile-deluxe.c
-@@ -0,0 +1,727 @@
+@@ -0,0 +1,741 @@
 +typedef struct {
 +	void (*arrange)(Monitor *, int, int, int, int, int, int, int);
 +} LayoutArranger;
@@ -940,7 +940,7 @@ index 0000000..7d265e5
 +	for (i = 0, j = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), j++) {
 +		if (j >= ai && j < (ai + an)) {
 +			if (r) {
-+				if ((i % 2 && ((nh - ih) / 2) <= (20 + 2*c->bw)) || (!(i % 2) && ((nw - iv) / 2) <= (20 + 2*c->bw))) {
++				if ((i % 2 && ((nh - ih) / 2) <= (bh + 2*c->bw)) || (!(i % 2) && ((nw - iv) / 2) <= (bh + 2*c->bw))) {
 +					r = 0;
 +				}
 +				if (r && i < an - 1) {
@@ -960,34 +960,48 @@ index 0000000..7d265e5
 +						ny += nh + ih;
 +				}
 +				if ((i % 4) == 0) {
-+					if (s)
++					if (s) {
 +						ny += nh + ih;
-+					else
++						nh += hrest;
++					}
++					else {
++						nh -= hrest;
 +						ny -= nh + ih;
++					}
 +				}
-+				else if ((i % 4) == 1)
++				else if ((i % 4) == 1) {
 +					nx += nw + iv;
-+				else if ((i % 4) == 2)
++					nw += wrest;
++				}
++				else if ((i % 4) == 2) {
 +					ny += nh + ih;
++					nh += hrest;
++					if (i < n - 1)
++						nw += wrest;
++				}
 +				else if ((i % 4) == 3) {
-+					if (s)
++					if (s) {
 +						nx += nw + iv;
-+					else
++						nw -= wrest;
++					} else {
++						nw -= wrest;
 +						nx -= nw + iv;
++						nh += hrest;
++					}
 +				}
 +				if (i == 0)	{
-+					if (an != 1)
-+						nw = (w - iv) * m->mfact;
++					if (an != 1) {
++						nw = (w - iv) - (w - iv) * (1 - m->mfact);
++						wrest = 0;
++					}
 +					ny = y;
 +				}
 +				else if (i == 1)
 +					nw = w - nw - iv;
 +				i++;
 +			}
-+			resize(c, nx, ny, nw + wrest - 2 * c->bw, nh + hrest - 2 * c->bw, False);
-+			nx += wrest;
-+			ny += hrest;
-+			wrest = hrest = 0;
++
++			resize(c, nx, ny, nw - 2 * c->bw, nh - 2*c->bw, False);
 +		}
 +	}
 +}
@@ -1148,6 +1162,7 @@ index 0000000..7d265e5
 +	selmon->nstack = selmon->pertag->nstacks[selmon->pertag->curtag] = MAX(selmon->nstack + arg->i, 0);
 +	arrange(selmon);
 +}
+\ No newline at end of file
 diff --git a/flextile-deluxe.h b/flextile-deluxe.h
 new file mode 100644
 index 0000000..b0aadd4
