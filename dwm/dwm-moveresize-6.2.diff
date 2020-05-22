@@ -1,0 +1,129 @@
+From 0ac50d43c5a48de34a53db8240143e4fb39239d3 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Fri, 22 May 2020 13:51:06 +0200
+Subject: [PATCH] The moveresize patch allows floating windows to be resized
+ and moved using keyboard shortcuts.
+
+This example keybinding reduces the y position with 25 pixels.
+
+	{ MODKEY,                       XK_Up,     moveresize,     {.v = "0x -25y 0w 0h" } },
+
+Use capital letters to specify absolute size and position should you need it.
+
+    { MODKEY,                       XK_Up,     moveresize,     {.v = "0x 0y 500W 300H" } },
+
+The above example would set the size of the client to 300x500 pixels, but leave the position as-is.
+
+Refer to:
+https://dwm.suckless.org/patches/moveresize/
+---
+ config.def.h |  8 +++++++
+ dwm.c        | 66 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 74 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index 1c0b587..ff863c9 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -78,6 +78,14 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
+ 	{ MODKEY,                       XK_space,  setlayout,      {0} },
+ 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
++	{ MODKEY,                       XK_Down,   moveresize,     {.v = "0x 25y 0w 0h" } },
++	{ MODKEY,                       XK_Up,     moveresize,     {.v = "0x -25y 0w 0h" } },
++	{ MODKEY,                       XK_Right,  moveresize,     {.v = "25x 0y 0w 0h" } },
++	{ MODKEY,                       XK_Left,   moveresize,     {.v = "-25x 0y 0w 0h" } },
++	{ MODKEY|ShiftMask,             XK_Down,   moveresize,     {.v = "0x 0y 0w 25h" } },
++	{ MODKEY|ShiftMask,             XK_Up,     moveresize,     {.v = "0x 0y 0w -25h" } },
++	{ MODKEY|ShiftMask,             XK_Right,  moveresize,     {.v = "0x 0y 25w 0h" } },
++	{ MODKEY|ShiftMask,             XK_Left,   moveresize,     {.v = "0x 0y -25w 0h" } },
+ 	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
+ 	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
+ 	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
+diff --git a/dwm.c b/dwm.c
+index 4465af1..89483c1 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -182,6 +182,7 @@ static void mappingnotify(XEvent *e);
+ static void maprequest(XEvent *e);
+ static void monocle(Monitor *m);
+ static void motionnotify(XEvent *e);
++static void moveresize(const Arg *arg);
+ static void movemouse(const Arg *arg);
+ static Client *nexttiled(Client *c);
+ static void pop(Client *);
+@@ -1192,6 +1193,71 @@ movemouse(const Arg *arg)
+ 	}
+ }
+ 
++void
++moveresize(const Arg *arg) {
++	/* only floating windows can be moved */
++	Client *c;
++	c = selmon->sel;
++	int x, y, w, h, nx, ny, nw, nh, ox, oy, ow, oh;
++	char xAbs, yAbs, wAbs, hAbs;
++	int msx, msy, dx, dy, nmx, nmy;
++	unsigned int dui;
++	Window dummy;
++
++	if (!c || !arg)
++		return;
++	if (selmon->lt[selmon->sellt]->arrange && !c->isfloating)
++		return;
++	if (sscanf((char *)arg->v, "%d%c %d%c %d%c %d%c", &x, &xAbs, &y, &yAbs, &w, &wAbs, &h, &hAbs) != 8)
++		return;
++
++	/* compute new window position; prevent window from be positioned outside the current monitor */
++	nw = c->w + w;
++	if (wAbs == 'W')
++		nw = w < selmon->mw - 2 * c->bw ? w : selmon->mw - 2 * c->bw;
++
++	nh = c->h + h;
++	if (hAbs == 'H')
++		nh = h < selmon->mh - 2 * c->bw ? h : selmon->mh - 2 * c->bw;
++
++	nx = c->x + x;
++	if (xAbs == 'X') {
++		if (x < selmon->mx)
++			nx = selmon->mx;
++		else if (x > selmon->mx + selmon->mw)
++			nx = selmon->mx + selmon->mw - nw - 2 * c->bw;
++		else
++			nx = x;
++	}
++
++	ny = c->y + y;
++	if (yAbs == 'Y') {
++		if (y < selmon->my)
++			ny = selmon->my;
++		else if (y > selmon->my + selmon->mh)
++			ny = selmon->my + selmon->mh - nh - 2 * c->bw;
++		else
++			ny = y;
++	}
++
++	ox = c->x;
++	oy = c->y;
++	ow = c->w;
++	oh = c->h;
++
++	XRaiseWindow(dpy, c->win);
++	Bool xqp = XQueryPointer(dpy, root, &dummy, &dummy, &msx, &msy, &dx, &dy, &dui);
++	resize(c, nx, ny, nw, nh, True);
++
++	/* move cursor along with the window to avoid problems caused by the sloppy focus */
++	if (xqp && ox <= msx && (ox + ow) >= msx && oy <= msy && (oy + oh) >= msy)
++	{
++		nmx = c->x - ox + c->w - ow;
++		nmy = c->y - oy + c->h - oh;
++		XWarpPointer(dpy, None, None, 0, 0, 0, 0, nmx, nmy);
++	}
++}
++
+ Client *
+ nexttiled(Client *c)
+ {
+-- 
+2.19.1
+
