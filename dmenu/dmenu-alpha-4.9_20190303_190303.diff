@@ -1,15 +1,15 @@
-From 78a27249c73c042db49352562a704ec4b8d57242 Mon Sep 17 00:00:00 2001
+From 6fefa32b0bd0d9bea51fe0ddaab2dcc717e549c5 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 28 May 2020 16:58:12 +0200
 Subject: [PATCH] Adding alpha patch
 
 ---
- config.def.h | 10 ++++++++
+ config.def.h | 10 +++++++++
  config.mk    |  6 ++++-
- dmenu.c      | 69 ++++++++++++++++++++++++++++++++++++++++++++--------
- drw.c        | 26 +++++++++++---------
- drw.h        |  9 ++++---
- 5 files changed, 94 insertions(+), 26 deletions(-)
+ dmenu.c      | 62 ++++++++++++++++++++++++++++++++++++++++++++++------
+ drw.c        | 26 ++++++++++++----------
+ drw.h        |  9 +++++---
+ 5 files changed, 90 insertions(+), 23 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1edb647..4afa3c4 100644
@@ -60,7 +60,7 @@ index 0929b4a..fe6d742 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L -DVERSION=\"$(VERSION)\" $(XINERAMAFLAGS)
 diff --git a/dmenu.c b/dmenu.c
-index 65f25ce..27d26db 100644
+index 65f25ce..e6df599 100644
 --- a/dmenu.c
 +++ b/dmenu.c
 @@ -24,6 +24,8 @@
@@ -72,13 +72,7 @@ index 65f25ce..27d26db 100644
  
  /* enums */
  enum { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }; /* color schemes */
-@@ -45,11 +47,16 @@ static struct item *matches, *matchend;
- static struct item *prev, *curr, *next, *sel;
- static int mon = -1, screen;
- 
--static Atom clip, utf8;
-+static Atom clip, utf8, type, dock;
- static Display *dpy;
+@@ -50,6 +52,11 @@ static Display *dpy;
  static Window root, parentwin, win;
  static XIC xic;
  
@@ -134,15 +128,7 @@ index 65f25ce..27d26db 100644
  static void
  readstdin(void)
  {
-@@ -594,7 +638,6 @@ setup(void)
- 	XIM xim;
- 	Window w, dw, *dws;
- 	XWindowAttributes wa;
--	XClassHint ch = {"dmenu", "dmenu"};
- #ifdef XINERAMA
- 	XineramaScreenInfo *info;
- 	Window pw;
-@@ -602,10 +645,12 @@ setup(void)
+@@ -602,7 +646,7 @@ setup(void)
  #endif
  	/* init appearance */
  	for (j = 0; j < SchemeLast; j++)
@@ -151,12 +137,7 @@ index 65f25ce..27d26db 100644
  
  	clip = XInternAtom(dpy, "CLIPBOARD",   False);
  	utf8 = XInternAtom(dpy, "UTF8_STRING", False);
-+	type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
-+	dock = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
- 
- 	/* calculate menu geometry */
- 	bh = drw->fonts->h + 2;
-@@ -657,13 +702,13 @@ setup(void)
+@@ -657,14 +701,14 @@ setup(void)
  
  	/* create menu window */
  	swa.override_redirect = True;
@@ -167,15 +148,15 @@ index 65f25ce..27d26db 100644
  	win = XCreateWindow(dpy, parentwin, x, y, mw, mh, 0,
 -	                    CopyFromParent, CopyFromParent, CopyFromParent,
 -	                    CWOverrideRedirect | CWBackPixel | CWEventMask, &swa);
--	XSetClassHint(dpy, win, &ch);
--
 +	                    depth, InputOutput, visual,
 +	                    CWOverrideRedirect|CWBackPixel|CWBorderPixel|CWColormap|CWEventMask, &swa);
-+	XChangeProperty(dpy, win, type, XA_ATOM, 32, PropModeReplace, (unsigned char *) &dock, 1);
+ 	XSetClassHint(dpy, win, &ch);
  
+-
  	/* input methods */
  	if ((xim = XOpenIM(dpy, NULL, NULL, NULL)) == NULL)
-@@ -690,7 +735,8 @@ static void
+ 		die("XOpenIM failed: could not open input device");
+@@ -690,7 +734,8 @@ static void
  usage(void)
  {
  	fputs("usage: dmenu [-bfiv] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
@@ -185,7 +166,7 @@ index 65f25ce..27d26db 100644
  	exit(1);
  }
  
-@@ -719,6 +765,8 @@ main(int argc, char *argv[])
+@@ -719,6 +764,8 @@ main(int argc, char *argv[])
  			lines = atoi(argv[++i]);
  		else if (!strcmp(argv[i], "-m"))
  			mon = atoi(argv[++i]);
@@ -194,7 +175,7 @@ index 65f25ce..27d26db 100644
  		else if (!strcmp(argv[i], "-p"))   /* adds prompt to left of input field */
  			prompt = argv[++i];
  		else if (!strcmp(argv[i], "-fn"))  /* font or font set */
-@@ -747,7 +795,8 @@ main(int argc, char *argv[])
+@@ -747,7 +794,8 @@ main(int argc, char *argv[])
  	if (!XGetWindowAttributes(dpy, parentwin, &wa))
  		die("could not get embedding window attributes: 0x%lx",
  		    parentwin);
