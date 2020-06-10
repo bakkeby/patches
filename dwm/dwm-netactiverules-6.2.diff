@@ -1,4 +1,4 @@
-From 129fc340bd124675a7f4f22593b4ee25abb480c4 Mon Sep 17 00:00:00 2001
+From 78dfc6c20cb3ac1508fa124be2d30d6c3f327c50 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 9 Jun 2020 11:09:23 +0200
 Subject: [PATCH] This is an example patch extending the focusonnetactive patch
@@ -18,8 +18,8 @@ This patch was created in relation to this reddit post:
 https://www.reddit.com/r/suckless/comments/gyrszt/dwm_and_steam_issue_with_steam_always_taking/
 ---
  config.def.h | 15 ++++++--
- dwm.c        | 99 ++++++++++++++++++++++++++++++++++++++++++++++++++--
- 2 files changed, 109 insertions(+), 5 deletions(-)
+ dwm.c        | 98 ++++++++++++++++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 108 insertions(+), 5 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..7617e49 100644
@@ -55,7 +55,7 @@ index 1c0b587..7617e49 100644
  
  /* layout(s) */
 diff --git a/dwm.c b/dwm.c
-index 4465af1..d18ab52 100644
+index 4465af1..661f310 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -66,6 +66,18 @@ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
@@ -134,7 +134,7 @@ index 4465af1..d18ab52 100644
  
  	if (!c)
  		return;
-@@ -523,8 +557,69 @@ clientmessage(XEvent *e)
+@@ -523,8 +557,68 @@ clientmessage(XEvent *e)
  			setfullscreen(c, (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
  				|| (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
  	} else if (cme->message_type == netatom[NetActiveWindow]) {
@@ -169,9 +169,8 @@ index 4465af1..d18ab52 100644
 +			// addition to your current tags.
 +			for (i = 0; i < LENGTH(tags) && !((1 << i) & c->tags); i++);
 +			if (i < LENGTH(tags)) {
-+				const Arg a = {.ui = c->mon->seltags | (1 << i)};
 +				selmon = c->mon;
-+				view(&a);
++				view(&((Arg) {.ui = c->mon->seltags | (1 << i)}));
 +				focus(c);
 +				restack(selmon);
 +			}
@@ -181,8 +180,8 @@ index 4465af1..d18ab52 100644
 +			// viewed tags, then let the client be shown on the
 +			// currently viewed tag(s) in addition to the client's
 +			// existing tags.
-+			if (!(c->mon->seltags & c->tags))
-+				c->tags |= c->mon->seltags;
++			if (!(c->mon->tagset[c->mon->seltags] & c->tags))
++				c->tags |= c->mon->tagset[c->mon->seltags];
 +			focus(c);
 +			arrange(c->mon);
 +			break;
@@ -190,8 +189,8 @@ index 4465af1..d18ab52 100644
 +			// If client is not already on any of the currently
 +			// viewed tags, then move the client to the currently
 +			// viewed tag(s).
-+			if (!(c->mon->seltags & c->tags))
-+				c->tags = c->mon->seltags;
++			if (!(c->mon->tagset[c->mon->seltags] & c->tags))
++				c->tags = c->mon->tagset[c->mon->seltags];
 +			focus(c);
 +			arrange(c->mon);
 +			break;
