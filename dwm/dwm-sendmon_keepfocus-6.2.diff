@@ -1,17 +1,21 @@
-From 682993be3204d8d0cdae9f62ef20891387dc37ff Mon Sep 17 00:00:00 2001
+From 8267779708a52b35fd30d1c1ec7451c192d45068 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Wed, 24 Jun 2020 17:15:36 +0200
 Subject: [PATCH] Adding sendmon_keepfocus patch
 
 ---
- dwm.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ dwm.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
 diff --git a/dwm.c b/dwm.c
-index 4465af1..b44f496 100644
+index 4465af1..2def4a1 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -1415,12 +1415,14 @@ sendmon(Client *c, Monitor *m)
+@@ -1412,15 +1412,21 @@ sendmon(Client *c, Monitor *m)
+ {
+ 	if (c->mon == m)
+ 		return;
++	int hadfocus = (c == selmon->sel);
  	unfocus(c, 1);
  	detach(c);
  	detachstack(c);
@@ -23,8 +27,11 @@ index 4465af1..b44f496 100644
 -	focus(NULL);
 -	arrange(NULL);
 +	arrange(m);
-+	focus(c);
-+	restack(m);
++	if (hadfocus) {
++		focus(c);
++		restack(m);
++	} else
++		focus(NULL);
  }
  
  void
