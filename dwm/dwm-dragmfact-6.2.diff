@@ -1,8 +1,8 @@
 From 356ea057b0f62edd33d66775e817d02a0791eb04 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 30 Apr 2020 17:31:36 +0200
-Subject: [PATCH] dragmfact patch with smooth sliding and support for multiple
- layouts
+Subject: [PATCH 1/2] dragmfact patch with smooth sliding and support for
+ multiple layouts
 
 ---
  config.def.h |   1 +
@@ -259,6 +259,80 @@ index 4465af1..585896f 100644
  void
  drawbar(Monitor *m)
  {
+-- 
+2.17.1
+
+
+From abdcb929af41a0298144fc218fc65d739c6d6e18 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Thu, 25 Jun 2020 11:50:49 +0200
+Subject: [PATCH 2/2] f
+
+---
+ dwm.c | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index 585896f..f250627 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -58,7 +58,7 @@
+ #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
+ 
+ /* enums */
+-enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
++enum { CurNormal, CurResize, CurMove, CurResizeHorzArrow, CurResizeVertArrow, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+@@ -756,7 +756,7 @@ dragmfact(const Arg *arg)
+ 
+ 		if (layout == SPLIT_HORIZONTAL || layout == SPLIT_HORIZONTAL_DUAL_STACK)
+ 			horizontal = 1;
+-		else if (layout == SPLIT_CENTERED_VERTICAL)
++		else if (layout == SPLIT_CENTERED_VERTICAL && (n - m->nmaster) > 1)
+ 			center = 1;
+ 		else if (layout == FLOATING_MASTER) {
+ 			center = 1;
+@@ -770,7 +770,7 @@ dragmfact(const Arg *arg)
+ 	}
+ 	#endif // FLEXTILE_DELUXE_LAYOUT
+ 	#if CENTEREDMASTER_LAYOUT
+-	else if (m->lt[m->sellt]->arrange == &centeredmaster)
++	else if (m->lt[m->sellt]->arrange == &centeredmaster && (n - m->nmaster) > 1)
+ 		center = 1;
+ 	#endif // CENTEREDMASTER_LAYOUT
+ 	#if CENTEREDFLOATINGMASTER_LAYOUT
+@@ -786,10 +786,6 @@ dragmfact(const Arg *arg)
+ 		horizontal = 1;
+ 	#endif // BSTACKHORIZ_LAYOUT
+ 
+-	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+-		None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
+-		return;
+-
+ 	#if VANITYGAPS_PATCH
+ 	ay += oh;
+ 	ax += ov;
+@@ -843,6 +839,9 @@ dragmfact(const Arg *arg)
+ 		py = ay + ah / 2;
+ 	}
+ 
++	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
++		None, cursor[horizontal ? CurResizeVertArrow : CurResizeHorzArrow]->cursor, CurrentTime) != GrabSuccess)
++		return;
+ 	XWarpPointer(dpy, None, root, 0, 0, 0, 0, px, py);
+ 
+ 	do {
+@@ -1786,6 +1785,8 @@ setup(void)
+ 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
+ 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
+ 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
++	cursor[CurResizeHorzArrow] = drw_cur_create(drw, XC_sb_h_double_arrow);
++	cursor[CurResizeVertArrow] = drw_cur_create(drw, XC_sb_v_double_arrow);
+ 	/* init appearance */
+ 	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
+ 	for (i = 0; i < LENGTH(colors); i++)
 -- 
 2.17.1
 
