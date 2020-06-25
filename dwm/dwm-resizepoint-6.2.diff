@@ -1,17 +1,26 @@
-From d68243353a1f17af91bef4803b2f4b4dbed6ae54 Mon Sep 17 00:00:00 2001
+From 3a6c2b419b9e5787fa388bad5a184b70432a41d8 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Wed, 24 Jun 2020 14:16:27 +0200
 Subject: [PATCH] resizepoint - Like resizecorners, but does not warp mouse
  pointer
 
 ---
- dwm.c | 21 +++++++++++++++------
- 1 file changed, 15 insertions(+), 6 deletions(-)
+ dwm.c | 30 +++++++++++++++++++++---------
+ 1 file changed, 21 insertions(+), 9 deletions(-)
 
 diff --git a/dwm.c b/dwm.c
-index 4465af1..c94d4a4 100644
+index 4465af1..8c82bf3 100644
 --- a/dwm.c
 +++ b/dwm.c
+@@ -58,7 +58,7 @@
+ #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
+ 
+ /* enums */
+-enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
++enum { CurResizeBR, CurResizeBL, CurResizeTR, CurResizeTL, CurNormal, CurMove, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
 @@ -1290,10 +1290,13 @@ resizeclient(Client *c, int x, int y, int w, int h)
  void
  resizemouse(const Arg *arg)
@@ -33,14 +42,15 @@ index 4465af1..c94d4a4 100644
  	ocy = c->y;
 +	och = c->h;
 +	ocw = c->w;
- 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
- 		None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
- 		return;
--	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
 +	if (!XQueryPointer(dpy, c->win, &dummy, &dummy, &opx, &opy, &nx, &ny, &dui))
 +		return;
 +	horizcorner = nx < c->w / 2;
 +	vertcorner  = ny < c->h / 2;
+ 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+-		None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
++		None, cursor[horizcorner | (vertcorner << 1)]->cursor, CurrentTime) != GrabSuccess)
+ 		return;
+-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
  	do {
  		XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
  		switch(ev.type) {
@@ -70,6 +80,18 @@ index 4465af1..c94d4a4 100644
  	XUngrabPointer(dpy, CurrentTime);
  	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
  	if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
+@@ -1564,7 +1573,10 @@ setup(void)
+ 	netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
+ 	/* init cursors */
+ 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
+-	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
++	cursor[CurResizeBR] = drw_cur_create(drw, XC_bottom_right_corner);
++	cursor[CurResizeBL] = drw_cur_create(drw, XC_bottom_left_corner);
++	cursor[CurResizeTR] = drw_cur_create(drw, XC_top_right_corner);
++	cursor[CurResizeTL] = drw_cur_create(drw, XC_top_left_corner);
+ 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
+ 	/* init appearance */
+ 	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
 -- 
 2.19.1
 
