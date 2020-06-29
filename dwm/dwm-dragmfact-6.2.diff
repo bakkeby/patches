@@ -1,13 +1,13 @@
-From 356ea057b0f62edd33d66775e817d02a0791eb04 Mon Sep 17 00:00:00 2001
+From 27ccce5fa7864d92852e8c517d0003d71891bd25 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 30 Apr 2020 17:31:36 +0200
-Subject: [PATCH 1/2] dragmfact patch with smooth sliding and support for
- multiple layouts
+Subject: [PATCH] dragmfact patch with smooth sliding and support for multiple
+ layouts
 
 ---
  config.def.h |   1 +
- dwm.c        | 220 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 221 insertions(+)
+ dwm.c        | 226 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 226 insertions(+), 1 deletion(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..72f0467 100644
@@ -22,9 +22,18 @@ index 1c0b587..72f0467 100644
  	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
  	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..585896f 100644
+index 4465af1..b4543e9 100644
 --- a/dwm.c
 +++ b/dwm.c
+@@ -58,7 +58,7 @@
+ #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
+ 
+ /* enums */
+-enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
++enum { CurNormal, CurResize, CurMove, CurResizeHorzArrow, CurResizeVertArrow, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
 @@ -161,6 +161,7 @@ static void destroynotify(XEvent *e);
  static void detach(Client *c);
  static void detachstack(Client *c);
@@ -33,7 +42,7 @@ index 4465af1..585896f 100644
  static void drawbar(Monitor *m);
  static void drawbars(void);
  static void enternotify(XEvent *e);
-@@ -692,6 +693,225 @@ dirtomon(int dir)
+@@ -692,6 +693,227 @@ dirtomon(int dir)
  	return m;
  }
  
@@ -43,7 +52,7 @@ index 4465af1..585896f 100644
 +	unsigned int n;
 +	int py, px; // pointer coordinates
 +	int ax, ay, aw, ah; // area position, width and height
-+	int center = 0, horizontal = 0, mirror = 0; // layout configuration
++	int center = 0, horizontal = 0, mirror = 0, fixed = 0; // layout configuration
 +	double fact;
 +	Monitor *m;
 +	XEvent ev;
@@ -64,9 +73,54 @@ index 4465af1..585896f 100644
 +	ah = m->wh;
 +	aw = m->ww;
 +
++	#if FLEXTILE_DELUXE_LAYOUT
++	if (m->lt[m->sellt]->arrange == &flextile) {
++		int layout = m->ltaxis[LAYOUT];
++		if (layout < 0) {
++			mirror = 1;
++			layout *= -1;
++		}
++		if (layout > FLOATING_MASTER) {
++			layout -= FLOATING_MASTER;
++			fixed = 1;
++		}
++
++		if (layout == SPLIT_HORIZONTAL || layout == SPLIT_HORIZONTAL_DUAL_STACK)
++			horizontal = 1;
++		else if (layout == SPLIT_CENTERED_VERTICAL && (fixed || n - m->nmaster > 1))
++			center = 1;
++		else if (layout == FLOATING_MASTER) {
++			center = 1;
++			if (aw < ah)
++				horizontal = 1;
++		}
++		else if (layout == SPLIT_CENTERED_HORIZONTAL) {
++			if (fixed || n - m->nmaster > 1)
++				center = 1;
++			horizontal = 1;
++		}
++	}
++	#endif // FLEXTILE_DELUXE_LAYOUT
++	#if CENTEREDMASTER_LAYOUT
++	else if (m->lt[m->sellt]->arrange == &centeredmaster && (fixed || n - m->nmaster > 1))
++		center = 1;
++	#endif // CENTEREDMASTER_LAYOUT
++	#if CENTEREDFLOATINGMASTER_LAYOUT
++	else if (m->lt[m->sellt]->arrange == &centeredfloatingmaster)
++		center = 1;
++	#endif // CENTEREDFLOATINGMASTER_LAYOUT
++	#if BSTACK_LAYOUT
++	else if (m->lt[m->sellt]->arrange == &bstack)
++		horizontal = 1;
++	#endif // BSTACK_LAYOUT
++	#if BSTACKHORIZ_LAYOUT
++	else if (m->lt[m->sellt]->arrange == &bstackhoriz)
++		horizontal = 1;
++	#endif // BSTACKHORIZ_LAYOUT
++
 +	/* do not allow mfact to be modified under certain conditions */
-+	if (!m->lt[m->sellt]->arrange          // floating
-+		|| (m->nmaster && n <= m->nmaster) // no master
++	if (!m->lt[m->sellt]->arrange                            // floating layout
++		|| (!n || (!fixed && m->nmaster && n <= m->nmaster)) // no master
 +		#if MONOCLE_LAYOUT
 +		|| m->lt[m->sellt]->arrange == &monocle
 +		#endif // MONOCLE_LAYOUT
@@ -86,52 +140,6 @@ index 4465af1..585896f 100644
 +		|| (m->lt[m->sellt]->arrange == &flextile && m->ltaxis[LAYOUT] == NO_SPLIT)
 +		#endif // FLEXTILE_DELUXE_LAYOUT
 +	)
-+		return;
-+
-+	#if FLEXTILE_DELUXE_LAYOUT
-+	if (m->lt[m->sellt]->arrange == &flextile) {
-+		int layout = m->ltaxis[LAYOUT];
-+		if (layout < 0) {
-+			mirror = 1;
-+			layout *= -1;
-+		}
-+		if (layout > FLOATING_MASTER)
-+			layout -= FLOATING_MASTER;
-+
-+		if (layout == SPLIT_HORIZONTAL || layout == SPLIT_HORIZONTAL_DUAL_STACK)
-+			horizontal = 1;
-+		else if (layout == SPLIT_CENTERED_VERTICAL)
-+			center = 1;
-+		else if (layout == FLOATING_MASTER) {
-+			center = 1;
-+			if (aw < ah)
-+				horizontal = 1;
-+		}
-+		else if (layout == SPLIT_CENTERED_HORIZONTAL) {
-+			horizontal = 1;
-+			center = 1;
-+		}
-+	}
-+	#endif // FLEXTILE_DELUXE_LAYOUT
-+	#if CENTEREDMASTER_LAYOUT
-+	else if (m->lt[m->sellt]->arrange == &centeredmaster)
-+		center = 1;
-+	#endif // CENTEREDMASTER_LAYOUT
-+	#if CENTEREDFLOATINGMASTER_LAYOUT
-+	else if (m->lt[m->sellt]->arrange == &centeredfloatingmaster)
-+		center = 1;
-+	#endif // CENTEREDFLOATINGMASTER_LAYOUT
-+	#if BSTACK_LAYOUT
-+	else if (m->lt[m->sellt]->arrange == &bstack)
-+		horizontal = 1;
-+	#endif // BSTACK_LAYOUT
-+	#if BSTACKHORIZ_LAYOUT
-+	else if (m->lt[m->sellt]->arrange == &bstackhoriz)
-+		horizontal = 1;
-+	#endif // BSTACKHORIZ_LAYOUT
-+
-+	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-+		None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
 +		return;
 +
 +	#if VANITYGAPS_PATCH
@@ -187,6 +195,9 @@ index 4465af1..585896f 100644
 +		py = ay + ah / 2;
 +	}
 +
++	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
++		None, cursor[horizontal ? CurResizeVertArrow : CurResizeHorzArrow]->cursor, CurrentTime) != GrabSuccess)
++		return;
 +	XWarpPointer(dpy, None, root, 0, 0, 0, 0, px, py);
 +
 +	do {
@@ -259,72 +270,7 @@ index 4465af1..585896f 100644
  void
  drawbar(Monitor *m)
  {
--- 
-2.17.1
-
-
-From abdcb929af41a0298144fc218fc65d739c6d6e18 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Thu, 25 Jun 2020 11:50:49 +0200
-Subject: [PATCH 2/2] f
-
----
- dwm.c | 15 ++++++++-------
- 1 file changed, 8 insertions(+), 7 deletions(-)
-
-diff --git a/dwm.c b/dwm.c
-index 585896f..f250627 100644
---- a/dwm.c
-+++ b/dwm.c
-@@ -58,7 +58,7 @@
- #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
- 
- /* enums */
--enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
-+enum { CurNormal, CurResize, CurMove, CurResizeHorzArrow, CurResizeVertArrow, CurLast }; /* cursor */
- enum { SchemeNorm, SchemeSel }; /* color schemes */
- enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
-        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
-@@ -756,7 +756,7 @@ dragmfact(const Arg *arg)
- 
- 		if (layout == SPLIT_HORIZONTAL || layout == SPLIT_HORIZONTAL_DUAL_STACK)
- 			horizontal = 1;
--		else if (layout == SPLIT_CENTERED_VERTICAL)
-+		else if (layout == SPLIT_CENTERED_VERTICAL && (n - m->nmaster) > 1)
- 			center = 1;
- 		else if (layout == FLOATING_MASTER) {
- 			center = 1;
-@@ -770,7 +770,7 @@ dragmfact(const Arg *arg)
- 	}
- 	#endif // FLEXTILE_DELUXE_LAYOUT
- 	#if CENTEREDMASTER_LAYOUT
--	else if (m->lt[m->sellt]->arrange == &centeredmaster)
-+	else if (m->lt[m->sellt]->arrange == &centeredmaster && (n - m->nmaster) > 1)
- 		center = 1;
- 	#endif // CENTEREDMASTER_LAYOUT
- 	#if CENTEREDFLOATINGMASTER_LAYOUT
-@@ -786,10 +786,6 @@ dragmfact(const Arg *arg)
- 		horizontal = 1;
- 	#endif // BSTACKHORIZ_LAYOUT
- 
--	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
--		None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
--		return;
--
- 	#if VANITYGAPS_PATCH
- 	ay += oh;
- 	ax += ov;
-@@ -843,6 +839,9 @@ dragmfact(const Arg *arg)
- 		py = ay + ah / 2;
- 	}
- 
-+	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-+		None, cursor[horizontal ? CurResizeVertArrow : CurResizeHorzArrow]->cursor, CurrentTime) != GrabSuccess)
-+		return;
- 	XWarpPointer(dpy, None, root, 0, 0, 0, 0, px, py);
- 
- 	do {
-@@ -1786,6 +1785,8 @@ setup(void)
+@@ -1566,6 +1788,8 @@ setup(void)
  	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
  	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
  	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
