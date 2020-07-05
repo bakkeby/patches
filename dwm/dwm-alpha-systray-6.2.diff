@@ -296,7 +296,7 @@ index 4465af1..20f8309 100644
 2.19.1
 
 
-From 1a36b6c4952bd1e9a6d86deef96996fbea1e481e Mon Sep 17 00:00:00 2001
+From 514943eba37cd2f9d62d47157dc3088e31711529 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 10:53:35 +0200
 Subject: [PATCH 2/2] Adding systray patch
@@ -304,8 +304,8 @@ Subject: [PATCH 2/2] Adding systray patch
 Refer to https://dwm.suckless.org/patches/systray/
 ---
  config.def.h |   4 +
- dwm.c        | 421 +++++++++++++++++++++++++++++++++++++++++++++++----
- 2 files changed, 399 insertions(+), 26 deletions(-)
+ dwm.c        | 423 +++++++++++++++++++++++++++++++++++++++++++++++----
+ 2 files changed, 401 insertions(+), 26 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 4f68fe8..1952613 100644
@@ -323,7 +323,7 @@ index 4f68fe8..1952613 100644
  static const char dmenufont[]       = "monospace:size=10";
  static const char col_gray1[]       = "#222222";
 diff --git a/dwm.c b/dwm.c
-index 20f8309..6e57ef8 100644
+index 20f8309..c3ecbef 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -59,12 +59,30 @@
@@ -887,7 +887,7 @@ index 20f8309..6e57ef8 100644
  		XMapRaised(dpy, m->barwin);
  		XSetClassHint(dpy, m->barwin, &ch);
  	}
-@@ -2001,6 +2227,139 @@ updatestatus(void)
+@@ -2001,6 +2227,141 @@ updatestatus(void)
  	if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
  		strcpy(stext, "dwm-"VERSION);
  	drawbar(selmon);
@@ -995,6 +995,8 @@ index 20f8309..6e57ef8 100644
 +				i->w = (int) ((float)bh * ((float)i->w / (float)i->h));
 +			i->h = bh;
 +		}
++		if (i->w > 2*bh)
++			i->w = bh;
 +	}
 +}
 +
@@ -1027,7 +1029,7 @@ index 20f8309..6e57ef8 100644
  }
  
  void
-@@ -2085,6 +2444,16 @@ wintomon(Window w)
+@@ -2085,6 +2446,16 @@ wintomon(Window w)
  	return selmon;
  }
  
