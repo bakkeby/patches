@@ -1,4 +1,4 @@
-From 30075c8e9b05d0eca1214eb3a4af9269b2b63296 Mon Sep 17 00:00:00 2001
+From dd945d425269fe51138c0870a3d62a5c39e56011 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Fri, 1 May 2020 22:46:52 +0200
 Subject: [PATCH] flextile-deluxe layout - a re-envisoned and revamped 
@@ -417,7 +417,7 @@ index 4465af1..efd00e7 100644
  }
 diff --git a/flextile-deluxe.c b/flextile-deluxe.c
 new file mode 100644
-index 0000000..d5e5317
+index 0000000..3c3ccf2
 --- /dev/null
 +++ b/flextile-deluxe.c
 @@ -0,0 +1,741 @@
@@ -906,7 +906,7 @@ index 0000000..d5e5317
 +	rest = (h - ih * (rows - 1)) - ch * rows;
 +
 +	for (i = 0; i < rows; i++) {
-+		arrange_left_to_right(m, x, y, ch + (i < rest ? 1 : 0), w, ih, iv, n, cols, ai + i*cols);
++		arrange_left_to_right(m, x, y, ch + (i < rest ? 1 : 0), w, ih, iv, n, MIN(cols, an - i*cols), ai + i*cols);
 +		y += ch + (i < rest ? 1 : 0) + ih;
 +	}
 +}
@@ -926,7 +926,7 @@ index 0000000..d5e5317
 +	rest = (w - iv * (cols - 1)) - cw * cols;
 +
 +	for (i = 0; i < cols; i++) {
-+		arrange_top_to_bottom(m, x, y, h, cw + (i < rest ? 1 : 0), ih, iv, n, rows, ai + i*rows);
++		arrange_top_to_bottom(m, x, y, h, cw + (i < rest ? 1 : 0), ih, iv, n, MIN(rows, an - i*rows), ai + i*rows);
 +		x += cw + (i < rest ? 1 : 0) + iv;
 +	}
 +}
