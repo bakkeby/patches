@@ -1,7 +1,7 @@
 From 986ee6a3ae3dcdd704b69f1dbd954115246021bf Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 10:47:07 +0200
-Subject: [PATCH 1/2] Alpha, adds transparency for the status bar.
+Subject: [PATCH 1/3] Alpha, adds transparency for the status bar.
 
 Allow dwm to have translucent bars, while keeping all the text on it opaque, just like the alpha-patch for st.
 
@@ -299,7 +299,7 @@ index 4465af1..20f8309 100644
 From f86a0c1616543c9d3ab574786f3b9487638c5c9c Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 10:53:35 +0200
-Subject: [PATCH 2/2] Adding systray patch
+Subject: [PATCH 2/3] Adding systray patch
 
 Refer to https://dwm.suckless.org/patches/systray/
 ---
@@ -1046,6 +1046,52 @@ index 20f8309..d155124 100644
  /* There's no way to check accesses to destroyed windows, thus those cases are
   * ignored (especially on UnmapNotify's). Other types of errors call Xlibs
   * default error handler, which may call exit. */
+-- 
+2.19.1
+
+
+From 0d7c3a31d974b03f1d93a4c87a0a819903e168df Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Fri, 17 Jul 2020 21:41:23 +0200
+Subject: [PATCH 3/3] f
+
+---
+ dwm.c | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index d155124..8cfbb1a 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -2254,7 +2254,7 @@ updatesystray(void)
+ 
+ 		wa.override_redirect = True;
+ 		wa.event_mask = ButtonPressMask|ExposureMask;
+-		wa.background_pixel = scheme[SchemeNorm][ColBg].pixel & 0x00ffffffU;
++		wa.background_pixel = 0;
+ 		wa.border_pixel = 0;
+ 		wa.colormap = cmap;
+ 		systray->win = XCreateWindow(dpy, root, x - xpad, m->by + ypad, w, bh, 0, depth,
+@@ -2283,8 +2283,7 @@ updatesystray(void)
+ 
+ 	drw_setscheme(drw, scheme[SchemeNorm]);
+ 	for (w = 0, i = systray->icons; i; i = i->next) {
+-		/* make sure the background color stays the same */
+-		wa.background_pixel = scheme[SchemeNorm][ColBg].pixel;
++		wa.background_pixel = 0;
+ 		XChangeWindowAttributes(dpy, i->win, CWBackPixel, &wa);
+ 		XMapRaised(dpy, i->win);
+ 		w += systrayspacing;
+@@ -2305,9 +2304,6 @@ updatesystray(void)
+ 	XConfigureWindow(dpy, systray->win, CWX|CWY|CWWidth|CWHeight|CWSibling|CWStackMode, &wc);
+ 	XMapWindow(dpy, systray->win);
+ 	XMapSubwindows(dpy, systray->win);
+-	/* redraw background */
+-	XSetForeground(dpy, drw->gc, scheme[SchemeNorm][ColBg].pixel);
+-	XFillRectangle(dpy, systray->win, drw->gc, 0, 0, w, bh);
+ 	XSync(dpy, False);
+ }
+ 
 -- 
 2.19.1
 
