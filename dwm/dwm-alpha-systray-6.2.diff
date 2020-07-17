@@ -296,7 +296,7 @@ index 4465af1..20f8309 100644
 2.19.1
 
 
-From 514943eba37cd2f9d62d47157dc3088e31711529 Mon Sep 17 00:00:00 2001
+From f86a0c1616543c9d3ab574786f3b9487638c5c9c Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 10:53:35 +0200
 Subject: [PATCH 2/2] Adding systray patch
@@ -323,7 +323,7 @@ index 4f68fe8..1952613 100644
  static const char dmenufont[]       = "monospace:size=10";
  static const char col_gray1[]       = "#222222";
 diff --git a/dwm.c b/dwm.c
-index 20f8309..c3ecbef 100644
+index 20f8309..d155124 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -59,12 +59,30 @@
@@ -918,7 +918,7 @@ index 20f8309..c3ecbef 100644
 +
 +		wa.override_redirect = True;
 +		wa.event_mask = ButtonPressMask|ExposureMask;
-+		wa.background_pixel = scheme[SchemeNorm][ColBg].pixel;
++		wa.background_pixel = scheme[SchemeNorm][ColBg].pixel & 0x00ffffffU;
 +		wa.border_pixel = 0;
 +		wa.colormap = cmap;
 +		systray->win = XCreateWindow(dpy, root, x - xpad, m->by + ypad, w, bh, 0, depth,
