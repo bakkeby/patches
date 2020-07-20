@@ -1,4 +1,4 @@
-From 5ab5d7b0398dbeb478f6e86d11963baf4c2108ea Mon Sep 17 00:00:00 2001
+From 5f670dfda1ce8491162c3d963cce72aafd44404b Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 19 Jul 2020 19:26:10 +0200
 Subject: [PATCH] Bar Modules - splits the bar functionality into individual
@@ -737,7 +737,7 @@ index 0000000..b02a4b8
 +static int click_status(Bar *bar, Arg *arg, BarClickArg *a);
 diff --git a/patch/bar_tags.c b/patch/bar_tags.c
 new file mode 100644
-index 0000000..bbda5a3
+index 0000000..680e1fe
 --- /dev/null
 +++ b/patch/bar_tags.c
 @@ -0,0 +1,55 @@
@@ -749,14 +749,14 @@ index 0000000..bbda5a3
 +	for (w = 0, i = 0; i < LENGTH(tags); i++) {
 +		w += TEXTW(tags[i]);
 +	}
-+	return w + lrpad;
++	return w;
 +}
 +
 +int
 +draw_tags(Bar *bar, BarDrawArg *a)
 +{
 +	int invert;
-+	int w, x = a->x + lrpad / 2;
++	int w, x = a->x;
 +	int boxs = drw->fonts->h / 9;
 +	int boxw = drw->fonts->h / 6 + 2;
 +	unsigned int i, occ = 0, urg = 0;
