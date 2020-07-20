@@ -1,0 +1,479 @@
+From de9e4c3cd933812c12b217c46f97b314584ed507 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Mon, 20 Jul 2020 10:35:17 +0200
+Subject: [PATCH 2/2] Adding powerline module
+
+---
+ config.def.h                 |  10 ++-
+ drw.c                        |  41 +++++++++++
+ drw.h                        |   2 +
+ dwm.c                        |   7 ++
+ patch/bar_powerline_status.c | 121 +++++++++++++++++++++++++++++++++
+ patch/bar_powerline_status.h |  11 +++
+ patch/bar_powerline_tags.c   | 127 +++++++++++++++++++++++++++++++++++
+ patch/bar_powerline_tags.h   |   3 +
+ patch/include.c              |   8 ++-
+ patch/include.h              |   8 ++-
+ 10 files changed, 330 insertions(+), 8 deletions(-)
+ create mode 100644 patch/bar_powerline_status.c
+ create mode 100644 patch/bar_powerline_status.h
+ create mode 100644 patch/bar_powerline_tags.c
+ create mode 100644 patch/bar_powerline_tags.h
+
+diff --git a/config.def.h b/config.def.h
+index 2534eac..08bc30d 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -18,6 +18,12 @@ static const char *colors[][3]      = {
+ 	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
+ };
+ 
++static const char *statuscolors[][3] = {
++	/*               fg         bg         border   */
++	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
++	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
++};
++
+ /* tagging */
+ static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+ 
+@@ -45,9 +51,9 @@ static const Rule rules[] = {
+  */
+ static const BarRule barrules[] = {
+ 	/* monitor  bar    alignment         widthfunc              drawfunc              clickfunc           name */
+-	{ -1,       0,     BAR_ALIGN_LEFT,   width_tags,            draw_tags,            click_tags,         "tags" },
++	{ -1,       0,     BAR_ALIGN_LEFT,   width_pwrl_tags,       draw_pwrl_tags,       click_pwrl_tags,    "powerline_tags" },
+ 	{ -1,       0,     BAR_ALIGN_LEFT,   width_ltsymbol,        draw_ltsymbol,        click_ltsymbol,     "layout" },
+-	{ 'A',      0,     BAR_ALIGN_RIGHT,  width_status,          draw_status,          click_status,       "status" },
++	{ 'A',      0,     BAR_ALIGN_RIGHT,  width_pwrl_status,     draw_pwrl_status,     click_pwrl_status,  "powerline_status" },
+ 	{ -1,       0,     BAR_ALIGN_NONE,   width_wintitle,        draw_wintitle,        click_wintitle,     "wintitle" },
+ };
+ 
+diff --git a/drw.c b/drw.c
+index 8fd1ca4..fc449c5 100644
+--- a/drw.c
++++ b/drw.c
+@@ -15,6 +15,7 @@ static const unsigned char utfbyte[UTF_SIZ + 1] = {0x80,    0, 0xC0, 0xE0, 0xF0}
+ static const unsigned char utfmask[UTF_SIZ + 1] = {0xC0, 0x80, 0xE0, 0xF0, 0xF8};
+ static const long utfmin[UTF_SIZ + 1] = {       0,    0,  0x80,  0x800,  0x10000};
+ static const long utfmax[UTF_SIZ + 1] = {0x10FFFF, 0x7F, 0x7FF, 0xFFFF, 0x10FFFF};
++Clr transcheme[3];
+ 
+ static long
+ utf8decodebyte(const char c, size_t *i)
+@@ -235,6 +236,15 @@ drw_setscheme(Drw *drw, Clr *scm)
+ 		drw->scheme = scm;
+ }
+ 
++void
++drw_settrans(Drw *drw, Clr *psc, Clr *nsc)
++{
++	if (drw) {
++		transcheme[0] = psc[ColBg]; transcheme[1] = nsc[ColBg]; transcheme[2] = psc[ColBorder];
++		drw->scheme = transcheme;
++	}
++}
++
+ void
+ drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert)
+ {
+@@ -378,6 +388,37 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
+ 	return x + (render ? w : 0);
+ }
+ 
++void
++drw_arrow(Drw *drw, int x, int y, unsigned int w, unsigned int h, int direction, int slash)
++{
++	if (!drw || !drw->scheme)
++		return;
++
++	/* direction=1 draws right arrow */
++	x = direction ? x : x + w;
++	w = direction ? w : -w;
++	/* slash=1 draws slash instead of arrow */
++	unsigned int hh = slash ? (direction ? 0 : h) : h/2;
++
++	XPoint points[] = {
++		{x    , y      },
++		{x + w, y + hh },
++		{x    , y + h  },
++	};
++
++	XPoint bg[] = {
++		{x    , y    },
++		{x + w, y    },
++		{x + w, y + h},
++		{x    , y + h},
++	};
++
++	XSetForeground(drw->dpy, drw->gc, drw->scheme[ColBg].pixel);
++	XFillPolygon(drw->dpy, drw->drawable, drw->gc, bg, 4, Convex, CoordModeOrigin);
++	XSetForeground(drw->dpy, drw->gc, drw->scheme[ColFg].pixel);
++	XFillPolygon(drw->dpy, drw->drawable, drw->gc, points, 3, Nonconvex, CoordModeOrigin);
++}
++
+ void
+ drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h)
+ {
+diff --git a/drw.h b/drw.h
+index 4bcd5ad..4a42557 100644
+--- a/drw.h
++++ b/drw.h
+@@ -48,10 +48,12 @@ void drw_cur_free(Drw *drw, Cur *cursor);
+ /* Drawing context manipulation */
+ void drw_setfontset(Drw *drw, Fnt *set);
+ void drw_setscheme(Drw *drw, Clr *scm);
++void drw_settrans(Drw *drw, Clr *psc, Clr *nsc);
+ 
+ /* Drawing functions */
+ void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert);
+ int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert);
++void drw_arrow(Drw *drw, int x, int y, unsigned int w, unsigned int h, int direction, int slash);
+ 
+ /* Map functions */
+ void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h);
+diff --git a/dwm.c b/dwm.c
+index 03dccfb..0e147de 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1729,6 +1729,13 @@ setup(void)
+ 	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
+ 	for (i = 0; i < LENGTH(colors); i++)
+ 		scheme[i] = drw_scm_create(drw, colors[i], 3);
++	statusscheme = ecalloc(LENGTH(statuscolors), sizeof(Clr *));
++	for (i = 0; i < LENGTH(statuscolors); i++)
++		#if BAR_ALPHA_PATCH
++		statusscheme[i] = drw_scm_create(drw, statuscolors[i], alphas[0], ColCount);
++		#else
++		statusscheme[i] = drw_scm_create(drw, statuscolors[i], 3);
++		#endif // BAR_ALPHA_PATCH
+ 	/* init bars */
+ 	updatebars();
+ 	updatestatus();
+diff --git a/patch/bar_powerline_status.c b/patch/bar_powerline_status.c
+new file mode 100644
+index 0000000..3e2ee6a
+--- /dev/null
++++ b/patch/bar_powerline_status.c
+@@ -0,0 +1,121 @@
++static Clr **statusscheme;
++
++int
++width_pwrl_status(Bar *bar, BarWidthArg *a)
++{
++	#if BAR_STATUSCMD_PATCH
++	return widthpowerlinestatus(rawstext);
++	#else
++	return widthpowerlinestatus(stext);
++	#endif // BAR_STATUSCMD_PATCH
++}
++
++#if BAR_EXTRASTATUS_PATCH
++int
++width_pwrl_status_es(Bar *bar, BarWidthArg *a)
++{
++	#if BAR_STATUSCMD_PATCH
++	return widthpowerlinestatus(rawestext);
++	#else
++	return widthpowerlinestatus(estext);
++	#endif // BAR_STATUSCMD_PATCH
++}
++#endif // BAR_EXTRASTATUS_PATCH
++
++int
++draw_pwrl_status(Bar *bar, BarDrawArg *a)
++{
++	#if BAR_STATUSCMD_PATCH
++	return drawpowerlinestatus(a->x + a->w, rawstext);
++	#else
++	return drawpowerlinestatus(a->x + a->w, stext);
++	#endif // BAR_STATUSCMD_PATCH
++}
++
++#if BAR_EXTRASTATUS_PATCH
++int
++draw_pwrl_status_es(Bar *bar, BarDrawArg *a)
++{
++	#if BAR_STATUSCMD_PATCH
++	return drawpowerlinestatus(a->x + a->w, rawestext);
++	#else
++	return drawpowerlinestatus(a->x + a->w, estext);
++	#endif // BAR_STATUSCMD_PATCH
++}
++#endif // BAR_EXTRASTATUS_PATCH
++
++int
++click_pwrl_status(Bar *bar, Arg *arg, BarClickArg *a)
++{
++	return ClkStatusText;
++}
++
++int
++widthpowerlinestatus(char *stext)
++{
++	char status[512];
++	int w = 0, i, n = strlen(stext);
++	int plw = drw->fonts->h / 2 + 1;
++	char *bs, bp = '|';
++	strcpy(status, stext);
++
++	for (i = n, bs = &status[n-1]; i >= 0; i--, bs--) {
++		if (*bs == '<' || *bs == '/' || *bs == '\\' || *bs == '>' || *bs == '|') { /* block start */
++			if (bp != '|')
++				w += plw;
++			w += TEXTW(bs+2);
++			bp = *bs;
++			*bs = 0;
++		}
++	}
++	if (bp != '|')
++		w += plw * 2;
++
++	return w;
++}
++
++int
++drawpowerlinestatus(int xpos, char *stext)
++{
++	char status[512];
++	int i, n = strlen(stext), cn = 0;
++	int x = xpos, w = 0;
++	int plw = drw->fonts->h / 2 + 1;
++	char *bs, bp = '|';
++	Clr *prevscheme = statusscheme[0], *nxtscheme;
++	strcpy(status, stext);
++
++	for (i = n, bs = &status[n-1]; i >= 0; i--, bs--) {
++		if (*bs == '<' || *bs == '/' || *bs == '\\' || *bs == '>' || *bs == '|') { /* block start */
++			cn = ((int) *(bs+1)) - 1;
++
++			if (cn < LENGTH(statuscolors)) {
++				drw_settrans(drw, prevscheme, (nxtscheme = statusscheme[cn]));
++			} else {
++				drw_settrans(drw, prevscheme, (nxtscheme = statusscheme[0]));
++			}
++
++			if (bp != '|') {
++				drw_arrow(drw, x - plw, 0, plw, bh, bp == '\\' || bp == '>' ? 1 : 0, bp == '<' ? 0 : 1);
++				x -= plw;
++			}
++
++			drw_setscheme(drw, nxtscheme);
++			w = TEXTW(bs+2);
++			drw_text(drw, x - w, 0, w, bh, lrpad / 2, bs+2, 0);
++			x -= w;
++
++			bp = *bs;
++			*bs = 0;
++			prevscheme = nxtscheme;
++		}
++	}
++	if (bp != '|') {
++		drw_settrans(drw, prevscheme, scheme[SchemeNorm]);
++		drw_arrow(drw, x - plw, 0, plw, bh, bp == '\\' || bp == '>' ? 1 : 0, bp == '<' ? 0 : 1);
++		drw_rect(drw, x - 2 * plw, 0, plw, bh, 1, 1);
++		x -= plw * 2;
++	}
++
++	return xpos - x;
++}
+\ No newline at end of file
+diff --git a/patch/bar_powerline_status.h b/patch/bar_powerline_status.h
+new file mode 100644
+index 0000000..2ff5ad2
+--- /dev/null
++++ b/patch/bar_powerline_status.h
+@@ -0,0 +1,11 @@
++static int width_pwrl_status(Bar *bar, BarWidthArg *a);
++#if BAR_EXTRASTATUS_PATCH
++static int width_pwrl_status_es(Bar *bar, BarWidthArg *a);
++#endif // BAR_EXTRASTATUS_PATCH
++static int draw_pwrl_status(Bar *bar, BarDrawArg *a);
++#if BAR_EXTRASTATUS_PATCH
++static int draw_pwrl_status_es(Bar *bar, BarDrawArg *a);
++#endif // BAR_EXTRASTATUS_PATCH
++static int click_pwrl_status(Bar *bar, Arg *arg, BarClickArg *a);
++static int drawpowerlinestatus(int x, char *stext);
++static int widthpowerlinestatus(char *stext);
+\ No newline at end of file
+diff --git a/patch/bar_powerline_tags.c b/patch/bar_powerline_tags.c
+new file mode 100644
+index 0000000..a85559b
+--- /dev/null
++++ b/patch/bar_powerline_tags.c
+@@ -0,0 +1,127 @@
++int
++width_pwrl_tags(Bar *bar, BarWidthArg *a)
++{
++	int w, i;
++	int plw = drw->fonts->h / 2 + 1;
++	#if BAR_HIDEVACANTTAGS_PATCH
++	Client *c;
++	unsigned int occ = 0;
++	for (c = bar->mon->clients; c; c = c->next)
++		occ |= c->tags == 255 ? 0 : c->tags;
++	#endif // BAR_HIDEVACANTTAGS_PATCH
++
++	for (w = 0, i = 0; i < LENGTH(tags); i++) {
++		#if BAR_HIDEVACANTTAGS_PATCH
++		if (!(occ & 1 << i || bar->mon->tagset[bar->mon->seltags] & 1 << i))
++			continue;
++		#endif // BAR_HIDEVACANTTAGS_PATCH
++		#if BAR_ALTERNATIVE_TAGS_PATCH
++		w += selmon->alttag ? TEXTW(tagsalt[i]) : TEXTW(tags[i]) + plw;
++		#else
++		w += TEXTW(tags[i]) + plw;
++		#endif // BAR_ALTERNATIVE_TAGS_PATCH
++	}
++	return w + lrpad;
++}
++
++int
++draw_pwrl_tags(Bar *bar, BarDrawArg *a)
++{
++	int x, w;
++	int invert;
++	int plw = drw->fonts->h / 2 + 1;
++	unsigned int i, occ = 0, urg = 0;
++	Client *c;
++	Clr *prevscheme, *nxtscheme;
++	#if !BAR_HIDEVACANTTAGS_PATCH
++	#if !BAR_ACTIVETAGINDICATORBAR_PATCH && !BAR_ACTIVETAGINDICATORBAR_ALT1_PATCH
++	int boxs = drw->fonts->h / 9;
++	#endif // BAR_ACTIVETAGINDICATORBAR_PATCH | BAR_ACTIVETAGINDICATORBAR_ALT1_PATCH
++	int boxw = drw->fonts->h / 6 + 2;
++	#endif // BAR_HIDEVACANTTAGS_PATCH
++
++	for (c = bar->mon->clients; c; c = c->next) {
++		#if BAR_HIDEVACANTTAGS_PATCH
++		occ |= c->tags == 255 ? 0 : c->tags;
++		#else
++		occ |= c->tags;
++		#endif // BAR_HIDEVACANTTAGS_PATCH
++		if (c->isurgent)
++			urg |= c->tags;
++	}
++	x = a->x;
++	prevscheme = scheme[SchemeNorm];
++	for (i = 0; i < LENGTH(tags); i++) {
++		#if BAR_HIDEVACANTTAGS_PATCH
++		/* do not draw vacant tags */
++		if (!(occ & 1 << i || bar->mon->tagset[bar->mon->seltags] & 1 << i))
++			continue;
++		#endif // BAR_HIDEVACANTTAGS_PATCH
++		#if URGENTBORDER_PATCH
++		invert = 0;
++		#else
++		invert = urg & 1 << i;
++		#endif // URGENTBORDER_PATCH
++		w = TEXTW(tags[i]);
++		drw_settrans(drw, prevscheme, (nxtscheme = scheme[bar->mon->tagset[bar->mon->seltags] & 1 << i ? SchemeSel : SchemeNorm]));
++		#if BAR_POWERLINE_TAGS_SLASH_PATCH
++		drw_arrow(drw, x, 0, plw, bh, 1, 1);
++		#else
++		drw_arrow(drw, x, 0, plw, bh, 1, 1);
++		#endif // BAR_POWERLINE_TAGS_SLASH_PATCH
++		x += plw;
++		drw_setscheme(drw, nxtscheme);
++		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], invert);
++		#if !BAR_HIDEVACANTTAGS_PATCH
++		if (occ & 1 << i)
++			#if BAR_ACTIVETAGINDICATORBAR_PATCH
++			drw_rect(drw, x + boxw, 0, w - ( 2 * boxw + 1), boxw,
++			#elif BAR_ACTIVETAGINDICATORBAR_ALT1_PATCH
++			drw_rect(drw, x + boxw, bh - boxw/2, w - ( 2 * boxw + 1), boxw/2,
++			#else
++			drw_rect(drw, x + boxs, boxs, boxw, boxw,
++			#endif // BAR_ACTIVETAGINDICATORBAR_PATCH
++				bar->mon == selmon && selmon->sel && selmon->sel->tags & 1 << i, invert);
++		#endif // BAR_HIDEVACANTTAGS_PATCH
++		x += w;
++		prevscheme = nxtscheme;
++	}
++	nxtscheme = scheme[SchemeNorm];
++
++	drw_settrans(drw, prevscheme, nxtscheme);
++	#if BAR_POWERLINE_TAGS_SLASH_PATCH
++	drw_arrow(drw, x, 0, plw, bh, 1, 1);
++	#else
++	drw_arrow(drw, x, 0, plw, bh, 1, 0);
++	#endif // BAR_POWERLINE_TAGS_SLASH_PATCH
++	return a->x + a->w;
++}
++
++int
++click_pwrl_tags(Bar *bar, Arg *arg, BarClickArg *a)
++{
++	int i = 0, x = lrpad / 2;
++	int plw = drw->fonts->h / 2 + 1;
++	#if BAR_HIDEVACANTTAGS_PATCH
++	Client *c;
++	unsigned int occ = 0;
++	for (c = bar->mon->clients; c; c = c->next)
++		occ |= c->tags == 255 ? 0 : c->tags;
++	#endif // BAR_HIDEVACANTTAGS_PATCH
++
++	do {
++		#if BAR_HIDEVACANTTAGS_PATCH
++		if (!(occ & 1 << i || bar->mon->tagset[bar->mon->seltags] & 1 << i))
++			continue;
++		#endif // BAR_HIDEVACANTTAGS_PATCH
++		#if BAR_ALTERNATIVE_TAGS_PATCH
++		x += selmon->alttag ? TEXTW(tagsalt[i]) : TEXTW(tags[i]) + plw;
++		#else
++		x += TEXTW(tags[i]) + plw;
++		#endif
++	} while (a->rel_x >= x && ++i < LENGTH(tags));
++	if (i < LENGTH(tags)) {
++		arg->ui = 1 << i;
++	}
++	return ClkTagBar;
++}
+\ No newline at end of file
+diff --git a/patch/bar_powerline_tags.h b/patch/bar_powerline_tags.h
+new file mode 100644
+index 0000000..b1e0389
+--- /dev/null
++++ b/patch/bar_powerline_tags.h
+@@ -0,0 +1,3 @@
++static int width_pwrl_tags(Bar *bar, BarWidthArg *a);
++static int draw_pwrl_tags(Bar *bar, BarDrawArg *a);
++static int click_pwrl_tags(Bar *bar, Arg *arg, BarClickArg *a);
+\ No newline at end of file
+diff --git a/patch/include.c b/patch/include.c
+index d422f56..48ce1cb 100644
+--- a/patch/include.c
++++ b/patch/include.c
+@@ -1,5 +1,7 @@
+ /* Bar functionality */
+ #include "bar_ltsymbol.c"
+-#include "bar_status.c"
+-#include "bar_tags.c"
+-#include "bar_wintitle.c"
+\ No newline at end of file
++//#include "bar_status.c"
++//#include "bar_tags.c"
++#include "bar_wintitle.c"
++#include "bar_powerline_tags.c"
++#include "bar_powerline_status.c"
+\ No newline at end of file
+diff --git a/patch/include.h b/patch/include.h
+index 5f9a3fe..b313ca4 100644
+--- a/patch/include.h
++++ b/patch/include.h
+@@ -1,5 +1,7 @@
+ /* Bar functionality */
+ #include "bar_ltsymbol.h"
+-#include "bar_status.h"
+-#include "bar_tags.h"
+-#include "bar_wintitle.h"
+\ No newline at end of file
++//#include "bar_status.h"
++//#include "bar_tags.h"
++#include "bar_wintitle.h"
++#include "bar_powerline_tags.h"
++#include "bar_powerline_status.h"
+\ No newline at end of file
+-- 
+2.19.1
+
