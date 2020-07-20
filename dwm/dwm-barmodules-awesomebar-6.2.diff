@@ -1,0 +1,328 @@
+From 4dd504f3ba7ae27b1c37492fd149f0d29c66e47c Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Mon, 20 Jul 2020 09:50:33 +0200
+Subject: [PATCH 2/2] Adding awesomebar
+
+---
+ config.def.h           |   7 +-
+ dwm.c                  |  17 +++--
+ patch/bar_awesomebar.c | 157 +++++++++++++++++++++++++++++++++++++++++
+ patch/bar_awesomebar.h |   8 +++
+ patch/include.c        |   3 +-
+ patch/include.h        |   3 +-
+ 6 files changed, 185 insertions(+), 10 deletions(-)
+ create mode 100644 patch/bar_awesomebar.c
+ create mode 100644 patch/bar_awesomebar.h
+
+diff --git a/config.def.h b/config.def.h
+index 2534eac..52d1030 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -12,10 +12,13 @@ static const char col_gray2[]       = "#444444";
+ static const char col_gray3[]       = "#bbbbbb";
+ static const char col_gray4[]       = "#eeeeee";
+ static const char col_cyan[]        = "#005577";
++static const char col_hidfg[]       = "#c278b6";
++static const char col_hidbg[]       = "#222222";
+ static const char *colors[][3]      = {
+ 	/*               fg         bg         border   */
+ 	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
+ 	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
++	[SchemeHid]  = { col_hidfg, col_hidbg, col_cyan  },
+ };
+ 
+ /* tagging */
+@@ -48,7 +51,7 @@ static const BarRule barrules[] = {
+ 	{ -1,       0,     BAR_ALIGN_LEFT,   width_tags,            draw_tags,            click_tags,         "tags" },
+ 	{ -1,       0,     BAR_ALIGN_LEFT,   width_ltsymbol,        draw_ltsymbol,        click_ltsymbol,     "layout" },
+ 	{ 'A',      0,     BAR_ALIGN_RIGHT,  width_status,          draw_status,          click_status,       "status" },
+-	{ -1,       0,     BAR_ALIGN_NONE,   width_wintitle,        draw_wintitle,        click_wintitle,     "wintitle" },
++	{ -1,       0,     BAR_ALIGN_NONE,   width_awesomebar,      draw_awesomebar,      click_awesomebar,   "awesomebar" },
+ };
+ 
+ /* layout(s) */
+@@ -122,7 +125,9 @@ static Button buttons[] = {
+ 	/* click                event mask      button          function        argument */
+ 	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
+ 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
++	{ ClkWinTitle,          0,              Button1,        togglewin,      {0} },
+ 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
++	{ ClkWinTitle,          0,              Button3,        showhideclient, {0} },
+ 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+ 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
+ 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
+diff --git a/dwm.c b/dwm.c
+index 03dccfb..2a9a3e6 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -51,6 +51,7 @@
+ #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
+                                * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
+ #define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
++#define HIDDEN(C)               ((getstate(C->win) == IconicState))
+ #define LENGTH(X)               (sizeof X / sizeof X[0])
+ #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
+ #define WIDTH(X)                ((X)->w + 2 * (X)->bw)
+@@ -60,7 +61,7 @@
+ 
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+-enum { SchemeNorm, SchemeSel }; /* color schemes */
++enum { SchemeNorm, SchemeSel, SchemeHid }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
+@@ -523,7 +524,7 @@ buttonpress(XEvent *e)
+ 	for (i = 0; i < LENGTH(buttons); i++) {
+ 		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
+ 				&& CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
+-			buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
++			buttons[i].func((click == ClkTagBar || click == ClkWinTitle) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+ 		}
+ 	}
+ }
+@@ -941,8 +942,8 @@ expose(XEvent *e)
+ void
+ focus(Client *c)
+ {
+-	if (!c || !ISVISIBLE(c))
+-		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
++	if (!c || !ISVISIBLE(c) || HIDDEN(c))
++		for (c = selmon->stack; c && (!ISVISIBLE(c) || HIDDEN(c)); c = c->snext);
+ 	if (selmon->sel && selmon->sel != c)
+ 		unfocus(selmon->sel, 0);
+ 	if (c) {
+@@ -1225,12 +1226,14 @@ manage(Window w, XWindowAttributes *wa)
+ 	XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
+ 		(unsigned char *) &(c->win), 1);
+ 	XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h); /* some windows require this */
+-	setclientstate(c, NormalState);
++	if (!HIDDEN(c))
++		setclientstate(c, NormalState);
+ 	if (c->mon == selmon)
+ 		unfocus(selmon->sel, 0);
+ 	c->mon->sel = c;
+ 	arrange(c->mon);
+-	XMapWindow(dpy, c->win);
++	if (!HIDDEN(c))
++		XMapWindow(dpy, c->win);
+ 	focus(NULL);
+ }
+ 
+@@ -1353,7 +1356,7 @@ movemouse(const Arg *arg)
+ Client *
+ nexttiled(Client *c)
+ {
+-	for (; c && (c->isfloating || !ISVISIBLE(c)); c = c->next);
++	for (; c && (c->isfloating || !ISVISIBLE(c) || HIDDEN(c)); c = c->next);
+ 	return c;
+ }
+ 
+diff --git a/patch/bar_awesomebar.c b/patch/bar_awesomebar.c
+new file mode 100644
+index 0000000..446b547
+--- /dev/null
++++ b/patch/bar_awesomebar.c
+@@ -0,0 +1,157 @@
++int
++width_awesomebar(Bar *bar, BarWidthArg *a)
++{
++	return a->max_width;
++}
++
++int
++draw_awesomebar(Bar *bar, BarDrawArg *a)
++{
++	int n = 0, scm, remainder = 0, tabw;
++	unsigned int i;
++	#if BAR_TITLE_LEFT_PAD && BAR_TITLE_RIGHT_PAD
++	int x = a->x + lrpad / 2, w = a->w - lrpad;
++	#elif BAR_TITLE_LEFT_PAD
++	int x = a->x + lrpad / 2, w = a->w - lrpad / 2;
++	#elif BAR_TITLE_RIGHT_PAD
++	int x = a->x, w = a->w - lrpad / 2;
++	#else
++	int x = a->x, w = a->w;
++	#endif // BAR_TITLE_LEFT_PAD | BAR_TITLE_RIGHT_PAD
++
++	Client *c;
++	for (c = bar->mon->clients; c; c = c->next)
++		if (ISVISIBLE(c))
++			n++;
++
++	if (n > 0) {
++		remainder = w % n;
++		tabw = w / n;
++		for (i = 0, c = bar->mon->clients; c; c = c->next, i++) {
++			if (!ISVISIBLE(c))
++				continue;
++			if (bar->mon->sel == c)
++				#if BAR_VTCOLORS_PATCH
++				scm = SchemeTitleSel;
++				#elif BAR_TITLECOLOR_PATCH
++				scm = SchemeTitle;
++				#else
++				scm = SchemeSel;
++				#endif // BAR_VTCOLORS_PATCH / BAR_TITLECOLOR_PATCH
++			else if (HIDDEN(c))
++				scm = SchemeHid;
++			else
++				#if BAR_VTCOLORS_PATCH
++				scm = SchemeTitleNorm;
++				#else
++				scm = SchemeNorm;
++				#endif // BAR_VTCOLORS_PATCH
++
++			drw_setscheme(drw, scheme[scm]);
++			tabw += (i < remainder ? 1 : 0);
++			#if BAR_PANGO_PATCH
++			drw_text(drw, x, 0, tabw, bh, lrpad / 2, c->name, 0, False);
++			#else
++			drw_text(drw, x, 0, tabw, bh, lrpad / 2, c->name, 0);
++			#endif // BAR_PANGO_PATCH
++			x += tabw;
++		}
++	}
++	return a->x + a->w;
++}
++
++int
++click_awesomebar(Bar *bar, Arg *arg, BarClickArg *a)
++{
++	int x = 0, n = 0;
++	Client *c;
++
++	for (c = bar->mon->clients; c; c = c->next)
++		if (ISVISIBLE(c))
++			n++;
++
++	c = bar->mon->clients;
++
++	do {
++		if (!c || !ISVISIBLE(c))
++			continue;
++		else
++			x += (1.0 / (double)n) * a->rel_w;
++	} while (c && a->rel_x > x && (c = c->next));
++
++	if (c) {
++		arg->v = c;
++		return ClkWinTitle;
++	}
++	return -1;
++}
++
++void
++hide(Client *c) {
++
++	if (!c || HIDDEN(c))
++		return;
++
++	Window w = c->win;
++	static XWindowAttributes ra, ca;
++
++	// more or less taken directly from blackbox's hide() function
++	XGrabServer(dpy);
++	XGetWindowAttributes(dpy, root, &ra);
++	XGetWindowAttributes(dpy, w, &ca);
++	// prevent UnmapNotify events
++	XSelectInput(dpy, root, ra.your_event_mask & ~SubstructureNotifyMask);
++	XSelectInput(dpy, w, ca.your_event_mask & ~StructureNotifyMask);
++	XUnmapWindow(dpy, w);
++	setclientstate(c, IconicState);
++	XSelectInput(dpy, root, ra.your_event_mask);
++	XSelectInput(dpy, w, ca.your_event_mask);
++	XUngrabServer(dpy);
++
++	focus(c->snext);
++	arrange(c->mon);
++}
++
++void
++show(Client *c)
++{
++	if (!c || !HIDDEN(c))
++		return;
++
++	XMapWindow(dpy, c->win);
++	setclientstate(c, NormalState);
++	arrange(c->mon);
++}
++
++void
++togglewin(const Arg *arg)
++{
++	Client *c = (Client*)arg->v;
++	if (!c)
++		return;
++	if (c == selmon->sel)
++		hide(c);
++	else {
++		if (HIDDEN(c))
++			show(c);
++		focus(c);
++		restack(selmon);
++	}
++}
++
++void
++showhideclient(const Arg *arg)
++{
++	Client *c = (Client*)arg->v;
++	if (!c)
++		c = selmon->sel;
++	if (!c)
++		return;
++
++	if (HIDDEN(c)) {
++		show(c);
++		restack(selmon);
++	} else {
++		hide(c);
++	}
++}
+\ No newline at end of file
+diff --git a/patch/bar_awesomebar.h b/patch/bar_awesomebar.h
+new file mode 100644
+index 0000000..a99986e
+--- /dev/null
++++ b/patch/bar_awesomebar.h
+@@ -0,0 +1,8 @@
++static int width_awesomebar(Bar *bar, BarWidthArg *a);
++static int draw_awesomebar(Bar *bar, BarDrawArg *a);
++static int click_awesomebar(Bar *bar, Arg *arg, BarClickArg *a);
++
++static void hide(Client *c);
++static void show(Client *c);
++static void togglewin(const Arg *arg);
++static void showhideclient(const Arg *arg);
+\ No newline at end of file
+diff --git a/patch/include.c b/patch/include.c
+index d422f56..6ae83ed 100644
+--- a/patch/include.c
++++ b/patch/include.c
+@@ -2,4 +2,5 @@
+ #include "bar_ltsymbol.c"
+ #include "bar_status.c"
+ #include "bar_tags.c"
+-#include "bar_wintitle.c"
+\ No newline at end of file
++//#include "bar_wintitle.c"
++#include "bar_awesomebar.c"
+\ No newline at end of file
+diff --git a/patch/include.h b/patch/include.h
+index 5f9a3fe..de77a11 100644
+--- a/patch/include.h
++++ b/patch/include.h
+@@ -2,4 +2,5 @@
+ #include "bar_ltsymbol.h"
+ #include "bar_status.h"
+ #include "bar_tags.h"
+-#include "bar_wintitle.h"
+\ No newline at end of file
++//#include "bar_wintitle.h"
++#include "bar_awesomebar.h"
+\ No newline at end of file
+-- 
+2.19.1
+
