@@ -1,4 +1,4 @@
-From 5f670dfda1ce8491162c3d963cce72aafd44404b Mon Sep 17 00:00:00 2001
+From aab7c100daa2a3e5a7bffdea363a4a929d368fa2 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 19 Jul 2020 19:26:10 +0200
 Subject: [PATCH] Bar Modules - splits the bar functionality into individual
@@ -6,7 +6,7 @@ Subject: [PATCH] Bar Modules - splits the bar functionality into individual
 
 ---
  config.def.h         |  20 +++
- dwm.c                | 377 ++++++++++++++++++++++++++++++++-----------
+ dwm.c                | 379 ++++++++++++++++++++++++++++++++-----------
  patch/bar_ltsymbol.c |  17 ++
  patch/bar_ltsymbol.h |   3 +
  patch/bar_status.c   |  19 +++
@@ -17,7 +17,7 @@ Subject: [PATCH] Bar Modules - splits the bar functionality into individual
  patch/bar_wintitle.h |   3 +
  patch/include.c      |   5 +
  patch/include.h      |   5 +
- 12 files changed, 447 insertions(+), 96 deletions(-)
+ 12 files changed, 449 insertions(+), 96 deletions(-)
  create mode 100644 patch/bar_ltsymbol.c
  create mode 100644 patch/bar_ltsymbol.h
  create mode 100644 patch/bar_status.c
@@ -61,7 +61,7 @@ index 1c0b587..2534eac 100644
  static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
  static const int nmaster     = 1;    /* number of clients in master area */
 diff --git a/dwm.c b/dwm.c
-index 4465af1..03dccfb 100644
+index 4465af1..e897a0b 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -45,6 +45,7 @@
@@ -603,7 +603,7 @@ index 4465af1..03dccfb 100644
  	}
  }
  
-@@ -1825,12 +1989,29 @@ updatebarpos(Monitor *m)
+@@ -1825,12 +1989,31 @@ updatebarpos(Monitor *m)
  {
  	m->wy = m->my;
  	m->wh = m->mh;
@@ -618,28 +618,30 @@ index 4465af1..03dccfb 100644
 +	int y_pad = 0;
 +	int x_pad = 0;
 +
-+	for (num_bars = 0, bar = m->bar; bar; bar = bar->next, num_bars++);
-+	if (m->showbar)
-+		m->wh = m->wh - y_pad * num_bars - bh * num_bars;
++	if (!m->showbar) {
++		for (bar = m->bar; bar; bar = bar->next)
++			bar->by = -bh - y_pad;
++		return;
++	}
++
++	for (num_bars = 0, bar = m->bar; bar; bar = bar->next, num_bars++)
++		if (bar->topbar)
++			m->wy = m->my + bh + y_pad;
++	m->wh = m->wh - y_pad * num_bars - bh * num_bars;
 +
 +	for (bar = m->bar; bar; bar = bar->next) {
 +		bar->bx = m->mx + x_pad;
 +		bar->bw = m->ww - 2 * x_pad;
 +		bar->bh = bh;
-+		if (m->showbar) {
-+			if (bar->topbar) {
-+				m->wy = m->wy + bh + y_pad;
-+				bar->by = m->wy - bh;
-+			} else
-+				bar->by = m->wy + m->wh;
-+		} else {
-+			bar->by = -bh - y_pad;
-+		}
++		if (bar->topbar)
++			bar->by = m->wy - bh;
++		else
++			bar->by = m->wy + m->wh;
 +	}
  }
  
  void
-@@ -1987,9 +2168,11 @@ updatesizehints(Client *c)
+@@ -1987,9 +2170,11 @@ updatesizehints(Client *c)
  void
  updatestatus(void)
  {
@@ -652,7 +654,7 @@ index 4465af1..03dccfb 100644
  }
  
  void
-@@ -2063,12 +2246,14 @@ wintomon(Window w)
+@@ -2063,12 +2248,14 @@ wintomon(Window w)
  	int x, y;
  	Client *c;
  	Monitor *m;
