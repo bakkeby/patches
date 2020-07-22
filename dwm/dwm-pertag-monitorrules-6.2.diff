@@ -1,4 +1,4 @@
-From d9754b776789858914525dc457a84f8bc1b5f640 Mon Sep 17 00:00:00 2001
+From dd7762e41d2b96e835c90baa749c3bbd15daa727 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 26 Apr 2020 11:35:53 +0200
 Subject: [PATCH 2/2] Monitor rules patch on top of pertag
@@ -13,7 +13,7 @@ monitor.
  2 files changed, 54 insertions(+), 18 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
-index 1c0b587..89dc409 100644
+index 1c0b587..36bfa8c 100644
 --- a/config.def.h
 +++ b/config.def.h
 @@ -43,6 +43,12 @@ static const Layout layouts[] = {
@@ -22,7 +22,7 @@ index 1c0b587..89dc409 100644
  
 +static const MonitorRule monrules[] = {
 +	/* monitor  tag  layout  mfact  nmaster  showbar  topbar */
-+	{  0,       -1,  2,      -1,    -1,      -1,      -1     }, // use a different layout for the second monitor
++	{  1,       -1,  2,      -1,    -1,      -1,      -1     }, // use a different layout for the second monitor
 +	{  -1,      -1,  0,      -1,    -1,      -1,      -1     }, // default
 +};
 +
