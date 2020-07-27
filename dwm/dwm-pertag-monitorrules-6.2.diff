@@ -1,4 +1,4 @@
-From dd7762e41d2b96e835c90baa749c3bbd15daa727 Mon Sep 17 00:00:00 2001
+From 78034d94fdc354784607f1506e396fcca5a5e8d7 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 26 Apr 2020 11:35:53 +0200
 Subject: [PATCH 2/2] Monitor rules patch on top of pertag
@@ -9,8 +9,8 @@ be to have a layout with a horizontal split for a secondary vertical
 monitor.
 ---
  config.def.h |  6 +++++
- dwm.c        | 66 ++++++++++++++++++++++++++++++++++++++--------------
- 2 files changed, 54 insertions(+), 18 deletions(-)
+ dwm.c        | 71 +++++++++++++++++++++++++++++++++++++++-------------
+ 2 files changed, 59 insertions(+), 18 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..36bfa8c 100644
@@ -30,7 +30,7 @@ index 1c0b587..36bfa8c 100644
  #define MODKEY Mod1Mask
  #define TAGKEYS(KEY,TAG) \
 diff --git a/dwm.c b/dwm.c
-index 4578b1c..22a657f 100644
+index 4578b1c..2e31e21 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -143,6 +143,16 @@ typedef struct {
@@ -50,7 +50,7 @@ index 4578b1c..22a657f 100644
  /* function declarations */
  static void applyrules(Client *c);
  static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
-@@ -642,38 +652,58 @@ configurerequest(XEvent *e)
+@@ -642,38 +652,63 @@ configurerequest(XEvent *e)
  Monitor *
  createmon(void)
  {
@@ -58,7 +58,7 @@ index 4578b1c..22a657f 100644
 -	int i;
 -
 +	Monitor *m, *mi;
-+	int i, mc, j;
++	int i, mc, j, layout;
 +	const MonitorRule *mr;
  	m = ecalloc(1, sizeof(Monitor));
  	m->tagset[0] = m->tagset[1] = 1;
@@ -74,10 +74,13 @@ index 4578b1c..22a657f 100644
 +	for (j = 0; j < LENGTH(monrules); j++) {
 +		mr = &monrules[j];
 +		if ((mr->monitor == -1 || mr->monitor == mc)
-+				&& (mr->tag == -1 || mr->tag == 0)) {
-+			m->lt[0] = &layouts[mr->layout];
++				&& (mr->tag <= 0 || (m->tagset[0] & (1 << (mr->tag - 1))))
++		) {
++			layout = MAX(mr->layout, 0);
++			layout = MIN(layout, LENGTH(layouts) - 1);
++			m->lt[0] = &layouts[layout];
 +			m->lt[1] = &layouts[1 % LENGTH(layouts)];
-+			strncpy(m->ltsymbol, layouts[mr->layout].symbol, sizeof m->ltsymbol);
++			strncpy(m->ltsymbol, layouts[layout].symbol, sizeof m->ltsymbol);
 +
 +			if (mr->mfact > -1)
 +				m->mfact = mr->mfact;
@@ -116,7 +119,9 @@ index 4578b1c..22a657f 100644
 +		for (j = 0; j < LENGTH(monrules); j++) {
 +			mr = &monrules[j];
 +			if ((mr->monitor == -1 || mr->monitor == mc) && (mr->tag == -1 || mr->tag == i)) {
-+				m->pertag->ltidxs[i][0] = &layouts[mr->layout];
++				layout = MAX(mr->layout, 0);
++				layout = MIN(layout, LENGTH(layouts) - 1);
++				m->pertag->ltidxs[i][0] = &layouts[layout];
 +				m->pertag->ltidxs[i][1] = m->lt[0];
 +				m->pertag->nmasters[i] = (mr->nmaster > -1 ? mr->nmaster : m->nmaster);
 +				m->pertag->mfacts[i] = (mr->mfact > -1 ? mr->mfact : m->mfact);
