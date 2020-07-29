@@ -1,4 +1,4 @@
-From 6d63b19999c52c4a83bf4b7770cb119d9eb4dd59 Mon Sep 17 00:00:00 2001
+From 97f3177bc58d8b08ead7ac8a0142e81cd8bcb49c Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Wed, 29 Jul 2020 11:19:33 +0200
 Subject: [PATCH 2/2] Monitor rules patch on top of pertag
@@ -32,7 +32,7 @@ index 1c0b587..36bfa8c 100644
  #define MODKEY Mod1Mask
  #define TAGKEYS(KEY,TAG) \
 diff --git a/dwm.c b/dwm.c
-index 55f8f92..357c3d7 100644
+index 55f8f92..ba8c44a 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -143,6 +143,16 @@ typedef struct {
@@ -59,8 +59,8 @@ index 55f8f92..357c3d7 100644
 -	Monitor *m;
 -	int i;
 -
-+	Monitor *m, *mi;
-+	int i, mc, j, layout;
++	Monitor *m, *mon;
++	int i, mi, j, layout;
 +	const MonitorRule *mr;
  	m = ecalloc(1, sizeof(Monitor));
  	m->tagset[0] = m->tagset[1] = 1;
@@ -72,10 +72,10 @@ index 55f8f92..357c3d7 100644
 -	m->lt[1] = &layouts[1 % LENGTH(layouts)];
 -	strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
 +
-+	for (mc = 0, mi = mons; mi; mi = mi->next, mc++);
++	for (mi = 0, mon = mons; mon; mon = mon->next, mi++);
 +	for (j = 0; j < LENGTH(monrules); j++) {
 +		mr = &monrules[j];
-+		if ((mr->monitor == -1 || mr->monitor == mc)
++		if ((mr->monitor == -1 || mr->monitor == mi)
 +				&& (mr->tag <= 0 || (m->tagset[0] & (1 << (mr->tag - 1))))
 +		) {
 +			layout = MAX(mr->layout, 0);
@@ -120,7 +120,7 @@ index 55f8f92..357c3d7 100644
 +
 +		for (j = 0; j < LENGTH(monrules); j++) {
 +			mr = &monrules[j];
-+			if ((mr->monitor == -1 || mr->monitor == mc) && (mr->tag == -1 || mr->tag == i)) {
++			if ((mr->monitor == -1 || mr->monitor == mi) && (mr->tag == -1 || mr->tag == i)) {
 +				layout = MAX(mr->layout, 0);
 +				layout = MIN(layout, LENGTH(layouts) - 1);
 +				m->pertag->ltidxs[i][0] = &layouts[layout];
