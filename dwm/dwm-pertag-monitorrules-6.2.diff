@@ -1,16 +1,18 @@
-From 78034d94fdc354784607f1506e396fcca5a5e8d7 Mon Sep 17 00:00:00 2001
+From 6d63b19999c52c4a83bf4b7770cb119d9eb4dd59 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
-Date: Sun, 26 Apr 2020 11:35:53 +0200
+Date: Wed, 29 Jul 2020 11:19:33 +0200
 Subject: [PATCH 2/2] Monitor rules patch on top of pertag
 
 This patch allows the user to define layout, mfact, nmaster, showbar,
 and topbar settings on a per monitor basis. An example use case could
 be to have a layout with a horizontal split for a secondary vertical
 monitor.
+
+https://github.com/bakkeby/patches/wiki/monitorrules
 ---
  config.def.h |  6 +++++
- dwm.c        | 71 +++++++++++++++++++++++++++++++++++++++-------------
- 2 files changed, 59 insertions(+), 18 deletions(-)
+ dwm.c        | 70 +++++++++++++++++++++++++++++++++++++++-------------
+ 2 files changed, 59 insertions(+), 17 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..36bfa8c 100644
@@ -30,7 +32,7 @@ index 1c0b587..36bfa8c 100644
  #define MODKEY Mod1Mask
  #define TAGKEYS(KEY,TAG) \
 diff --git a/dwm.c b/dwm.c
-index 4578b1c..2e31e21 100644
+index 55f8f92..357c3d7 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -143,6 +143,16 @@ typedef struct {
@@ -50,7 +52,7 @@ index 4578b1c..2e31e21 100644
  /* function declarations */
  static void applyrules(Client *c);
  static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
-@@ -642,38 +652,63 @@ configurerequest(XEvent *e)
+@@ -642,38 +652,64 @@ configurerequest(XEvent *e)
  Monitor *
  createmon(void)
  {
@@ -97,13 +99,13 @@ index 4578b1c..2e31e21 100644
  	if (!(m->pertag = (Pertag *)calloc(1, sizeof(Pertag))))
  		die("fatal: could not malloc() %u bytes\n", sizeof(Pertag));
  	m->pertag->curtag = m->pertag->prevtag = 1;
--	for(i=0; i <= LENGTH(tags); i++) {
+-	for (i = 0; i <= LENGTH(tags); i++) {
 -		/* init nmaster */
 -		m->pertag->nmasters[i] = m->nmaster;
 -
 -		/* init mfacts */
 -		m->pertag->mfacts[i] = m->mfact;
--
+ 
 +	for (i = 0; i <= LENGTH(tags); i++) {
  		/* init layouts */
 -		m->pertag->ltidxs[i][0] = m->lt[0];
