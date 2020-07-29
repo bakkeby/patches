@@ -1,4 +1,4 @@
-From 28f4b76a62e78792a57099ef4975da628d62c2c9 Mon Sep 17 00:00:00 2001
+From 53e19fbad52e4cba1f9f2ed9f21ab26db37f4eef Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 19 Jul 2020 19:26:10 +0200
 Subject: [PATCH] Bar Modules - splits the bar functionality into individual
@@ -6,18 +6,18 @@ Subject: [PATCH] Bar Modules - splits the bar functionality into individual
 
 ---
  config.def.h         |  20 +++
- dwm.c                | 378 ++++++++++++++++++++++++++++++++-----------
+ dwm.c                | 390 ++++++++++++++++++++++++++++++++-----------
  patch/bar_ltsymbol.c |  17 ++
  patch/bar_ltsymbol.h |   3 +
  patch/bar_status.c   |  19 +++
  patch/bar_status.h   |   3 +
- patch/bar_tags.c     |  55 +++++++
+ patch/bar_tags.c     |  55 ++++++
  patch/bar_tags.h     |   3 +
- patch/bar_wintitle.c |  33 ++++
+ patch/bar_wintitle.c |  31 ++++
  patch/bar_wintitle.h |   3 +
  patch/include.c      |   5 +
  patch/include.h      |   5 +
- 12 files changed, 448 insertions(+), 96 deletions(-)
+ 12 files changed, 458 insertions(+), 96 deletions(-)
  create mode 100644 patch/bar_ltsymbol.c
  create mode 100644 patch/bar_ltsymbol.h
  create mode 100644 patch/bar_status.c
@@ -61,7 +61,7 @@ index 1c0b587..2534eac 100644
  static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
  static const int nmaster     = 1;    /* number of clients in master area */
 diff --git a/dwm.c b/dwm.c
-index 4465af1..77017b3 100644
+index 4465af1..9173ba9 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -45,6 +45,7 @@
@@ -570,7 +570,7 @@ index 4465af1..77017b3 100644
  	arrange(selmon);
  }
  
-@@ -1801,6 +1962,7 @@ unmapnotify(XEvent *e)
+@@ -1801,22 +1962,37 @@ unmapnotify(XEvent *e)
  void
  updatebars(void)
  {
@@ -578,7 +578,14 @@ index 4465af1..77017b3 100644
  	Monitor *m;
  	XSetWindowAttributes wa = {
  		.override_redirect = True,
-@@ -1809,14 +1971,16 @@ updatebars(void)
++		#if BAR_ALPHA_PATCH
++		.background_pixel = 0,
++		.border_pixel = 0,
++		.colormap = cmap,
++		#else
+ 		.background_pixmap = ParentRelative,
++		#endif // BAR_ALPHA_PATCH
+ 		.event_mask = ButtonPressMask|ExposureMask
  	};
  	XClassHint ch = {"dwm", "dwm"};
  	for (m = mons; m; m = m->next) {
@@ -592,9 +599,15 @@ index 4465af1..77017b3 100644
 -		XSetClassHint(dpy, m->barwin, &ch);
 +		for (bar = m->bar; bar; bar = bar->next) {
 +			if (!bar->win) {
++				#if BAR_ALPHA_PATCH
++				bar->win = XCreateWindow(dpy, root, bar->bx, bar->by, bar->bw, bar->bh, 0, depth,
++						InputOutput, visual,
++						CWOverrideRedirect|CWBackPixel|CWBorderPixel|CWColormap|CWEventMask, &wa);
++				#else
 +				bar->win = XCreateWindow(dpy, root, bar->bx, bar->by, bar->bw, bar->bh, 0, DefaultDepth(dpy, screen),
 +						CopyFromParent, DefaultVisual(dpy, screen),
 +						CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
++				#endif // BAR_ALPHA_PATCH
 +				XDefineCursor(dpy, bar->win, cursor[CurNormal]->cursor);
 +				XMapRaised(dpy, bar->win);
 +				XSetClassHint(dpy, bar->win, &ch);
@@ -603,7 +616,7 @@ index 4465af1..77017b3 100644
  	}
  }
  
-@@ -1825,12 +1989,30 @@ updatebarpos(Monitor *m)
+@@ -1825,12 +2001,30 @@ updatebarpos(Monitor *m)
  {
  	m->wy = m->my;
  	m->wh = m->mh;
@@ -640,7 +653,7 @@ index 4465af1..77017b3 100644
  }
  
  void
-@@ -1987,9 +2169,11 @@ updatesizehints(Client *c)
+@@ -1987,9 +2181,11 @@ updatesizehints(Client *c)
  void
  updatestatus(void)
  {
@@ -653,7 +666,7 @@ index 4465af1..77017b3 100644
  }
  
  void
-@@ -2063,12 +2247,14 @@ wintomon(Window w)
+@@ -2063,12 +2259,14 @@ wintomon(Window w)
  	int x, y;
  	Client *c;
  	Monitor *m;
@@ -808,10 +821,10 @@ index 0000000..7ac04d8
 +static int click_tags(Bar *bar, Arg *arg, BarClickArg *a);
 diff --git a/patch/bar_wintitle.c b/patch/bar_wintitle.c
 new file mode 100644
-index 0000000..d636137
+index 0000000..3c11b75
 --- /dev/null
 +++ b/patch/bar_wintitle.c
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,31 @@
 +int
 +width_wintitle(Bar *bar, BarWidthArg *a)
 +{
@@ -843,8 +856,6 @@ index 0000000..d636137
 +{
 +	return ClkWinTitle;
 +}
-+
-+
 diff --git a/patch/bar_wintitle.h b/patch/bar_wintitle.h
 new file mode 100644
 index 0000000..266404c
