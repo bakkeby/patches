@@ -1,4 +1,4 @@
-From 7137e20390f314b6b561c1c26ae943ccd8981006 Mon Sep 17 00:00:00 2001
+From 7cb619b3e5e94405bb4719661064e0ab6386855a Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 15:17:52 +0200
 Subject: [PATCH 2/2] Adding status2d + statuscmd + dwmblocks + extrastatus
@@ -6,16 +6,16 @@ Subject: [PATCH 2/2] Adding status2d + statuscmd + dwmblocks + extrastatus
 
 ---
  config.def.h          |  11 ++-
- dwm.c                 |  22 ++++--
+ dwm.c                 |  22 +++++-
  patch/bar_dwmblocks.c |  31 ++++++++
  patch/bar_dwmblocks.h |   2 +
- patch/bar_status2d.c  | 164 ++++++++++++++++++++++++++++++++++++++++++
+ patch/bar_status2d.c  | 167 ++++++++++++++++++++++++++++++++++++++++++
  patch/bar_status2d.h  |   6 ++
  patch/bar_statuscmd.c |  49 +++++++++++++
- patch/bar_statuscmd.h |   4 ++
+ patch/bar_statuscmd.h |   4 +
  patch/include.c       |   7 +-
  patch/include.h       |   7 +-
- 10 files changed, 293 insertions(+), 10 deletions(-)
+ 10 files changed, 296 insertions(+), 10 deletions(-)
  create mode 100644 patch/bar_dwmblocks.c
  create mode 100644 patch/bar_dwmblocks.h
  create mode 100644 patch/bar_status2d.c
@@ -164,10 +164,10 @@ index 0000000..f08f1d5
 \ No newline at end of file
 diff --git a/patch/bar_status2d.c b/patch/bar_status2d.c
 new file mode 100644
-index 0000000..e8d72aa
+index 0000000..cdeaca5
 --- /dev/null
 +++ b/patch/bar_status2d.c
-@@ -0,0 +1,164 @@
+@@ -0,0 +1,167 @@
 +int
 +width_status2d(Bar *bar, BarWidthArg *a)
 +{
@@ -207,6 +207,9 @@ index 0000000..e8d72aa
 +	copyvalidchars(text, stext);
 +
 +	x += lrpad / 2;
++	drw_setscheme(drw, scheme[LENGTH(colors)]);
++	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
++	drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
 +
 +	/* process status text */
 +	i = -1;

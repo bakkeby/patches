@@ -1,4 +1,4 @@
-From 93edaff15965265341286bf6f3da34c444a94839 Mon Sep 17 00:00:00 2001
+From aba2b3e0135f332892afa389037862e43ed5a8cf Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 15:17:52 +0200
 Subject: [PATCH 2/2] Adding status2d module
@@ -6,11 +6,11 @@ Subject: [PATCH 2/2] Adding status2d module
 ---
  config.def.h         |   2 +-
  dwm.c                |   6 +-
- patch/bar_status2d.c | 218 +++++++++++++++++++++++++++++++++++++++++++
+ patch/bar_status2d.c | 221 +++++++++++++++++++++++++++++++++++++++++++
  patch/bar_status2d.h |  13 +++
  patch/include.c      |   5 +-
  patch/include.h      |   5 +-
- 6 files changed, 241 insertions(+), 8 deletions(-)
+ 6 files changed, 244 insertions(+), 8 deletions(-)
  create mode 100644 patch/bar_status2d.c
  create mode 100644 patch/bar_status2d.h
 
@@ -60,10 +60,10 @@ index 03dccfb..49eaccb 100644
  	/* init bars */
 diff --git a/patch/bar_status2d.c b/patch/bar_status2d.c
 new file mode 100644
-index 0000000..06944c4
+index 0000000..3759d2f
 --- /dev/null
 +++ b/patch/bar_status2d.c
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,221 @@
 +int
 +width_status2d(Bar *bar, BarWidthArg *a)
 +{
@@ -135,6 +135,9 @@ index 0000000..06944c4
 +	#endif // BAR_STATUSCMD_PATCH
 +
 +	x += lrpad / 2;
++	drw_setscheme(drw, scheme[LENGTH(colors)]);
++	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
++	drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
 +
 +	/* process status text */
 +	i = -1;
