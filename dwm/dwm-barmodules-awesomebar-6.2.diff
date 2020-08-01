@@ -1,16 +1,16 @@
-From 4dd504f3ba7ae27b1c37492fd149f0d29c66e47c Mon Sep 17 00:00:00 2001
+From 26d8a9fc9a0f8ef603835dbbd35c303ca8751e08 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 09:50:33 +0200
 Subject: [PATCH 2/2] Adding awesomebar
 
 ---
  config.def.h           |   7 +-
- dwm.c                  |  17 +++--
+ dwm.c                  |  21 +++---
  patch/bar_awesomebar.c | 157 +++++++++++++++++++++++++++++++++++++++++
  patch/bar_awesomebar.h |   8 +++
  patch/include.c        |   3 +-
  patch/include.h        |   3 +-
- 6 files changed, 185 insertions(+), 10 deletions(-)
+ 6 files changed, 187 insertions(+), 12 deletions(-)
  create mode 100644 patch/bar_awesomebar.c
  create mode 100644 patch/bar_awesomebar.h
 
@@ -52,7 +52,7 @@ index 2534eac..52d1030 100644
  	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
  	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 diff --git a/dwm.c b/dwm.c
-index 03dccfb..2a9a3e6 100644
+index 03dccfb..6243f6f 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -51,6 +51,7 @@
@@ -81,16 +81,26 @@ index 03dccfb..2a9a3e6 100644
  		}
  	}
  }
-@@ -941,8 +942,8 @@ expose(XEvent *e)
- void
- focus(Client *c)
- {
--	if (!c || !ISVISIBLE(c))
--		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
-+	if (!c || !ISVISIBLE(c) || HIDDEN(c))
-+		for (c = selmon->stack; c && (!ISVISIBLE(c) || HIDDEN(c)); c = c->snext);
- 	if (selmon->sel && selmon->sel != c)
- 		unfocus(selmon->sel, 0);
+@@ -995,16 +996,16 @@ focusstack(const Arg *arg)
+ 	if (!selmon->sel)
+ 		return;
+ 	if (arg->i > 0) {
+-		for (c = selmon->sel->next; c && !ISVISIBLE(c); c = c->next);
++		for (c = selmon->sel->next; c && (!ISVISIBLE(c) || (arg->i == 1 && HIDDEN(c))); c = c->next);
+ 		if (!c)
+-			for (c = selmon->clients; c && !ISVISIBLE(c); c = c->next);
++			for (c = selmon->clients; c && (!ISVISIBLE(c) || (arg->i == 1 && HIDDEN(c))); c = c->next);
+ 	} else {
+ 		for (i = selmon->clients; i != selmon->sel; i = i->next)
+-			if (ISVISIBLE(i))
++			if (ISVISIBLE(i) && !(arg->i == -1 && HIDDEN(i)))
+ 				c = i;
+ 		if (!c)
+ 			for (; i; i = i->next)
+-				if (ISVISIBLE(i))
++				if (ISVISIBLE(i) && !(arg->i == -1 && HIDDEN(i)))
+ 					c = i;
+ 	}
  	if (c) {
 @@ -1225,12 +1226,14 @@ manage(Window w, XWindowAttributes *wa)
  	XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
