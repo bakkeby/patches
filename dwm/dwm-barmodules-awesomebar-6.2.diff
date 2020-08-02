@@ -1,4 +1,4 @@
-From 26d8a9fc9a0f8ef603835dbbd35c303ca8751e08 Mon Sep 17 00:00:00 2001
+From ee2798df6d16e39bfb8ecbadd06891cf91ebfed6 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 09:50:33 +0200
 Subject: [PATCH 2/2] Adding awesomebar
@@ -6,11 +6,11 @@ Subject: [PATCH 2/2] Adding awesomebar
 ---
  config.def.h           |   7 +-
  dwm.c                  |  21 +++---
- patch/bar_awesomebar.c | 157 +++++++++++++++++++++++++++++++++++++++++
- patch/bar_awesomebar.h |   8 +++
+ patch/bar_awesomebar.c | 167 +++++++++++++++++++++++++++++++++++++++++
+ patch/bar_awesomebar.h |   8 ++
  patch/include.c        |   3 +-
  patch/include.h        |   3 +-
- 6 files changed, 187 insertions(+), 12 deletions(-)
+ 6 files changed, 197 insertions(+), 12 deletions(-)
  create mode 100644 patch/bar_awesomebar.c
  create mode 100644 patch/bar_awesomebar.h
 
@@ -130,10 +130,10 @@ index 03dccfb..6243f6f 100644
  
 diff --git a/patch/bar_awesomebar.c b/patch/bar_awesomebar.c
 new file mode 100644
-index 0000000..446b547
+index 0000000..5a3a588
 --- /dev/null
 +++ b/patch/bar_awesomebar.c
-@@ -0,0 +1,157 @@
+@@ -0,0 +1,167 @@
 +int
 +width_awesomebar(Bar *bar, BarWidthArg *a)
 +{
@@ -225,6 +225,7 @@ index 0000000..446b547
 +void
 +hide(Client *c) {
 +
++	Client *n;
 +	if (!c || HIDDEN(c))
 +		return;
 +
@@ -244,7 +245,16 @@ index 0000000..446b547
 +	XSelectInput(dpy, w, ca.your_event_mask);
 +	XUngrabServer(dpy);
 +
-+	focus(c->snext);
++	if (c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
++		for (n = c->snext; n && (!ISVISIBLE(n) || HIDDEN(n)); n = n->snext);
++		if (!n)
++			for (n = c->mon->stack; n && (!ISVISIBLE(n) || HIDDEN(n)); n = n->snext);
++	} else {
++		n = nexttiled(c);
++		if (!n)
++			n = nexttiled(c->mon->clients);
++	}
++	focus(n);
 +	arrange(c->mon);
 +}
 +
