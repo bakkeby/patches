@@ -1,16 +1,16 @@
-From 91f2f27ff5fd351261b33506ed7c755341bedbbb Mon Sep 17 00:00:00 2001
+From 055377418bb462aba7743f9f369fdcb286f3c479 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 11:19:12 +0200
 Subject: [PATCH 2/2] Adding systray module
 
 ---
  config.def.h        |   3 +
- dwm.c               | 128 ++++++++++++++++++++++++++----
+ dwm.c               | 130 ++++++++++++++++++++++++++----
  patch/bar_systray.c | 187 ++++++++++++++++++++++++++++++++++++++++++++
  patch/bar_systray.h |  40 ++++++++++
  patch/include.c     |   3 +-
  patch/include.h     |   3 +-
- 6 files changed, 347 insertions(+), 17 deletions(-)
+ 6 files changed, 349 insertions(+), 17 deletions(-)
  create mode 100644 patch/bar_systray.c
  create mode 100644 patch/bar_systray.h
 
@@ -36,7 +36,7 @@ index 2534eac..d17b65c 100644
  	{ -1,       0,     BAR_ALIGN_NONE,   width_wintitle,        draw_wintitle,        click_wintitle,     "wintitle" },
  };
 diff --git a/dwm.c b/dwm.c
-index 03dccfb..ce6c4fe 100644
+index 03dccfb..dff9862 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -63,6 +63,8 @@ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
@@ -69,19 +69,21 @@ index 03dccfb..ce6c4fe 100644
  static int running = 1;
  static Cur *cursor[CurLast];
  static Clr **scheme;
-@@ -555,6 +558,11 @@ cleanup(void)
+@@ -555,6 +558,13 @@ cleanup(void)
  	XUngrabKey(dpy, AnyKey, AnyModifier, root);
  	while (mons)
  		cleanupmon(mons);
-+	if (showsystray) {
-+		XUnmapWindow(dpy, systray->win);
-+		XDestroyWindow(dpy, systray->win);
++	if (showsystray && systray) {
++		if (systray->win) {
++			XUnmapWindow(dpy, systray->win);
++			XDestroyWindow(dpy, systray->win);
++		}
 +		free(systray);
 +	}
  	for (i = 0; i < CurLast; i++)
  		drw_cur_free(drw, cursor[i]);
  	for (i = 0; i < LENGTH(colors); i++)
-@@ -590,9 +598,48 @@ cleanupmon(Monitor *mon)
+@@ -590,9 +600,48 @@ cleanupmon(Monitor *mon)
  void
  clientmessage(XEvent *e)
  {
@@ -130,7 +132,7 @@ index 03dccfb..ce6c4fe 100644
  	if (!c)
  		return;
  	if (cme->message_type == netatom[NetWMState]) {
-@@ -755,6 +802,10 @@ destroynotify(XEvent *e)
+@@ -755,6 +804,10 @@ destroynotify(XEvent *e)
  
  	if ((c = wintoclient(ev->window)))
  		unmanage(c, 1);
@@ -141,7 +143,7 @@ index 03dccfb..ce6c4fe 100644
  }
  
  void
-@@ -1021,9 +1072,15 @@ getatomprop(Client *c, Atom prop)
+@@ -1021,9 +1074,15 @@ getatomprop(Client *c, Atom prop)
  	unsigned char *p = NULL;
  	Atom da, atom = None;
  
@@ -158,7 +160,7 @@ index 03dccfb..ce6c4fe 100644
  		XFree(p);
  	}
  	return atom;
-@@ -1161,7 +1218,7 @@ killclient(const Arg *arg)
+@@ -1161,7 +1220,7 @@ killclient(const Arg *arg)
  {
  	if (!selmon->sel)
  		return;
@@ -167,7 +169,7 @@ index 03dccfb..ce6c4fe 100644
  		XGrabServer(dpy);
  		XSetErrorHandler(xerrordummy);
  		XSetCloseDownMode(dpy, DestroyAll);
-@@ -1247,9 +1304,15 @@ mappingnotify(XEvent *e)
+@@ -1247,9 +1306,15 @@ mappingnotify(XEvent *e)
  void
  maprequest(XEvent *e)
  {
@@ -183,7 +185,7 @@ index 03dccfb..ce6c4fe 100644
  	if (!XGetWindowAttributes(dpy, ev->window, &wa))
  		return;
  	if (wa.override_redirect)
-@@ -1373,6 +1436,16 @@ propertynotify(XEvent *e)
+@@ -1373,6 +1438,16 @@ propertynotify(XEvent *e)
  	Window trans;
  	XPropertyEvent *ev = &e->xproperty;
  
@@ -200,7 +202,7 @@ index 03dccfb..ce6c4fe 100644
  	if ((ev->window == root) && (ev->atom == XA_WM_NAME))
  		updatestatus();
  	else if (ev->state == PropertyDelete)
-@@ -1592,26 +1665,36 @@ setclientstate(Client *c, long state)
+@@ -1592,26 +1667,36 @@ setclientstate(Client *c, long state)
  }
  
  int
@@ -247,7 +249,7 @@ index 03dccfb..ce6c4fe 100644
  	}
  	return exists;
  }
-@@ -1625,7 +1708,7 @@ setfocus(Client *c)
+@@ -1625,7 +1710,7 @@ setfocus(Client *c)
  			XA_WINDOW, 32, PropModeReplace,
  			(unsigned char *) &(c->win), 1);
  	}
@@ -256,7 +258,7 @@ index 03dccfb..ce6c4fe 100644
  }
  
  void
-@@ -1714,6 +1797,15 @@ setup(void)
+@@ -1714,6 +1799,15 @@ setup(void)
  	wmatom[WMTakeFocus] = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
  	netatom[NetActiveWindow] = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
  	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
@@ -272,7 +274,7 @@ index 03dccfb..ce6c4fe 100644
  	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
  	netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
  	netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
-@@ -1956,6 +2048,12 @@ unmapnotify(XEvent *e)
+@@ -1956,6 +2050,12 @@ unmapnotify(XEvent *e)
  			setclientstate(c, WithdrawnState);
  		else
  			unmanage(c, 0);
