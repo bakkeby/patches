@@ -1,16 +1,17 @@
-From 5c53d3a639a32b2ab3f9be04c06e14a1c4e95da1 Mon Sep 17 00:00:00 2001
+From 76a6e1d908bfceadae584ba5cc036c7e44087858 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 13 Aug 2020 13:37:23 +0200
-Subject: [PATCH 2/2] Adding bartabgrups barmodules patch.
+Subject: [PATCH 2/2] Adding bartabgroups barmodules patch.
 
 Note that this patch does not come with bound ClkWinTitle button click
 actions for extra behaviour when clicking on the window name in the bar.
 
 The original bartabgroups patch included hardcoded focus on click which
 has been replaced with a generic click for barmodules.
-The intention here is that this is combined with the "hidden" patch that
-allows clients to be focused and hidden - functionality that has been
-separated from the awesomebar patch.
+
+The intention here is that this is combined with the wintitleactions
+patch that adds options such as allowing clients to be focused and
+hidden - functionality that has been separated from the awesomebar patch.
 ---
  config.def.h          |   5 +-
  dwm.c                 |   2 +-
