@@ -1,0 +1,265 @@
+From e00f9f9124549284fb3a1e15340bc5a8e630bd7d Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Thu, 13 Aug 2020 14:56:13 +0200
+Subject: [PATCH 2/2] Adding wintitleactions patch
+
+---
+ config.def.h                |  4 ++
+ dwm.c                       | 24 +++++-----
+ patch/bar_wintitleactions.c | 89 +++++++++++++++++++++++++++++++++++++
+ patch/bar_wintitleactions.h |  7 +++
+ patch/include.c             |  3 +-
+ patch/include.h             |  3 +-
+ 6 files changed, 118 insertions(+), 12 deletions(-)
+ create mode 100644 patch/bar_wintitleactions.c
+ create mode 100644 patch/bar_wintitleactions.h
+
+diff --git a/config.def.h b/config.def.h
+index 2534eac..f75cbd7 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -16,6 +16,7 @@ static const char *colors[][3]      = {
+ 	/*               fg         bg         border   */
+ 	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
+ 	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
++	[SchemeHid]  = { col_cyan,  col_gray1, col_cyan  },
+ };
+ 
+ /* tagging */
+@@ -92,6 +93,7 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
+ 	{ MODKEY,                       XK_Return, zoom,           {0} },
+ 	{ MODKEY,                       XK_Tab,    view,           {0} },
++	{ MODKEY|ControlMask,           XK_z,      showhideclient, {0} },
+ 	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
+ 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
+ 	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
+@@ -122,7 +124,9 @@ static Button buttons[] = {
+ 	/* click                event mask      button          function        argument */
+ 	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
+ 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
++	{ ClkWinTitle,          0,              Button1,        togglewin,      {0} },
+ 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
++	{ ClkWinTitle,          0,              Button3,        showhideclient, {0} },
+ 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+ 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
+ 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
+diff --git a/dwm.c b/dwm.c
+index 9173ba9..02eba28 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -60,7 +60,7 @@
+ 
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+-enum { SchemeNorm, SchemeSel }; /* color schemes */
++enum { SchemeNorm, SchemeSel, SchemeHid }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
+@@ -523,7 +523,7 @@ buttonpress(XEvent *e)
+ 	for (i = 0; i < LENGTH(buttons); i++) {
+ 		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
+ 				&& CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
+-			buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
++			buttons[i].func((click == ClkTagBar || click == ClkWinTitle) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+ 		}
+ 	}
+ }
+@@ -995,16 +995,16 @@ focusstack(const Arg *arg)
+ 	if (!selmon->sel)
+ 		return;
+ 	if (arg->i > 0) {
+-		for (c = selmon->sel->next; c && !ISVISIBLE(c); c = c->next);
++		for (c = selmon->sel->next; c && (!ISVISIBLE(c) || (arg->i == 1 && HIDDEN(c))); c = c->next);
+ 		if (!c)
+-			for (c = selmon->clients; c && !ISVISIBLE(c); c = c->next);
++			for (c = selmon->clients; c && (!ISVISIBLE(c) || (arg->i == 1 && HIDDEN(c))); c = c->next);
+ 	} else {
+ 		for (i = selmon->clients; i != selmon->sel; i = i->next)
+-			if (ISVISIBLE(i))
++			if (ISVISIBLE(i) && !(arg->i == -1 && HIDDEN(i)))
+ 				c = i;
+ 		if (!c)
+ 			for (; i; i = i->next)
+-				if (ISVISIBLE(i))
++				if (ISVISIBLE(i) && !(arg->i == -1 && HIDDEN(i)))
+ 					c = i;
+ 	}
+ 	if (c) {
+@@ -1225,12 +1225,14 @@ manage(Window w, XWindowAttributes *wa)
+ 	XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
+ 		(unsigned char *) &(c->win), 1);
+ 	XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h); /* some windows require this */
+-	setclientstate(c, NormalState);
++	if (!HIDDEN(c))
++		setclientstate(c, NormalState);
+ 	if (c->mon == selmon)
+ 		unfocus(selmon->sel, 0);
+ 	c->mon->sel = c;
+ 	arrange(c->mon);
+-	XMapWindow(dpy, c->win);
++	if (!HIDDEN(c))
++		XMapWindow(dpy, c->win);
+ 	focus(NULL);
+ }
+ 
+@@ -1353,7 +1355,7 @@ movemouse(const Arg *arg)
+ Client *
+ nexttiled(Client *c)
+ {
+-	for (; c && (c->isfloating || !ISVISIBLE(c)); c = c->next);
++	for (; c && (c->isfloating || !ISVISIBLE(c) || HIDDEN(c)); c = c->next);
+ 	return c;
+ }
+ 
+@@ -2311,7 +2313,9 @@ xerrorstart(Display *dpy, XErrorEvent *ee)
+ void
+ zoom(const Arg *arg)
+ {
+-	Client *c = selmon->sel;
++	Client *c = (Client*)arg->v;
++	if (!c)
++		c = selmon->sel;
+ 
+ 	if (!selmon->lt[selmon->sellt]->arrange
+ 	|| (selmon->sel && selmon->sel->isfloating))
+diff --git a/patch/bar_wintitleactions.c b/patch/bar_wintitleactions.c
+new file mode 100644
+index 0000000..28dfa55
+--- /dev/null
++++ b/patch/bar_wintitleactions.c
+@@ -0,0 +1,89 @@
++void
++hide(Client *c) {
++
++	Client *n;
++	if (!c || HIDDEN(c))
++		return;
++
++	Window w = c->win;
++	static XWindowAttributes ra, ca;
++
++	// more or less taken directly from blackbox's hide() function
++	XGrabServer(dpy);
++	XGetWindowAttributes(dpy, root, &ra);
++	XGetWindowAttributes(dpy, w, &ca);
++	// prevent UnmapNotify events
++	XSelectInput(dpy, root, ra.your_event_mask & ~SubstructureNotifyMask);
++	XSelectInput(dpy, w, ca.your_event_mask & ~StructureNotifyMask);
++	XUnmapWindow(dpy, w);
++	setclientstate(c, IconicState);
++	XSelectInput(dpy, root, ra.your_event_mask);
++	XSelectInput(dpy, w, ca.your_event_mask);
++	XUngrabServer(dpy);
++
++	if (c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
++		for (n = c->snext; n && (!ISVISIBLE(n) || HIDDEN(n)); n = n->snext);
++		if (!n)
++			for (n = c->mon->stack; n && (!ISVISIBLE(n) || HIDDEN(n)); n = n->snext);
++	} else {
++		n = nexttiled(c);
++		if (!n)
++			n = prevtiled(c);
++	}
++	focus(n);
++	arrange(c->mon);
++}
++
++void
++show(Client *c)
++{
++	if (!c || !HIDDEN(c))
++		return;
++
++	XMapWindow(dpy, c->win);
++	setclientstate(c, NormalState);
++	arrange(c->mon);
++}
++
++void
++togglewin(const Arg *arg)
++{
++	Client *c = (Client*)arg->v;
++	if (!c)
++		return;
++	if (c == selmon->sel)
++		hide(c);
++	else {
++		if (HIDDEN(c))
++			show(c);
++		focus(c);
++		restack(selmon);
++	}
++}
++
++Client *
++prevtiled(Client *c)
++{
++	Client *p, *i;
++	for (p = NULL, i = c->mon->clients; c && i != c; i = i->next)
++		if (ISVISIBLE(i) && !HIDDEN(i))
++			p = i;
++	return p;
++}
++
++void
++showhideclient(const Arg *arg)
++{
++	Client *c = (Client*)arg->v;
++	if (!c)
++		c = selmon->sel;
++	if (!c)
++		return;
++
++	if (HIDDEN(c)) {
++		show(c);
++		restack(selmon);
++	} else {
++		hide(c);
++	}
++}
+\ No newline at end of file
+diff --git a/patch/bar_wintitleactions.h b/patch/bar_wintitleactions.h
+new file mode 100644
+index 0000000..e37201e
+--- /dev/null
++++ b/patch/bar_wintitleactions.h
+@@ -0,0 +1,7 @@
++#define HIDDEN(C) ((getstate(C->win) == IconicState))
++
++static void hide(Client *c);
++static void show(Client *c);
++static void togglewin(const Arg *arg);
++static Client * prevtiled(Client *c);
++static void showhideclient(const Arg *arg);
+\ No newline at end of file
+diff --git a/patch/include.c b/patch/include.c
+index d422f56..8008552 100644
+--- a/patch/include.c
++++ b/patch/include.c
+@@ -2,4 +2,5 @@
+ #include "bar_ltsymbol.c"
+ #include "bar_status.c"
+ #include "bar_tags.c"
+-#include "bar_wintitle.c"
+\ No newline at end of file
++#include "bar_wintitle.c"
++#include "bar_wintitleactions.c"
+\ No newline at end of file
+diff --git a/patch/include.h b/patch/include.h
+index 5f9a3fe..be075b5 100644
+--- a/patch/include.h
++++ b/patch/include.h
+@@ -2,4 +2,5 @@
+ #include "bar_ltsymbol.h"
+ #include "bar_status.h"
+ #include "bar_tags.h"
+-#include "bar_wintitle.h"
+\ No newline at end of file
++#include "bar_wintitle.h"
++#include "bar_wintitleactions.h"
+\ No newline at end of file
+-- 
+2.19.1
+
