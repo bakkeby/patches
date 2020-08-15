@@ -1,4 +1,4 @@
-From 76a6e1d908bfceadae584ba5cc036c7e44087858 Mon Sep 17 00:00:00 2001
+From ac94fc8b1fa79ae02a67756a5bf972359987931b Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 13 Aug 2020 13:37:23 +0200
 Subject: [PATCH 2/2] Adding bartabgroups barmodules patch.
@@ -15,11 +15,11 @@ hidden - functionality that has been separated from the awesomebar patch.
 ---
  config.def.h          |   5 +-
  dwm.c                 |   2 +-
- patch/bar_tabgroups.c | 170 ++++++++++++++++++++++++++++++++++++++++++
- patch/bar_tabgroups.h |  21 ++++++
+ patch/bar_tabgroups.c | 233 ++++++++++++++++++++++++++++++++++++++++++
+ patch/bar_tabgroups.h |   7 ++
  patch/include.c       |   3 +-
  patch/include.h       |   3 +-
- 6 files changed, 200 insertions(+), 4 deletions(-)
+ 6 files changed, 249 insertions(+), 4 deletions(-)
  create mode 100644 patch/bar_tabgroups.c
  create mode 100644 patch/bar_tabgroups.h
 
@@ -68,10 +68,36 @@ index 9173ba9..98ea0c2 100644
         NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
 diff --git a/patch/bar_tabgroups.c b/patch/bar_tabgroups.c
 new file mode 100644
-index 0000000..151f8e4
+index 0000000..116ddc7
 --- /dev/null
 +++ b/patch/bar_tabgroups.c
-@@ -0,0 +1,170 @@
+@@ -0,0 +1,233 @@
++/* Bartabgroups properties, you can override these in your config.h if you want. */
++#ifndef BARTAB_BORDERS
++#define BARTAB_BORDERS 1       // 0 = off, 1 = on
++#endif
++#ifndef BARTAB_TAGSINDICATOR
++#define BARTAB_TAGSINDICATOR 1 // 0 = off, 1 = on if >1 client/view tag, 2 = always on
++#endif
++#ifndef BARTAB_TAGSPX
++#define BARTAB_TAGSPX 5        // # pixels for tag grid boxes
++#endif
++#ifndef BARTAB_TAGSROWS
++#define BARTAB_TAGSROWS 3      // # rows in tag grid (9 tags, e.g. 3x3)
++#endif
++#ifndef BARTAB_SHOWFLOATING
++#define BARTAB_SHOWFLOATING 0  // whether to show titles for floating windows, hidden clients are always shown
++#endif
++#ifndef BARTAB_STACKWEIGHT
++#define BARTAB_STACKWEIGHT 1   // stack weight compared to hidden and floating window titles
++#endif
++#ifndef BARTAB_HIDDENWEIGHT
++#define BARTAB_HIDDENWEIGHT 1  // hidden window title weight
++#endif
++#ifndef BARTAB_FLOATWEIGHT
++#define BARTAB_FLOATWEIGHT 1   // floating window title weight, set to 0 to not show floating windows
++#endif
++
 +int
 +width_bartabgroups(Bar *bar, BarWidthArg *a)
 +{
@@ -102,10 +128,10 @@ index 0000000..151f8e4
 +	drw_setscheme(drw, scheme[
 +		m->sel == c
 +		? SchemeSel
-+		#if BAR_HIDDEN_PATCH
++		#ifdef HIDDEN
 +		: HIDDEN(c)
 +		? SchemeHid
-+		#endif // BAR_HIDDEN_PATCH
++		#endif
 +		: groupactive
 +		? SchemeTabActive
 +		: SchemeTabInactive
@@ -142,6 +168,10 @@ index 0000000..151f8e4
 +	}
 +}
 +
++#ifndef HIDDEN
++#define HIDDEN(C) 0
++#endif
++
 +void
 +bartabclick(Monitor *m, Client *c, int passx, int x, int w, int unused, Arg *arg)
 +{
@@ -156,7 +186,7 @@ index 0000000..151f8e4
 +) {
 +	Client *c;
 +	int
-+		i, clientsnmaster = 0, clientsnstack = 0, clientsnfloating = 0,
++		i, clientsnmaster = 0, clientsnstack = 0, clientsnfloating = 0, clientsnhidden = 0,
 +		masteractive = 0, fulllayout = 0,
 +		x = offx, w, r, num = 0, den, tgactive;
 +
@@ -169,6 +199,10 @@ index 0000000..151f8e4
 +	for (i = 0, c = m->clients; c; c = c->next) {
 +		if (!ISVISIBLE(c))
 +			continue;
++		if (HIDDEN(c)) {
++			clientsnhidden++;
++			continue;
++		}
 +		if (c->isfloating) {
 +			clientsnfloating++;
 +			continue;
@@ -182,14 +216,14 @@ index 0000000..151f8e4
 +		i++;
 +	}
 +
-+	if (!i)
-+		return;
++	if (clientsnmaster + clientsnstack + clientsnfloating + clientsnhidden == 0)
++	 	return;
 +
++	tgactive = 1;
++	num = tabw;
 +	/* floating mode */
-+	if (clientsnmaster + clientsnstack == 0 || !m->lt[m->sellt]->arrange) {
-+		tgactive = 1;
-+		num = tabw;
-+		den = clientsnmaster + clientsnstack + clientsnfloating;
++	if ((fulllayout && BARTAB_FLOATWEIGHT) || clientsnmaster + clientsnstack == 0 || !m->lt[m->sellt]->arrange) {
++		den = clientsnmaster + clientsnstack + clientsnfloating + clientsnhidden;
 +		r = num % den;
 +		w = num / den;
 +		for (c = m->clients, i = 0; c; c = c->next) {
@@ -199,15 +233,13 @@ index 0000000..151f8e4
 +			x += w + (i < r ? 1 : 0);
 +			i++;
 +		}
-+	/* monocle mode */
-+	} else if (fulllayout || ((clientsnmaster == 0) ^ (clientsnstack == 0))) {
-+		tgactive = 1;
-+		num = tabw;
-+		den = clientsnmaster + clientsnstack;
++	/* no master and stack mode, e.g. monocole, grid layouts, fibonacci */
++	} else if (fulllayout) {
++		den = clientsnmaster + clientsnstack + clientsnhidden;
 +		r = num % den;
 +		w = num / den;
 +		for (c = m->clients, i = 0; c; c = c->next) {
-+			if (!ISVISIBLE(c) || c->isfloating)
++			if (!ISVISIBLE(c) || (c->isfloating && !HIDDEN(c)))
 +				continue;
 +			tabfn(m, c, passx, x, w + (i < r ? 1 : 0), tgactive, arg);
 +			x += w + (i < r ? 1 : 0);
@@ -215,54 +247,71 @@ index 0000000..151f8e4
 +		}
 +	/* tiled mode */
 +	} else {
-+		tgactive = masteractive;
-+		num = clientsnstack ? tabw * m->mfact : tabw;
 +		den = clientsnmaster;
-+		r = num % den;
-+		w = num / den;
-+		for (c = m->clients, i = 0; c && i < m->nmaster; c = c->next) {
-+			if (!ISVISIBLE(c) || c->isfloating)
-+				continue;
-+			tabfn(m, c, passx, x, w + (i < r ? 1 : 0), tgactive, arg);
-+			x += w + (i < r ? 1 : 0);
-+			i++;
++		c = m->clients;
++		i = 0;
++		if (den) {
++			if (clientsnstack + clientsnfloating * BARTAB_FLOATWEIGHT + clientsnhidden) {
++				tgactive = masteractive;
++				num = tabw * m->mfact;
++			}
++			r = num % den;
++			w = num / den;
++			for (; c && i < m->nmaster; c = c->next) { // tiled master
++				if (!ISVISIBLE(c) || c->isfloating || HIDDEN(c))
++					continue;
++				tabfn(m, c, passx, x, w + (i < r ? 1 : 0), tgactive, arg);
++				x += w + (i < r ? 1 : 0);
++				i++;
++			}
++			tgactive = !tgactive;
++			num = tabw - num;
 +		}
 +
-+		tgactive = !tgactive;
-+		num = tabw - num;
-+		den = clientsnstack;
++		den = clientsnstack * BARTAB_STACKWEIGHT + clientsnfloating * BARTAB_FLOATWEIGHT + clientsnhidden * BARTAB_HIDDENWEIGHT;
++		if (!den)
++			return;
++
 +		r = num % den;
 +		w = num / den;
-+		for (; c; c = c->next) {
-+			if (!ISVISIBLE(c) || c->isfloating)
++		#if BARTAB_STACKWEIGHT
++		for (; c; c = c->next) { // tiled stack
++			if (!ISVISIBLE(c) || HIDDEN(c) || c->isfloating)
 +				continue;
-+			tabfn(m, c, passx, x, w + (i - m->nmaster < r ? 1 : 0), tgactive, arg);
-+			x += w + (i - m->nmaster < r ? 1 : 0);
++			tabfn(m, c, passx, x, w * BARTAB_STACKWEIGHT + (i - m->nmaster < r ? 1 : 0), tgactive, arg);
++			x += w * BARTAB_STACKWEIGHT + (i - m->nmaster < r ? 1 : 0);
 +			i++;
 +		}
++		#endif // BARTAB_STACKWEIGHT
++
++		#if BARTAB_HIDDENWEIGHT
++		for (c = m->clients; c; c = c->next) { // hidden windows
++			if (!ISVISIBLE(c) || !HIDDEN(c))
++				continue;
++			tabfn(m, c, passx, x, w * BARTAB_HIDDENWEIGHT + (i - m->nmaster < r ? 1 : 0), tgactive, arg);
++			x += w * BARTAB_HIDDENWEIGHT + (i - m->nmaster < r ? 1 : 0);
++			i++;
++		}
++		#endif // BARTAB_HIDDENWEIGHT
++
++		#if BARTAB_FLOATWEIGHT
++		for (c = m->clients; c; c = c->next) { // floating windows
++			if (!ISVISIBLE(c) || HIDDEN(c) || !c->isfloating)
++				continue;
++			tabfn(m, c, passx, x, w * BARTAB_FLOATWEIGHT + (i - m->nmaster < r ? 1 : 0), tgactive, arg);
++			x += w * BARTAB_FLOATWEIGHT + (i - m->nmaster < r ? 1 : 0);
++			i++;
++		}
++		#endif // BARTAB_FLOATWEIGHT
 +	}
 +}
 \ No newline at end of file
 diff --git a/patch/bar_tabgroups.h b/patch/bar_tabgroups.h
 new file mode 100644
-index 0000000..7cf1254
+index 0000000..15f6876
 --- /dev/null
 +++ b/patch/bar_tabgroups.h
-@@ -0,0 +1,21 @@
-+/* Bartabgroups properties, you can override these in your config.h if you want. */
-+#ifndef BARTAB_BORDERS
-+#define BARTAB_BORDERS 1       // 0 = off, 1 = on
-+#endif
-+#ifndef BARTAB_TAGSINDICATOR
-+#define BARTAB_TAGSINDICATOR 1 // 0 = off, 1 = on if >1 client/view tag, 2 = always on
-+#endif
-+#ifndef BARTAB_TAGSPX
-+#define BARTAB_TAGSPX 5        // # pixels for tag grid boxes
-+#endif
-+#ifndef BARTAB_TAGSROWS
-+#define BARTAB_TAGSROWS 3      // # rows in tag grid (9 tags, e.g. 3x3)
-+#endif
-+
+@@ -0,0 +1,7 @@
 +static int width_bartabgroups(Bar *bar, BarWidthArg *a);
 +static int draw_bartabgroups(Bar *bar, BarDrawArg *a);
 +static int click_bartabgroups(Bar *bar, Arg *arg, BarClickArg *a);
