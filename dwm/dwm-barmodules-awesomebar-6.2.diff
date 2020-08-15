@@ -1,4 +1,4 @@
-From 3fed487c5acb6494e224be916d59974de1edcf95 Mon Sep 17 00:00:00 2001
+From 0378a5a77172fd49016f17f57a980d74611cff5f Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 09:50:33 +0200
 Subject: [PATCH 2/2] Adding awesomebar barmodules patch.
@@ -40,7 +40,7 @@ index 2534eac..1a64163 100644
  /* layout(s) */
 diff --git a/patch/bar_awesomebar.c b/patch/bar_awesomebar.c
 new file mode 100644
-index 0000000..c5129e8
+index 0000000..88c7c50
 --- /dev/null
 +++ b/patch/bar_awesomebar.c
 @@ -0,0 +1,89 @@
@@ -84,10 +84,10 @@ index 0000000..c5129e8
 +				#else
 +				scm = SchemeSel;
 +				#endif // BAR_VTCOLORS_PATCH / BAR_TITLECOLOR_PATCH
-+			#if BAR_WINTITLEACTIONS_PATCH
++			#ifdef HIDDEN
 +			else if (HIDDEN(c))
 +				scm = SchemeHid;
-+			#endif // BAR_WINTITLEACTIONS_PATCH
++			#endif
 +			else
 +				#if BAR_VTCOLORS_PATCH
 +				scm = SchemeTitleNorm;
