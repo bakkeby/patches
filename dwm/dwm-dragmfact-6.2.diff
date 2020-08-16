@@ -1,4 +1,4 @@
-From 27ccce5fa7864d92852e8c517d0003d71891bd25 Mon Sep 17 00:00:00 2001
+From 6f0c657ee557bcb69fd92befad586476e6f2f375 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 30 Apr 2020 17:31:36 +0200
 Subject: [PATCH] dragmfact patch with smooth sliding and support for multiple
@@ -6,8 +6,8 @@ Subject: [PATCH] dragmfact patch with smooth sliding and support for multiple
 
 ---
  config.def.h |   1 +
- dwm.c        | 226 ++++++++++++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 226 insertions(+), 1 deletion(-)
+ dwm.c        | 228 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 228 insertions(+), 1 deletion(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..72f0467 100644
@@ -22,7 +22,7 @@ index 1c0b587..72f0467 100644
  	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
  	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..b4543e9 100644
+index 4465af1..689e338 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -58,7 +58,7 @@
@@ -42,7 +42,7 @@ index 4465af1..b4543e9 100644
  static void drawbar(Monitor *m);
  static void drawbars(void);
  static void enternotify(XEvent *e);
-@@ -692,6 +693,227 @@ dirtomon(int dir)
+@@ -692,6 +693,229 @@ dirtomon(int dir)
  	return m;
  }
  
@@ -73,8 +73,10 @@ index 4465af1..b4543e9 100644
 +	ah = m->wh;
 +	aw = m->ww;
 +
++	if (!n)
++		return;
 +	#if FLEXTILE_DELUXE_LAYOUT
-+	if (m->lt[m->sellt]->arrange == &flextile) {
++	else if (m->lt[m->sellt]->arrange == &flextile) {
 +		int layout = m->ltaxis[LAYOUT];
 +		if (layout < 0) {
 +			mirror = 1;
@@ -120,7 +122,7 @@ index 4465af1..b4543e9 100644
 +
 +	/* do not allow mfact to be modified under certain conditions */
 +	if (!m->lt[m->sellt]->arrange                            // floating layout
-+		|| (!n || (!fixed && m->nmaster && n <= m->nmaster)) // no master
++		|| (!fixed && m->nmaster && n <= m->nmaster)         // no master
 +		#if MONOCLE_LAYOUT
 +		|| m->lt[m->sellt]->arrange == &monocle
 +		#endif // MONOCLE_LAYOUT
@@ -270,7 +272,7 @@ index 4465af1..b4543e9 100644
  void
  drawbar(Monitor *m)
  {
-@@ -1566,6 +1788,8 @@ setup(void)
+@@ -1566,6 +1790,8 @@ setup(void)
  	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
  	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
  	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
