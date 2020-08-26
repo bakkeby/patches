@@ -1,0 +1,75 @@
+From c01625735b893ed948a3a435affb709097dd068a Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Aug 2020 09:56:20 +0200
+Subject: [PATCH] Warp: warps the mouse cursor to the center of the currently
+ focused window or screen when the mouse cursor is (a) on a different screen
+ or (b) on top of a different window.
+
+---
+ dwm.c | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/dwm.c b/dwm.c
+index 4465af1..76cba65 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -227,6 +227,7 @@ static void updatetitle(Client *c);
+ static void updatewindowtype(Client *c);
+ static void updatewmhints(Client *c);
+ static void view(const Arg *arg);
++static void warp(const Client *c);
+ static Client *wintoclient(Window w);
+ static Monitor *wintomon(Window w);
+ static int xerror(Display *dpy, XErrorEvent *ee);
+@@ -827,6 +828,7 @@ focusmon(const Arg *arg)
+ 	unfocus(selmon->sel, 0);
+ 	selmon = m;
+ 	focus(NULL);
++	warp(selmon->sel);
+ }
+ 
+ void
+@@ -1367,6 +1369,8 @@ restack(Monitor *m)
+ 	}
+ 	XSync(dpy, False);
+ 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
++	if (m == selmon && (m->tagset[m->seltags] & m->sel->tags) && m->lt[m->sellt]->arrange != &monocle)
++		warp(m->sel);
+ }
+ 
+ void
+@@ -2044,6 +2048,31 @@ view(const Arg *arg)
+ 	arrange(selmon);
+ }
+ 
++void
++warp(const Client *c)
++{
++	int x, y;
++
++	if (!c) {
++		XWarpPointer(dpy, None, root, 0, 0, 0, 0, selmon->wx + selmon->ww / 2, selmon->wy + selmon->wh / 2);
++		return;
++	}
++
++	if (!getrootptr(&x, &y) ||
++		(x > c->x - c->bw &&
++		 y > c->y - c->bw &&
++		 x < c->x + c->w + c->bw*2 &&
++		 y < c->y + c->h + c->bw*2) ||
++		x < c->mon->wx ||
++		x > c->mon->wx + c->mon->ww ||
++		y < c->mon->wy ||
++		y > c->mon->wy + c->mon->wh
++	)
++		return;
++
++	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w / 2, c->h / 2);
++}
++
+ Client *
+ wintoclient(Window w)
+ {
+-- 
+2.19.1
+
