@@ -1,4 +1,4 @@
-From e00f9f9124549284fb3a1e15340bc5a8e630bd7d Mon Sep 17 00:00:00 2001
+From f1a4e004be933b186d8466fd483e46f99dbd5f5a Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 13 Aug 2020 14:56:13 +0200
 Subject: [PATCH 2/2] Adding wintitleactions patch
@@ -6,11 +6,11 @@ Subject: [PATCH 2/2] Adding wintitleactions patch
 ---
  config.def.h                |  4 ++
  dwm.c                       | 24 +++++-----
- patch/bar_wintitleactions.c | 89 +++++++++++++++++++++++++++++++++++++
+ patch/bar_wintitleactions.c | 90 +++++++++++++++++++++++++++++++++++++
  patch/bar_wintitleactions.h |  7 +++
  patch/include.c             |  3 +-
  patch/include.h             |  3 +-
- 6 files changed, 118 insertions(+), 12 deletions(-)
+ 6 files changed, 119 insertions(+), 12 deletions(-)
  create mode 100644 patch/bar_wintitleactions.c
  create mode 100644 patch/bar_wintitleactions.h
 
@@ -126,10 +126,10 @@ index 9173ba9..02eba28 100644
  	|| (selmon->sel && selmon->sel->isfloating))
 diff --git a/patch/bar_wintitleactions.c b/patch/bar_wintitleactions.c
 new file mode 100644
-index 0000000..28dfa55
+index 0000000..a9ae3e1
 --- /dev/null
 +++ b/patch/bar_wintitleactions.c
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,90 @@
 +void
 +hide(Client *c) {
 +
@@ -189,7 +189,7 @@ index 0000000..28dfa55
 +		if (HIDDEN(c))
 +			show(c);
 +		focus(c);
-+		restack(selmon);
++		restack(c->mon);
 +	}
 +}
 +
@@ -214,7 +214,8 @@ index 0000000..28dfa55
 +
 +	if (HIDDEN(c)) {
 +		show(c);
-+		restack(selmon);
++		focus(c);
++		restack(c->mon);
 +	} else {
 +		hide(c);
 +	}
