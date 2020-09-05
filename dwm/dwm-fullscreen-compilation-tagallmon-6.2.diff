@@ -1,0 +1,89 @@
+From a87ffffc46d586a7835a7d390d2a7db16ddfea97 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Sat, 5 Sep 2020 18:24:28 +0200
+Subject: [PATCH 2/2] Adding fullscreen-compilation compatible tagallmon patch
+
+---
+ config.def.h |  2 ++
+ dwm.c        | 45 +++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 47 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index 5f28f2c..0d5456a 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -86,6 +86,8 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+ 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
+ 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
++	{ MODKEY|Mod4Mask|ShiftMask,    XK_comma,  tagallmon,      {.i = +1 } },
++	{ MODKEY|Mod4Mask|ShiftMask,    XK_period, tagallmon,      {.i = -1 } },
+ 	TAGKEYS(                        XK_1,                      0)
+ 	TAGKEYS(                        XK_2,                      1)
+ 	TAGKEYS(                        XK_3,                      2)
+diff --git a/dwm.c b/dwm.c
+index ac03fbb..ae71d99 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -208,6 +208,7 @@ static void showhide(Client *c);
+ static void sigchld(int unused);
+ static void spawn(const Arg *arg);
+ static void tag(const Arg *arg);
++static void tagallmon(const Arg *arg);
+ static void tagmon(const Arg *arg);
+ static void tile(Monitor *);
+ static void togglebar(const Arg *arg);
+@@ -1680,6 +1681,50 @@ tag(const Arg *arg)
+ 	}
+ }
+ 
++void
++tagallmon(const Arg *arg)
++{
++	Monitor *m;
++	Client *c, *last, *slast, *next;
++
++	if (!mons->next)
++		return;
++
++	m = dirtomon(arg->i);
++	for (last = m->clients; last && last->next; last = last->next);
++	for (slast = m->stack; slast && slast->snext; slast = slast->snext);
++
++	for (c = selmon->clients; c; c = next) {
++		next = c->next;
++		if (!ISVISIBLE(c))
++			continue;
++		unfocus(c, 1, NULL);
++		detach(c);
++		detachstack(c);
++		c->mon = m;
++		c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
++		c->next = NULL;
++		c->snext = NULL;
++		if (last)
++			last = last->next = c;
++		else
++			m->clients = last = c;
++		if (slast)
++			slast = slast->snext = c;
++		else
++			m->stack = slast = c;
++		if (c->isfullscreen) {
++			if (c->fakefullscreen != 1) {
++				resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
++				XRaiseWindow(dpy, c->win);
++			}
++		}
++	}
++
++	focus(NULL);
++	arrange(NULL);
++}
++
+ void
+ tagmon(const Arg *arg)
+ {
+-- 
+2.19.1
+
