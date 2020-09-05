@@ -1,12 +1,12 @@
-From 24b096ef83d05de74b3d91c25e799f2906a0bac1 Mon Sep 17 00:00:00 2001
+From 6ef2e352d9288b06daca4c13fe833cdea269981e Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:02:43 +0200
 Subject: [PATCH] tagallmon, move all visible windows to an adjacent monitor
 
 ---
  config.def.h |  2 ++
- dwm.c        | 33 +++++++++++++++++++++++++++++++++
- 2 files changed, 35 insertions(+)
+ dwm.c        | 43 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 45 insertions(+)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..4852ae2 100644
@@ -22,7 +22,7 @@ index 1c0b587..4852ae2 100644
  	TAGKEYS(                        XK_2,                      1)
  	TAGKEYS(                        XK_3,                      2)
 diff --git a/dwm.c b/dwm.c
-index 4465af1..5048970 100644
+index 4465af1..9fd5b03 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -208,6 +208,7 @@ static void sigchld(int unused);
@@ -33,7 +33,7 @@ index 4465af1..5048970 100644
  static void tile(Monitor *);
  static void togglebar(const Arg *arg);
  static void togglefloating(const Arg *arg);
-@@ -1670,6 +1671,38 @@ tagmon(const Arg *arg)
+@@ -1670,6 +1671,48 @@ tagmon(const Arg *arg)
  	sendmon(selmon->sel, dirtomon(arg->i));
  }
  
@@ -41,13 +41,15 @@ index 4465af1..5048970 100644
 +tagallmon(const Arg *arg)
 +{
 +	Monitor *m;
-+	Client *c;
-+	Client *next;
++	Client *c, *last, *slast, *next;
 +
 +	if (!mons->next)
 +		return;
 +
 +	m = dirtomon(arg->i);
++	for (last = m->clients; last && last->next; last = last->next);
++	for (slast = m->stack; slast && slast->snext; slast = slast->snext);
++
 +	for (c = selmon->clients; c; c = next) {
 +		next = c->next;
 +		if (!ISVISIBLE(c))
@@ -57,11 +59,19 @@ index 4465af1..5048970 100644
 +		detachstack(c);
 +		c->mon = m;
 +		c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
-+		attach(c);
-+		attachstack(c);
++		c->next = NULL;
++		c->snext = NULL;
++		if (last)
++			last = last->next = c;
++		else
++			m->clients = last = c;
++		if (slast)
++			slast = slast->snext = c;
++		else
++			m->stack = slast = c;
 +		if (c->isfullscreen) {
-+			setfullscreen(c, 0);
-+			setfullscreen(c, 1);
++			resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
++			XRaiseWindow(dpy, c->win);
 +		}
 +	}
 +

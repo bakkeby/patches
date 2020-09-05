@@ -1,4 +1,4 @@
-From 8a7910595e9aa93e9af8ff6e433683f26f8cde4a Mon Sep 17 00:00:00 2001
+From ef0816393e3e6d019bdbd12c02427fddf15fa27d Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 12:41:35 +0200
 Subject: [PATCH] tagswapmon, swap all visible windows with those of one of the
@@ -23,7 +23,7 @@ index 1c0b587..09331fb 100644
  	TAGKEYS(                        XK_2,                      1)
  	TAGKEYS(                        XK_3,                      2)
 diff --git a/dwm.c b/dwm.c
-index 4465af1..862eaf7 100644
+index 4465af1..53a3bf5 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -209,6 +209,7 @@ static void spawn(const Arg *arg);
@@ -78,8 +78,8 @@ index 4465af1..862eaf7 100644
 +		attach(c);
 +		attachstack(c);
 +		if (c->isfullscreen) {
-+			setfullscreen(c, 0);
-+			setfullscreen(c, 1);
++			resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
++			XRaiseWindow(dpy, c->win);
 +		}
 +	}
 +
@@ -90,8 +90,8 @@ index 4465af1..862eaf7 100644
 +		attach(c);
 +		attachstack(c);
 +		if (c->isfullscreen) {
-+			setfullscreen(c, 0);
-+			setfullscreen(c, 1);
++			resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
++			XRaiseWindow(dpy, c->win);
 +		}
 +	}
 +
