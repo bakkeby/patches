@@ -1,4 +1,4 @@
-From 055377418bb462aba7743f9f369fdcb286f3c479 Mon Sep 17 00:00:00 2001
+From dab4012e6c61d27a39e4938cdc384c72e39f2ab2 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 11:19:12 +0200
 Subject: [PATCH 2/2] Adding systray module
@@ -36,7 +36,7 @@ index 2534eac..d17b65c 100644
  	{ -1,       0,     BAR_ALIGN_NONE,   width_wintitle,        draw_wintitle,        click_wintitle,     "wintitle" },
  };
 diff --git a/dwm.c b/dwm.c
-index 03dccfb..dff9862 100644
+index 03dccfb..a6c6d72 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -63,6 +63,8 @@ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
@@ -92,7 +92,7 @@ index 03dccfb..dff9862 100644
  	XClientMessageEvent *cme = &e->xclient;
  	Client *c = wintoclient(cme->window);
  
-+	if (showsystray && cme->window == systray->win && cme->message_type == netatom[NetSystemTrayOP]) {
++	if (showsystray && systray && cme->window == systray->win && cme->message_type == netatom[NetSystemTrayOP]) {
 +		/* add systray icons */
 +		if (cme->data.l[1] == SYSTEM_TRAY_REQUEST_DOCK) {
 +			if (!(c = (Client *)calloc(1, sizeof(Client))))
