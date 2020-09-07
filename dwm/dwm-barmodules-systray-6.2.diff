@@ -1,4 +1,4 @@
-From dab4012e6c61d27a39e4938cdc384c72e39f2ab2 Mon Sep 17 00:00:00 2001
+From dd88b0115deb4c9f42fc392e68ac8e72b5ed6877 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 11:19:12 +0200
 Subject: [PATCH 2/2] Adding systray module
@@ -36,7 +36,7 @@ index 2534eac..d17b65c 100644
  	{ -1,       0,     BAR_ALIGN_NONE,   width_wintitle,        draw_wintitle,        click_wintitle,     "wintitle" },
  };
 diff --git a/dwm.c b/dwm.c
-index 03dccfb..a6c6d72 100644
+index 03dccfb..ca79f5f 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -63,6 +63,8 @@ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
@@ -177,7 +177,7 @@ index 03dccfb..a6c6d72 100644
  	static XWindowAttributes wa;
  	XMapRequestEvent *ev = &e->xmaprequest;
  
-+	if (showsystray && (i = wintosystrayicon(ev->window))) {
++	if (showsystray && systray && (i = wintosystrayicon(ev->window))) {
 +		sendevent(i->win, netatom[Xembed], StructureNotifyMask, CurrentTime, XEMBED_WINDOW_ACTIVATE, 0, systray->win, XEMBED_EMBEDDED_VERSION);
 +		drawbarwin(systray->bar);
 +	}
@@ -289,7 +289,7 @@ index 03dccfb..a6c6d72 100644
  
 diff --git a/patch/bar_systray.c b/patch/bar_systray.c
 new file mode 100644
-index 0000000..0ff730d
+index 0000000..b1efe88
 --- /dev/null
 +++ b/patch/bar_systray.c
 @@ -0,0 +1,187 @@
@@ -447,7 +447,7 @@ index 0000000..0ff730d
 +	long flags;
 +	int code = 0;
 +
-+	if (!showsystray || !i || ev->atom != xatom[XembedInfo] ||
++	if (!showsystray || !systray || !i || ev->atom != xatom[XembedInfo] ||
 +			!(flags = getatomprop(i, xatom[XembedInfo])))
 +		return;
 +
@@ -480,7 +480,6 @@ index 0000000..0ff730d
 +	for (i = systray->icons; i && i->win != w; i = i->next);
 +	return i;
 +}
-\ No newline at end of file
 diff --git a/patch/bar_systray.h b/patch/bar_systray.h
 new file mode 100644
 index 0000000..5123a73
