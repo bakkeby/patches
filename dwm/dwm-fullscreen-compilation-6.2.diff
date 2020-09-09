@@ -1,4 +1,4 @@
-From 35ff963bc8038b3fd935aa1db0d42cad819e5aa4 Mon Sep 17 00:00:00 2001
+From 93e8ef8dc307075b8d776bb67eed8e4abdc9fcd2 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 5 Sep 2020 14:32:26 +0200
 Subject: [PATCH] Compilation of fullscreen patches for dwm.
@@ -26,8 +26,8 @@ This incorporates, and expands on, the following patches:
    - losefullscreen
 ---
  config.def.h |   4 +-
- dwm.c        | 135 ++++++++++++++++++++++++++++++++++++++++++---------
- 2 files changed, 114 insertions(+), 25 deletions(-)
+ dwm.c        | 139 +++++++++++++++++++++++++++++++++++++++++----------
+ 2 files changed, 116 insertions(+), 27 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..5f28f2c 100644
@@ -48,7 +48,7 @@ index 1c0b587..5f28f2c 100644
  	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
  	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..ac03fbb 100644
+index 4465af1..4ebe6d6 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -207,26 +207,32 @@ index 4465af1..ac03fbb 100644
  	detach(c);
  	detachstack(c);
  	c->mon = m;
-@@ -1476,6 +1488,8 @@ setfullscreen(Client *c, int fullscreen)
+@@ -1476,8 +1488,10 @@ setfullscreen(Client *c, int fullscreen)
  		XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
  			PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
  		c->isfullscreen = 1;
+-		c->oldstate = c->isfloating;
+ 		c->oldbw = c->bw;
 +		if (c->fakefullscreen == 1)
 +			return;
- 		c->oldstate = c->isfloating;
- 		c->oldbw = c->bw;
++		c->oldstate = c->isfloating;
  		c->bw = 0;
-@@ -1486,6 +1500,10 @@ setfullscreen(Client *c, int fullscreen)
+ 		c->isfloating = 1;
+ 		resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
+@@ -1486,8 +1500,12 @@ setfullscreen(Client *c, int fullscreen)
  		XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
  			PropModeReplace, (unsigned char*)0, 0);
  		c->isfullscreen = 0;
+-		c->isfloating = c->oldstate;
+ 		c->bw = c->oldbw;
 +		if (c->fakefullscreen == 1)
 +			return;
 +		if (c->fakefullscreen == 2)
 +			c->fakefullscreen = 1;
- 		c->isfloating = c->oldstate;
- 		c->bw = c->oldbw;
++		c->isfloating = c->oldstate;
  		c->x = c->oldx;
+ 		c->y = c->oldy;
+ 		c->w = c->oldw;
 @@ -1665,9 +1683,19 @@ tag(const Arg *arg)
  void
  tagmon(const Arg *arg)
