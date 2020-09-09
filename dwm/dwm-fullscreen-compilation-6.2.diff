@@ -1,4 +1,4 @@
-From 93e8ef8dc307075b8d776bb67eed8e4abdc9fcd2 Mon Sep 17 00:00:00 2001
+From 5836d2142f79bcea9e1a1a2560f047c180319fab Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 5 Sep 2020 14:32:26 +0200
 Subject: [PATCH] Compilation of fullscreen patches for dwm.
@@ -26,8 +26,8 @@ This incorporates, and expands on, the following patches:
    - losefullscreen
 ---
  config.def.h |   4 +-
- dwm.c        | 139 +++++++++++++++++++++++++++++++++++++++++----------
- 2 files changed, 116 insertions(+), 27 deletions(-)
+ dwm.c        | 147 ++++++++++++++++++++++++++++++++++++++++++---------
+ 2 files changed, 124 insertions(+), 27 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..5f28f2c 100644
@@ -48,7 +48,7 @@ index 1c0b587..5f28f2c 100644
  	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
  	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..4ebe6d6 100644
+index 4465af1..adc05ce 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -255,36 +255,44 @@ index 4465af1..4ebe6d6 100644
  }
  
  void
-@@ -1705,18 +1733,69 @@ togglebar(const Arg *arg)
+@@ -1705,18 +1733,77 @@ togglebar(const Arg *arg)
  	arrange(selmon);
  }
  
 +void
 +togglefakefullscreen(const Arg *arg)
 +{
-+    Client *c = selmon->sel;
-+    if (!c)
-+        return;
++	Client *c = selmon->sel;
++	if (!c)
++	return;
 +
-+    if (c->fakefullscreen) {
-+        if (c->isfullscreen)
-+            c->fakefullscreen = 0;
-+        else
-+            c->isfullscreen = 0;
-+    } else {
-+        if (c->isfullscreen) {
-+            c->isfloating = c->oldstate;
-+            c->bw = c->oldbw;
-+            c->x = c->oldx;
-+            c->y = c->oldy;
-+            c->w = c->oldw;
-+            c->h = c->oldh;
-+            resizeclient(c, c->x, c->y, c->w, c->h);
-+        }
-+        c->fakefullscreen = 1;
-+        c->isfullscreen = 0;
-+    }
-+    setfullscreen(c, !c->isfullscreen);
++	if (c->fakefullscreen) {
++		if (c->isfullscreen) {
++			if (c->isfloating && c->fakefullscreen == 1) {
++				c->oldstate = c->isfloating;
++				c->oldx = c->x;
++				c->oldy = c->y;
++				c->oldw = c->w;
++				c->oldh = c->h;
++			}
++			c->fakefullscreen = 0;
++		}
++		else
++			c->isfullscreen = 0;
++	} else {
++		if (c->isfullscreen) {
++			c->isfloating = c->oldstate;
++			c->bw = c->oldbw;
++			c->x = c->oldx;
++			c->y = c->oldy;
++			c->w = c->oldw;
++			c->h = c->oldh;
++			resizeclient(c, c->x, c->y, c->w, c->h);
++		}
++		c->fakefullscreen = 1;
++		c->isfullscreen = 0;
++	}
++	setfullscreen(c, !c->isfullscreen);
 +}
 +
  void
@@ -331,7 +339,7 @@ index 4465af1..4ebe6d6 100644
  }
  
  void
-@@ -1747,10 +1826,18 @@ toggleview(const Arg *arg)
+@@ -1747,10 +1834,18 @@ toggleview(const Arg *arg)
  }
  
  void
