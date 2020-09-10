@@ -1,4 +1,4 @@
-From 5836d2142f79bcea9e1a1a2560f047c180319fab Mon Sep 17 00:00:00 2001
+From 3cceb1e481292b208271f23352abad5fff5c83e0 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 5 Sep 2020 14:32:26 +0200
 Subject: [PATCH] Compilation of fullscreen patches for dwm.
@@ -26,8 +26,8 @@ This incorporates, and expands on, the following patches:
    - losefullscreen
 ---
  config.def.h |   4 +-
- dwm.c        | 147 ++++++++++++++++++++++++++++++++++++++++++---------
- 2 files changed, 124 insertions(+), 27 deletions(-)
+ dwm.c        | 152 ++++++++++++++++++++++++++++++++++++++++++---------
+ 2 files changed, 128 insertions(+), 28 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..5f28f2c 100644
@@ -48,7 +48,7 @@ index 1c0b587..5f28f2c 100644
  	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
  	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..adc05ce 100644
+index 4465af1..9f6fb5a 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -189,7 +189,19 @@ index 4465af1..adc05ce 100644
  		return;
  	restack(selmon);
  	ocx = c->x;
-@@ -1298,7 +1310,7 @@ resizemouse(const Arg *arg)
+@@ -1284,7 +1296,10 @@ resizeclient(Client *c, int x, int y, int w, int h)
+ 	wc.border_width = c->bw;
+ 	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
+ 	configure(c);
+-	XSync(dpy, False);
++	if (c->fakefullscreen == 1)
++		XSync(dpy, True);
++	else
++		XSync(dpy, False);
+ }
+ 
+ void
+@@ -1298,7 +1313,7 @@ resizemouse(const Arg *arg)
  
  	if (!(c = selmon->sel))
  		return;
@@ -198,7 +210,7 @@ index 4465af1..adc05ce 100644
  		return;
  	restack(selmon);
  	ocx = c->x;
-@@ -1412,7 +1424,7 @@ sendmon(Client *c, Monitor *m)
+@@ -1412,7 +1427,7 @@ sendmon(Client *c, Monitor *m)
  {
  	if (c->mon == m)
  		return;
@@ -207,7 +219,7 @@ index 4465af1..adc05ce 100644
  	detach(c);
  	detachstack(c);
  	c->mon = m;
-@@ -1476,8 +1488,10 @@ setfullscreen(Client *c, int fullscreen)
+@@ -1476,8 +1491,10 @@ setfullscreen(Client *c, int fullscreen)
  		XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
  			PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
  		c->isfullscreen = 1;
@@ -219,7 +231,7 @@ index 4465af1..adc05ce 100644
  		c->bw = 0;
  		c->isfloating = 1;
  		resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
-@@ -1486,8 +1500,12 @@ setfullscreen(Client *c, int fullscreen)
+@@ -1486,8 +1503,12 @@ setfullscreen(Client *c, int fullscreen)
  		XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
  			PropModeReplace, (unsigned char*)0, 0);
  		c->isfullscreen = 0;
@@ -233,7 +245,7 @@ index 4465af1..adc05ce 100644
  		c->x = c->oldx;
  		c->y = c->oldy;
  		c->w = c->oldw;
-@@ -1665,9 +1683,19 @@ tag(const Arg *arg)
+@@ -1665,9 +1686,19 @@ tag(const Arg *arg)
  void
  tagmon(const Arg *arg)
  {
@@ -255,7 +267,7 @@ index 4465af1..adc05ce 100644
  }
  
  void
-@@ -1705,18 +1733,77 @@ togglebar(const Arg *arg)
+@@ -1705,18 +1736,77 @@ togglebar(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -280,6 +292,7 @@ index 4465af1..adc05ce 100644
 +		else
 +			c->isfullscreen = 0;
 +	} else {
++		c->fakefullscreen = 1;
 +		if (c->isfullscreen) {
 +			c->isfloating = c->oldstate;
 +			c->bw = c->oldbw;
@@ -289,7 +302,6 @@ index 4465af1..adc05ce 100644
 +			c->h = c->oldh;
 +			resizeclient(c, c->x, c->y, c->w, c->h);
 +		}
-+		c->fakefullscreen = 1;
 +		c->isfullscreen = 0;
 +	}
 +	setfullscreen(c, !c->isfullscreen);
@@ -339,7 +351,7 @@ index 4465af1..adc05ce 100644
  }
  
  void
-@@ -1747,10 +1834,18 @@ toggleview(const Arg *arg)
+@@ -1747,10 +1837,18 @@ toggleview(const Arg *arg)
  }
  
  void
