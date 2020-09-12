@@ -1,4 +1,4 @@
-From 6dd0111a3be099a1bfb1dd0f88f5781b8845460e Mon Sep 17 00:00:00 2001
+From e5350f12c5afde4d4caf02dda143bf6e3384e60d Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 5 Sep 2020 14:32:26 +0200
 Subject: [PATCH] Compilation of fullscreen patches for dwm.
@@ -26,8 +26,8 @@ This incorporates, and expands on, the following patches:
    - losefullscreen
 ---
  config.def.h |   4 +-
- dwm.c        | 142 ++++++++++++++++++++++++++++++++++++++++++---------
- 2 files changed, 121 insertions(+), 25 deletions(-)
+ dwm.c        | 143 ++++++++++++++++++++++++++++++++++++++++++---------
+ 2 files changed, 121 insertions(+), 26 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..5f28f2c 100644
@@ -48,7 +48,7 @@ index 1c0b587..5f28f2c 100644
  	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
  	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..8be4ceb 100644
+index 4465af1..5e5e98d 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -202,33 +202,42 @@ index 4465af1..8be4ceb 100644
  	detach(c);
  	detachstack(c);
  	c->mon = m;
-@@ -1476,8 +1487,10 @@ setfullscreen(Client *c, int fullscreen)
+@@ -1476,8 +1487,12 @@ setfullscreen(Client *c, int fullscreen)
  		XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
  			PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
  		c->isfullscreen = 1;
 -		c->oldstate = c->isfloating;
  		c->oldbw = c->bw;
-+		if (c->fakefullscreen == 1)
-+			return;
 +		c->oldstate = c->isfloating;
++		if (c->fakefullscreen == 1) {
++			restack(c->mon);
++			return;
++		}
  		c->bw = 0;
  		c->isfloating = 1;
  		resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
-@@ -1486,8 +1499,12 @@ setfullscreen(Client *c, int fullscreen)
+@@ -1486,14 +1501,18 @@ setfullscreen(Client *c, int fullscreen)
  		XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
  			PropModeReplace, (unsigned char*)0, 0);
  		c->isfullscreen = 0;
 -		c->isfloating = c->oldstate;
  		c->bw = c->oldbw;
++		c->isfloating = c->oldstate;
++		restack(c->mon);
 +		if (c->fakefullscreen == 1)
 +			return;
 +		if (c->fakefullscreen == 2)
 +			c->fakefullscreen = 1;
-+		c->isfloating = c->oldstate;
  		c->x = c->oldx;
  		c->y = c->oldy;
  		c->w = c->oldw;
-@@ -1665,9 +1682,19 @@ tag(const Arg *arg)
+ 		c->h = c->oldh;
+ 		resizeclient(c, c->x, c->y, c->w, c->h);
+-		arrange(c->mon);
+ 	}
+ }
+ 
+@@ -1665,9 +1684,19 @@ tag(const Arg *arg)
  void
  tagmon(const Arg *arg)
  {
@@ -250,7 +259,7 @@ index 4465af1..8be4ceb 100644
  }
  
  void
-@@ -1705,18 +1732,77 @@ togglebar(const Arg *arg)
+@@ -1705,18 +1734,74 @@ togglebar(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -324,17 +333,14 @@ index 4465af1..8be4ceb 100644
 +	} else if (c->fakefullscreen == 2) {
 +		c->fakefullscreen = 0;
 +		togglefakefullscreen(NULL);
-+		arrange(selmon);
 +		return;
 +	}
 +
 +	setfullscreen(c, !c->isfullscreen);
-+	if (!c->isfullscreen)
-+		arrange(c->mon);
  }
  
  void
-@@ -1747,10 +1833,18 @@ toggleview(const Arg *arg)
+@@ -1747,10 +1832,18 @@ toggleview(const Arg *arg)
  }
  
  void
