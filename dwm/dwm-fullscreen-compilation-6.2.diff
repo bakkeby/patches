@@ -1,4 +1,4 @@
-From 86640987abb3f8cadc0a688001f2634f3cdba9c9 Mon Sep 17 00:00:00 2001
+From b50a85db1f4f6208042c433c5c702f0f18569d13 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 5 Sep 2020 14:32:26 +0200
 Subject: [PATCH] Compilation of fullscreen patches for dwm.
@@ -26,8 +26,8 @@ This incorporates, and expands on, the following patches:
    - losefullscreen
 ---
  config.def.h |   4 +-
- dwm.c        | 159 ++++++++++++++++++++++++++++++++++++++++-----------
- 2 files changed, 129 insertions(+), 34 deletions(-)
+ dwm.c        | 164 ++++++++++++++++++++++++++++++++++++++++-----------
+ 2 files changed, 134 insertions(+), 34 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..5f28f2c 100644
@@ -48,7 +48,7 @@ index 1c0b587..5f28f2c 100644
  	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
  	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..cc999cb 100644
+index 4465af1..5352547 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -186,19 +186,24 @@ index 4465af1..cc999cb 100644
  		return;
  	restack(selmon);
  	ocx = c->x;
-@@ -1284,7 +1295,10 @@ resizeclient(Client *c, int x, int y, int w, int h)
+@@ -1284,7 +1295,15 @@ resizeclient(Client *c, int x, int y, int w, int h)
  	wc.border_width = c->bw;
  	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
  	configure(c);
 -	XSync(dpy, False);
 +	if (c->fakefullscreen == 1)
++		/* Exception: if the client was in actual fullscreen and we exit out to fake fullscreen
++		 * mode, then the focus would drift to whichever window is under the mouse cursor at the
++		 * time. To avoid this we pass True to XSync which will make the X server disregard any
++		 * other events in the queue thus cancelling the EnterNotify event that would otherwise
++		 * have changed focus. */
 +		XSync(dpy, True);
 +	else
 +		XSync(dpy, False);
  }
  
  void
-@@ -1298,7 +1312,7 @@ resizemouse(const Arg *arg)
+@@ -1298,7 +1317,7 @@ resizemouse(const Arg *arg)
  
  	if (!(c = selmon->sel))
  		return;
@@ -207,7 +212,7 @@ index 4465af1..cc999cb 100644
  		return;
  	restack(selmon);
  	ocx = c->x;
-@@ -1412,7 +1426,7 @@ sendmon(Client *c, Monitor *m)
+@@ -1412,7 +1431,7 @@ sendmon(Client *c, Monitor *m)
  {
  	if (c->mon == m)
  		return;
@@ -216,7 +221,7 @@ index 4465af1..cc999cb 100644
  	detach(c);
  	detachstack(c);
  	c->mon = m;
-@@ -1472,28 +1486,61 @@ setfocus(Client *c)
+@@ -1472,28 +1491,61 @@ setfocus(Client *c)
  void
  setfullscreen(Client *c, int fullscreen)
  {
@@ -288,7 +293,7 @@ index 4465af1..cc999cb 100644
  	}
  }
  
-@@ -1665,9 +1712,19 @@ tag(const Arg *arg)
+@@ -1665,9 +1717,19 @@ tag(const Arg *arg)
  void
  tagmon(const Arg *arg)
  {
@@ -310,7 +315,7 @@ index 4465af1..cc999cb 100644
  }
  
  void
-@@ -1705,18 +1762,51 @@ togglebar(const Arg *arg)
+@@ -1705,18 +1767,51 @@ togglebar(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -368,7 +373,7 @@ index 4465af1..cc999cb 100644
  }
  
  void
-@@ -1747,10 +1837,13 @@ toggleview(const Arg *arg)
+@@ -1747,10 +1842,13 @@ toggleview(const Arg *arg)
  }
  
  void
