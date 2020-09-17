@@ -1,4 +1,4 @@
-From 0378a5a77172fd49016f17f57a980d74611cff5f Mon Sep 17 00:00:00 2001
+From b7e853e0651aa4afd77785a5551b2f29a5d80f92 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 09:50:33 +0200
 Subject: [PATCH 2/2] Adding awesomebar barmodules patch.
@@ -17,11 +17,11 @@ In other words, all this patch does is showing all window titles in the
 title bar with an even split between them.
 ---
  config.def.h           |  2 +-
- patch/bar_awesomebar.c | 89 ++++++++++++++++++++++++++++++++++++++++++
+ patch/bar_awesomebar.c | 94 ++++++++++++++++++++++++++++++++++++++++++
  patch/bar_awesomebar.h |  3 ++
  patch/include.c        |  3 +-
  patch/include.h        |  3 +-
- 5 files changed, 97 insertions(+), 3 deletions(-)
+ 5 files changed, 102 insertions(+), 3 deletions(-)
  create mode 100644 patch/bar_awesomebar.c
  create mode 100644 patch/bar_awesomebar.h
 
@@ -40,10 +40,10 @@ index 2534eac..1a64163 100644
  /* layout(s) */
 diff --git a/patch/bar_awesomebar.c b/patch/bar_awesomebar.c
 new file mode 100644
-index 0000000..88c7c50
+index 0000000..aa2e2e5
 --- /dev/null
 +++ b/patch/bar_awesomebar.c
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,94 @@
 +int
 +width_awesomebar(Bar *bar, BarWidthArg *a)
 +{
@@ -53,7 +53,7 @@ index 0000000..88c7c50
 +int
 +draw_awesomebar(Bar *bar, BarDrawArg *a)
 +{
-+	int n = 0, scm, remainder = 0, tabw;
++	int n = 0, scm, remainder = 0, tabw, pad;
 +	unsigned int i;
 +	#if BAR_TITLE_LEFT_PAD && BAR_TITLE_RIGHT_PAD
 +	int x = a->x + lrpad / 2, w = a->w - lrpad;
@@ -95,14 +95,19 @@ index 0000000..88c7c50
 +				scm = SchemeNorm;
 +				#endif // BAR_VTCOLORS_PATCH
 +
++			pad = lrpad / 2;
++			#if BAR_CENTEREDWINDOWNAME_PATCH
++			if (TEXTW(c->name) < tabw)
++				pad = (tabw - TEXTW(c->name) + lrpad) / 2;
++			#endif // BAR_CENTEREDWINDOWNAME_PATCH
++
 +			drw_setscheme(drw, scheme[scm]);
-+			tabw += (i < remainder ? 1 : 0);
 +			#if BAR_PANGO_PATCH
-+			drw_text(drw, x, 0, tabw, bh, lrpad / 2, c->name, 0, False);
++			drw_text(drw, x, 0, tabw + (i < remainder ? 1 : 0), bh, pad, c->name, 0, False);
 +			#else
-+			drw_text(drw, x, 0, tabw, bh, lrpad / 2, c->name, 0);
++			drw_text(drw, x, 0, tabw + (i < remainder ? 1 : 0), bh, pad, c->name, 0);
 +			#endif // BAR_PANGO_PATCH
-+			x += tabw;
++			x += tabw + (i < remainder ? 1 : 0);
 +		}
 +	}
 +	return a->x + a->w;
