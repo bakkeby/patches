@@ -1,16 +1,18 @@
-From c01625735b893ed948a3a435affb709097dd068a Mon Sep 17 00:00:00 2001
+From 3d9759b356da30bf8df209663f566bdc3f6c9d73 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Wed, 26 Aug 2020 09:56:20 +0200
 Subject: [PATCH] Warp: warps the mouse cursor to the center of the currently
  focused window or screen when the mouse cursor is (a) on a different screen
  or (b) on top of a different window.
 
+If you are using barmodules then you may want to have a look at the warp function here:
+https://github.com/bakkeby/dwm-flexipatch/blob/master/patch/warp.c
 ---
- dwm.c | 29 +++++++++++++++++++++++++++++
- 1 file changed, 29 insertions(+)
+ dwm.c | 26 ++++++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
 
 diff --git a/dwm.c b/dwm.c
-index 4465af1..76cba65 100644
+index 4465af1..6270438 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -227,6 +227,7 @@ static void updatetitle(Client *c);
@@ -38,7 +40,7 @@ index 4465af1..76cba65 100644
  }
  
  void
-@@ -2044,6 +2048,31 @@ view(const Arg *arg)
+@@ -2044,6 +2048,28 @@ view(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -57,11 +59,8 @@ index 4465af1..76cba65 100644
 +		 y > c->y - c->bw &&
 +		 x < c->x + c->w + c->bw*2 &&
 +		 y < c->y + c->h + c->bw*2) ||
-+		x < c->mon->wx ||
-+		x > c->mon->wx + c->mon->ww ||
-+		y < c->mon->wy ||
-+		y > c->mon->wy + c->mon->wh
-+	)
++		(y > c->mon->by && y < c->mon->by + bh) ||
++		(c->mon->topbar && !y))
 +		return;
 +
 +	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w / 2, c->h / 2);
