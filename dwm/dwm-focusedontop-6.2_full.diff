@@ -246,7 +246,7 @@ index 1d4475b..74bf95a 100644
 2.19.1
 
 
-From a36ec37f69daeee154a8be0045cf1b88bc6513c7 Mon Sep 17 00:00:00 2001
+From 88893fa2b5a178dc993b62d14195fd079e202895 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 8 Oct 2020 19:38:56 +0200
 Subject: [PATCH 3/3] focusedontop: allow the currently focused client to
@@ -255,11 +255,11 @@ Subject: [PATCH 3/3] focusedontop: allow the currently focused client to
 
 ---
  config.def.h | 16 +++++++++-------
- dwm.c        | 37 ++++++++++++++++++++++++++++++++++++-
- 2 files changed, 45 insertions(+), 8 deletions(-)
+ dwm.c        | 45 +++++++++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 52 insertions(+), 9 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
-index dd003d0..1a48616 100644
+index dd003d0..7c0c27e 100644
 --- a/config.def.h
 +++ b/config.def.h
 @@ -5,6 +5,7 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
@@ -282,20 +282,29 @@ index dd003d0..1a48616 100644
 -	{ "Gimp",     NULL,       NULL,     NULL,  NULL,             0,         1,          -1 },
 -	{ "Firefox",  NULL,       NULL,     NULL,  NULL,             1 << 8,    0,          -1 },
 +	/* class      role        instance  title  wintype,          tags mask  isfloating  alwaysontop monitor */
-+	{ NULL,       NULL,       NULL,     NULL,  WTYPE "DIALOG",   0,         1,          1           -1 },
-+	{ NULL,       NULL,       NULL,     NULL,  WTYPE "UTILITY",  0,         1,          1           -1 },
-+	{ NULL,       NULL,       NULL,     NULL,  WTYPE "TOOLBAR",  0,         1,          1           -1 },
-+	{ NULL,       NULL,       NULL,     NULL,  WTYPE "SPLASH",   0,         1,          1           -1 },
-+	{ "Gimp",     NULL,       NULL,     NULL,  NULL,             0,         1,          0           -1 },
-+	{ "Firefox",  NULL,       NULL,     NULL,  NULL,             1 << 8,    0,          0           -1 },
-+	{ NULL,       "pop-up",   NULL,     NULL,  NULL,             0,         1,          1           -1 },
++	{ NULL,       NULL,       NULL,     NULL,  WTYPE "DIALOG",   0,         1,          1,          -1 },
++	{ NULL,       NULL,       NULL,     NULL,  WTYPE "UTILITY",  0,         1,          1,          -1 },
++	{ NULL,       NULL,       NULL,     NULL,  WTYPE "TOOLBAR",  0,         1,          1,          -1 },
++	{ NULL,       NULL,       NULL,     NULL,  WTYPE "SPLASH",   0,         1,          1,          -1 },
++	{ "Gimp",     NULL,       NULL,     NULL,  NULL,             0,         1,          0,          -1 },
++	{ "Firefox",  NULL,       NULL,     NULL,  NULL,             1 << 8,    0,          0,          -1 },
++	{ NULL,       "pop-up",   NULL,     NULL,  NULL,             0,         1,          1,          -1 },
  };
  
  /* layout(s) */
 diff --git a/dwm.c b/dwm.c
-index 74bf95a..6353232 100644
+index 74bf95a..fd73f9e 100644
 --- a/dwm.c
 +++ b/dwm.c
+@@ -60,7 +60,7 @@
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+-enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
++enum { NetSupported, NetWMName, NetWMState, NetWMStateAbove, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+        NetClientList, NetLast }; /* EWMH atoms */
+ enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMWindowRole, WMLast }; /* default atoms */
 @@ -93,6 +93,7 @@ struct Client {
  	int bw, oldbw;
  	unsigned int tags;
@@ -320,7 +329,17 @@ index 74bf95a..6353232 100644
  			for (m = mons; m && m->num != r->monitor; m = m->next);
  			if (m)
  				c->mon = m;
-@@ -791,6 +794,8 @@ expose(XEvent *e)
+@@ -530,6 +533,9 @@ clientmessage(XEvent *e)
+ 		|| cme->data.l[2] == netatom[NetWMFullscreen])
+ 			setfullscreen(c, (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
+ 				|| (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
++		else if (cme->data.l[1] == netatom[NetWMStateAbove]
++			|| cme->data.l[2] == netatom[NetWMStateAbove])
++			c->alwaysontop = (cme->data.l[0] || cme->data.l[1]);
+ 	} else if (cme->message_type == netatom[NetActiveWindow]) {
+ 		if (c != selmon->sel && !c->isurgent)
+ 			seturgent(c, 1);
+@@ -791,6 +797,8 @@ expose(XEvent *e)
  void
  focus(Client *c)
  {
@@ -329,11 +348,13 @@ index 74bf95a..6353232 100644
  	if (!c || !ISVISIBLE(c))
  		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
  	if (selmon->sel && selmon->sel != c)
-@@ -805,6 +810,34 @@ focus(Client *c)
+@@ -805,6 +813,33 @@ focus(Client *c)
  		grabbuttons(c, 1);
  		XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
  		setfocus(c);
 +		if (focusedontop && c->mon->lt[c->mon->sellt]->arrange) {
++
++			/* Move all visible tiled clients that are not marked as on top below the bar window */
 +			wc.stack_mode = Below;
 +			wc.sibling = c->mon->barwin;
 +			for (f = c->mon->stack; f; f = f->snext)
@@ -342,19 +363,16 @@ index 74bf95a..6353232 100644
 +					wc.sibling = f->win;
 +				}
 +
-+			XRaiseWindow(dpy, c->win);
++			/* Move the currently focused client above the bar window */
++			wc.stack_mode = Above;
++			wc.sibling = c->mon->barwin;
++			XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
 +
++			/* Move all visible floating windows that are not marked as on top below the current window */
++			wc.stack_mode = Below;
 +			wc.sibling = c->win;
 +			for (f = c->mon->stack; f; f = f->snext)
 +				if (f != c && f->isfloating && ISVISIBLE(f) && !f->alwaysontop) {
-+					XConfigureWindow(dpy, f->win, CWSibling|CWStackMode, &wc);
-+					wc.sibling = f->win;
-+				}
-+
-+			wc.stack_mode = Above;
-+			wc.sibling = c->win;
-+			for (f = c->mon->stack; f; f = f->snext)
-+				if (f != c && ISVISIBLE(f) && f->alwaysontop) {
 +					XConfigureWindow(dpy, f->win, CWSibling|CWStackMode, &wc);
 +					wc.sibling = f->win;
 +				}
@@ -364,7 +382,7 @@ index 74bf95a..6353232 100644
  	} else {
  		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
  		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
-@@ -859,7 +892,8 @@ focusstack(const Arg *arg)
+@@ -859,7 +894,8 @@ focusstack(const Arg *arg)
  	}
  	if (c) {
  		focus(c);
@@ -374,7 +392,7 @@ index 74bf95a..6353232 100644
  	}
  }
  
-@@ -1042,6 +1076,7 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1042,6 +1078,7 @@ manage(Window w, XWindowAttributes *wa)
  	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
  		c->mon = t->mon;
  		c->tags = t->tags;
@@ -382,6 +400,31 @@ index 74bf95a..6353232 100644
  	} else {
  		c->mon = selmon;
  		applyrules(c);
+@@ -1061,6 +1098,8 @@ manage(Window w, XWindowAttributes *wa)
+ 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
+ 	XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
+ 	configure(c); /* propagates border_width, if size doesn't change */
++	if (getatomprop(c, netatom[NetWMState]) == netatom[NetWMStateAbove])
++		c->alwaysontop = 1;
+ 	if (getatomprop(c, netatom[NetWMState]) == netatom[NetWMFullscreen])
+ 		setfullscreen(c, 1);
+ 	updatesizehints(c);
+@@ -1082,6 +1121,7 @@ manage(Window w, XWindowAttributes *wa)
+ 	c->mon->sel = c;
+ 	arrange(c->mon);
+ 	XMapWindow(dpy, c->win);
++
+ 	focus(NULL);
+ }
+ 
+@@ -1565,6 +1605,7 @@ setup(void)
+ 	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
+ 	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
+ 	netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
++	netatom[NetWMStateAbove] = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
+ 	netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
+ 	netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+ 	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
 -- 
 2.19.1
 
