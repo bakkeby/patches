@@ -246,7 +246,7 @@ index 1d4475b..74bf95a 100644
 2.19.1
 
 
-From 88893fa2b5a178dc993b62d14195fd079e202895 Mon Sep 17 00:00:00 2001
+From b30d7cced69b8c1a50dbc996600ff511e9e34a3a Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 8 Oct 2020 19:38:56 +0200
 Subject: [PATCH 3/3] focusedontop: allow the currently focused client to
@@ -255,8 +255,8 @@ Subject: [PATCH 3/3] focusedontop: allow the currently focused client to
 
 ---
  config.def.h | 16 +++++++++-------
- dwm.c        | 45 +++++++++++++++++++++++++++++++++++++++++++--
- 2 files changed, 52 insertions(+), 9 deletions(-)
+ dwm.c        | 43 +++++++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 50 insertions(+), 9 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index dd003d0..7c0c27e 100644
@@ -293,7 +293,7 @@ index dd003d0..7c0c27e 100644
  
  /* layout(s) */
 diff --git a/dwm.c b/dwm.c
-index 74bf95a..fd73f9e 100644
+index 74bf95a..e8b4a5e 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -60,7 +60,7 @@
@@ -348,7 +348,7 @@ index 74bf95a..fd73f9e 100644
  	if (!c || !ISVISIBLE(c))
  		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
  	if (selmon->sel && selmon->sel != c)
-@@ -805,6 +813,33 @@ focus(Client *c)
+@@ -805,6 +813,31 @@ focus(Client *c)
  		grabbuttons(c, 1);
  		XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
  		setfocus(c);
@@ -376,13 +376,11 @@ index 74bf95a..fd73f9e 100644
 +					XConfigureWindow(dpy, f->win, CWSibling|CWStackMode, &wc);
 +					wc.sibling = f->win;
 +				}
-+
-+			XSync(dpy, True);
 +		}
  	} else {
  		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
  		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
-@@ -859,7 +894,8 @@ focusstack(const Arg *arg)
+@@ -859,7 +892,8 @@ focusstack(const Arg *arg)
  	}
  	if (c) {
  		focus(c);
@@ -392,7 +390,7 @@ index 74bf95a..fd73f9e 100644
  	}
  }
  
-@@ -1042,6 +1078,7 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1042,6 +1076,7 @@ manage(Window w, XWindowAttributes *wa)
  	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
  		c->mon = t->mon;
  		c->tags = t->tags;
@@ -400,7 +398,7 @@ index 74bf95a..fd73f9e 100644
  	} else {
  		c->mon = selmon;
  		applyrules(c);
-@@ -1061,6 +1098,8 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1061,6 +1096,8 @@ manage(Window w, XWindowAttributes *wa)
  	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
  	XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
  	configure(c); /* propagates border_width, if size doesn't change */
@@ -409,7 +407,7 @@ index 74bf95a..fd73f9e 100644
  	if (getatomprop(c, netatom[NetWMState]) == netatom[NetWMFullscreen])
  		setfullscreen(c, 1);
  	updatesizehints(c);
-@@ -1082,6 +1121,7 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1082,6 +1119,7 @@ manage(Window w, XWindowAttributes *wa)
  	c->mon->sel = c;
  	arrange(c->mon);
  	XMapWindow(dpy, c->win);
@@ -417,7 +415,7 @@ index 74bf95a..fd73f9e 100644
  	focus(NULL);
  }
  
-@@ -1565,6 +1605,7 @@ setup(void)
+@@ -1565,6 +1603,7 @@ setup(void)
  	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
  	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
  	netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
