@@ -1,4 +1,4 @@
-From 01c0dae986d6a070beb9e3947f2bb34bd41d1478 Mon Sep 17 00:00:00 2001
+From a5fbc74a306c1bfeaa8450fd774e1fb99efc9626 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 23 Jun 2020 11:59:12 +0200
 Subject: [PATCH] floatpos: Control the size and position of floating windows
@@ -10,8 +10,8 @@ Refer to:
 https://github.com/bakkeby/patches/wiki/floatpos/
 ---
  config.def.h |  46 ++++++++++++-
- dwm.c        | 183 ++++++++++++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 224 insertions(+), 5 deletions(-)
+ dwm.c        | 187 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 228 insertions(+), 5 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..8605e95 100644
@@ -85,10 +85,18 @@ index 1c0b587..8605e95 100644
  	TAGKEYS(                        XK_2,                      1)
  	TAGKEYS(                        XK_3,                      2)
 diff --git a/dwm.c b/dwm.c
-index 4465af1..c8ca124 100644
+index 4465af1..ce19701 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -138,6 +138,7 @@ typedef struct {
+@@ -93,6 +93,7 @@ struct Client {
+ 	int bw, oldbw;
+ 	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
++	int ignoresizehints;
+ 	Client *next;
+ 	Client *snext;
+ 	Monitor *mon;
+@@ -138,6 +139,7 @@ typedef struct {
  	const char *title;
  	unsigned int tags;
  	int isfloating;
@@ -96,7 +104,7 @@ index 4465af1..c8ca124 100644
  	int monitor;
  } Rule;
  
-@@ -165,10 +166,12 @@ static void drawbar(Monitor *m);
+@@ -165,10 +167,12 @@ static void drawbar(Monitor *m);
  static void drawbars(void);
  static void enternotify(XEvent *e);
  static void expose(XEvent *e);
@@ -109,7 +117,7 @@ index 4465af1..c8ca124 100644
  static int getrootptr(int *x, int *y);
  static long getstate(Window w);
  static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
-@@ -197,6 +200,7 @@ static void scan(void);
+@@ -197,6 +201,7 @@ static void scan(void);
  static int sendevent(Client *c, Atom proto);
  static void sendmon(Client *c, Monitor *m);
  static void setclientstate(Client *c, long state);
@@ -117,7 +125,7 @@ index 4465af1..c8ca124 100644
  static void setfocus(Client *c);
  static void setfullscreen(Client *c, int fullscreen);
  static void setlayout(const Arg *arg);
-@@ -302,6 +306,8 @@ applyrules(Client *c)
+@@ -302,6 +307,8 @@ applyrules(Client *c)
  			for (m = mons; m && m->num != r->monitor; m = m->next);
  			if (m)
  				c->mon = m;
@@ -126,7 +134,16 @@ index 4465af1..c8ca124 100644
  		}
  	}
  	if (ch.res_class)
-@@ -780,6 +786,21 @@ expose(XEvent *e)
+@@ -343,7 +350,7 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
+ 		*h = bh;
+ 	if (*w < bh)
+ 		*w = bh;
+-	if (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
++	if (!c->ignoresizehints && (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange)) {
+ 		/* see last two sentences in ICCCM 4.1.2.3 */
+ 		baseismin = c->basew == c->minw && c->baseh == c->minh;
+ 		if (!baseismin) { /* temporarily remove base dimensions */
+@@ -780,6 +787,21 @@ expose(XEvent *e)
  		drawbar(m);
  }
  
@@ -148,7 +165,7 @@ index 4465af1..c8ca124 100644
  void
  focus(Client *c)
  {
-@@ -871,6 +892,123 @@ getatomprop(Client *c, Atom prop)
+@@ -871,6 +893,123 @@ getatomprop(Client *c, Atom prop)
  	return atom;
  }
  
@@ -272,15 +289,18 @@ index 4465af1..c8ca124 100644
  int
  getrootptr(int *x, int *y)
  {
-@@ -1031,6 +1169,7 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1029,8 +1168,10 @@ manage(Window w, XWindowAttributes *wa)
+ 	c->w = c->oldw = wa->width;
+ 	c->h = c->oldh = wa->height;
  	c->oldbw = wa->border_width;
++	c->ignoresizehints = 0;
  
  	updatetitle(c);
 +	c->bw = borderpx;
  	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
  		c->mon = t->mon;
  		c->tags = t->tags;
-@@ -1047,14 +1186,12 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1047,7 +1188,6 @@ manage(Window w, XWindowAttributes *wa)
  	/* only fix client y-offset, if the client center might cover the bar */
  	c->y = MAX(c->y, ((c->mon->by == c->mon->my) && (c->x + (c->w / 2) >= c->mon->wx)
  		&& (c->x + (c->w / 2) < c->mon->wx + c->mon->ww)) ? bh : c->mon->my);
@@ -288,14 +308,7 @@ index 4465af1..c8ca124 100644
  
  	wc.border_width = c->bw;
  	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
- 	XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
- 	configure(c); /* propagates border_width, if size doesn't change */
- 	updatewindowtype(c);
--	updatesizehints(c);
- 	updatewmhints(c);
- 	XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
- 	grabbuttons(c, 0);
-@@ -1457,6 +1594,48 @@ sendevent(Client *c, Atom proto)
+@@ -1457,6 +1597,49 @@ sendevent(Client *c, Atom proto)
  	return exists;
  }
  
@@ -336,6 +349,7 @@ index 4465af1..c8ca124 100644
 +	wy = c->mon->wy;
 +	ww = c->mon->ww;
 +	wh = c->mon->wh;
++	c->ignoresizehints = 1;
 +
 +	getfloatpos(x, xCh, w, wCh, wx, ww, c->x, c->w, c->bw, floatposgrid_x, &c->x, &c->w);
 +	getfloatpos(y, yCh, h, hCh, wy, wh, c->y, c->h, c->bw, floatposgrid_y, &c->y, &c->h);
