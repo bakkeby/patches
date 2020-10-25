@@ -1,0 +1,65 @@
+From 67840904a9510d6a6fc991b7f04046e74d196a26 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Sun, 25 Oct 2020 16:40:05 +0100
+Subject: [PATCH] Adds the _NET_CLIENT_LIST_STACKING property which may be
+ needed by some applications, e.g. zoom for window sharing.
+
+---
+ dwm.c | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/dwm.c b/dwm.c
+index 4465af1..0be261f 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -62,7 +62,7 @@ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+-       NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
++       NetWMWindowTypeDialog, NetClientList, NetClientListStacking, NetLast }; /* EWMH atoms */
+ enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
+ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
+@@ -1066,6 +1066,8 @@ manage(Window w, XWindowAttributes *wa)
+ 	attachstack(c);
+ 	XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
+ 		(unsigned char *) &(c->win), 1);
++	XChangeProperty(dpy, root, netatom[NetClientListStacking], XA_WINDOW, 32, PropModePrepend,
++		(unsigned char *) &(c->win), 1);
+ 	XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h); /* some windows require this */
+ 	setclientstate(c, NormalState);
+ 	if (c->mon == selmon)
+@@ -1562,6 +1564,7 @@ setup(void)
+ 	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+ 	netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+ 	netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
++	netatom[NetClientListStacking] = XInternAtom(dpy, "_NET_CLIENT_LIST_STACKING", False);
+ 	/* init cursors */
+ 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
+ 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
+@@ -1585,6 +1588,7 @@ setup(void)
+ 	XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32,
+ 		PropModeReplace, (unsigned char *) netatom, NetLast);
+ 	XDeleteProperty(dpy, root, netatom[NetClientList]);
++	XDeleteProperty(dpy, root, netatom[NetClientListStacking]);
+ 	/* select events */
+ 	wa.cursor = cursor[CurNormal]->cursor;
+ 	wa.event_mask = SubstructureRedirectMask|SubstructureNotifyMask
+@@ -1845,6 +1849,13 @@ updateclientlist()
+ 			XChangeProperty(dpy, root, netatom[NetClientList],
+ 				XA_WINDOW, 32, PropModeAppend,
+ 				(unsigned char *) &(c->win), 1);
++
++	XDeleteProperty(dpy, root, netatom[NetClientListStacking]);
++	for (m = mons; m; m = m->next)
++		for (c = m->stack; c; c = c->snext)
++			XChangeProperty(dpy, root, netatom[NetClientListStacking],
++				XA_WINDOW, 32, PropModeAppend,
++				(unsigned char *) &(c->win), 1);
+ }
+ 
+ int
+-- 
+2.19.1
+
