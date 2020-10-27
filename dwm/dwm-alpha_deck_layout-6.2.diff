@@ -1,0 +1,99 @@
+From 7b4c37eb98788d5c406633a9f9b11c6812ad7ab9 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Tue, 27 Oct 2020 13:01:28 +0100
+Subject: [PATCH] alpha deck layout: only show the currently focused window
+ (rather than all windows stacked on top of each other)
+
+---
+ config.def.h |  2 ++
+ dwm.c        | 40 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 42 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index 1c0b587..15f52dc 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -41,6 +41,7 @@ static const Layout layouts[] = {
+ 	{ "[]=",      tile },    /* first entry is default */
+ 	{ "><>",      NULL },    /* no layout function means floating behavior */
+ 	{ "[M]",      monocle },
++	{ "[D]",      deck },
+ };
+ 
+ /* key definitions */
+@@ -76,6 +77,7 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
+ 	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
+ 	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
++	{ MODKEY,                       XK_c,      setlayout,      {.v = &layouts[3]} },
+ 	{ MODKEY,                       XK_space,  setlayout,      {0} },
+ 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
+ 	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
+diff --git a/dwm.c b/dwm.c
+index 4465af1..6192cd4 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -157,6 +157,7 @@ static void configure(Client *c);
+ static void configurenotify(XEvent *e);
+ static void configurerequest(XEvent *e);
+ static Monitor *createmon(void);
++static void deck(Monitor *m);
+ static void destroynotify(XEvent *e);
+ static void detach(Client *c);
+ static void detachstack(Client *c);
+@@ -644,6 +645,43 @@ createmon(void)
+ 	return m;
+ }
+ 
++void
++deck(Monitor *m) {
++	unsigned int i, n, h, mw, my;
++	Client *c, *s;
++
++	for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
++	if (n == 0)
++		return;
++
++	if (n > m->nmaster) {
++		mw = m->nmaster ? m->ww * m->mfact : 0;
++		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n - m->nmaster);
++	}
++	else
++		mw = m->ww;
++	for (i = my = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++)
++		if (i < m->nmaster) {
++			h = (m->wh - my) / (MIN(n, m->nmaster) - i);
++			resize(c, m->wx, m->wy + my, mw - (2*c->bw), h - (2*c->bw), False);
++			my += HEIGHT(c);
++		}
++		else
++			XMoveWindow(dpy, c->win, WIDTH(c) * -2, c->y);
++
++	for (s = m->stack; s; s = s->snext) {
++		if (!ISVISIBLE(s) || s->isfloating)
++			continue;
++
++		for (i = my = 0, c = nexttiled(m->clients); c && c != s; c = nexttiled(c->next), i++);
++		if (i < m->nmaster)
++			continue;
++		XMoveWindow(dpy, s->win, c->x, c->y);
++		resize(s, m->wx + mw, m->wy, m->ww - mw - (2*s->bw), m->wh - (2*s->bw), False);
++		break;
++	}
++}
++
+ void
+ destroynotify(XEvent *e)
+ {
+@@ -802,6 +840,8 @@ focus(Client *c)
+ 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
+ 	}
+ 	selmon->sel = c;
++	if (selmon->lt[selmon->sellt]->arrange == deck)
++		arrangemon(selmon);
+ 	drawbars();
+ }
+ 
+-- 
+2.19.1
+
