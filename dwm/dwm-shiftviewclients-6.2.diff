@@ -1,4 +1,4 @@
-From 7d2a8bf0773ab9d659643ef57b9033062ef207c4 Mon Sep 17 00:00:00 2001
+From 5dc8f6db20e2d90c80606d7462ce021b74c0e25d Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 3 May 2020 15:55:08 +0200
 Subject: [PATCH] This variant of the shiftview patch adds left and right
@@ -6,8 +6,8 @@ Subject: [PATCH] This variant of the shiftview patch adds left and right
 
 ---
  config.def.h |  2 ++
- dwm.c        | 31 +++++++++++++++++++++++++++++++
- 2 files changed, 33 insertions(+)
+ dwm.c        | 35 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 37 insertions(+)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..ad3a5fd 100644
@@ -23,7 +23,7 @@ index 1c0b587..ad3a5fd 100644
  	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
  	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..416fc3f 100644
+index 4465af1..4fd7423 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -203,6 +203,7 @@ static void setlayout(const Arg *arg);
@@ -34,7 +34,7 @@ index 4465af1..416fc3f 100644
  static void showhide(Client *c);
  static void sigchld(int unused);
  static void spawn(const Arg *arg);
-@@ -1610,6 +1611,36 @@ seturgent(Client *c, int urg)
+@@ -1610,6 +1611,40 @@ seturgent(Client *c, int urg)
  	XFree(wmh);
  }
  
@@ -53,7 +53,11 @@ index 4465af1..416fc3f 100644
 +		tagmask = tagmask | c->tags;
 +		#endif // SCRATCHPADS_PATCH
 +
++	#if SCRATCHPADS_PATCH
++	shifted.ui = selmon->tagset[selmon->seltags] & ~SPTAGMASK;
++	#else
 +	shifted.ui = selmon->tagset[selmon->seltags];
++	#endif // SCRATCHPADS_PATCH
 +	if (arg->i > 0) // left circular shift
 +		do {
 +			shifted.ui = (shifted.ui << arg->i)
