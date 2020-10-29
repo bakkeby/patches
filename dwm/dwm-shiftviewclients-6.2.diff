@@ -1,4 +1,4 @@
-From 5dc8f6db20e2d90c80606d7462ce021b74c0e25d Mon Sep 17 00:00:00 2001
+From 778ab761611dd05fbb8841f51eb4184b7ce32c8d Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 3 May 2020 15:55:08 +0200
 Subject: [PATCH] This variant of the shiftview patch adds left and right
@@ -6,8 +6,8 @@ Subject: [PATCH] This variant of the shiftview patch adds left and right
 
 ---
  config.def.h |  2 ++
- dwm.c        | 35 +++++++++++++++++++++++++++++++++++
- 2 files changed, 37 insertions(+)
+ dwm.c        | 41 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 43 insertions(+)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..ad3a5fd 100644
@@ -23,7 +23,7 @@ index 1c0b587..ad3a5fd 100644
  	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
  	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..4fd7423 100644
+index 4465af1..55d5035 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -203,6 +203,7 @@ static void setlayout(const Arg *arg);
@@ -34,7 +34,7 @@ index 4465af1..4fd7423 100644
  static void showhide(Client *c);
  static void sigchld(int unused);
  static void spawn(const Arg *arg);
-@@ -1610,6 +1611,40 @@ seturgent(Client *c, int urg)
+@@ -1610,6 +1611,46 @@ seturgent(Client *c, int urg)
  	XFree(wmh);
  }
  
@@ -62,11 +62,17 @@ index 4465af1..4fd7423 100644
 +		do {
 +			shifted.ui = (shifted.ui << arg->i)
 +			   | (shifted.ui >> (LENGTH(tags) - arg->i));
++			#if SCRATCHPADS_PATCH
++			shifted.ui &= ~SPTAGMASK;
++			#endif // SCRATCHPADS_PATCH
 +		} while (tagmask && !(shifted.ui & tagmask));
 +	else // right circular shift
 +		do {
 +			shifted.ui = (shifted.ui >> (- arg->i)
 +			   | shifted.ui << (LENGTH(tags) + arg->i));
++			#if SCRATCHPADS_PATCH
++			shifted.ui &= ~SPTAGMASK;
++			#endif // SCRATCHPADS_PATCH
 +		} while (tagmask && !(shifted.ui & tagmask));
 +
 +	view(&shifted);
