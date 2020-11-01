@@ -1,4 +1,4 @@
-From d3e5ecd08e62ead2c7f29dc031aa529218a32ac8 Mon Sep 17 00:00:00 2001
+From 6512bc9ac289e53948d9cdbdab5f88e6c60762d1 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 10:53:35 +0200
 Subject: [PATCH 2/2] Adding systray patch
@@ -25,7 +25,7 @@ index 4f68fe8..1952613 100644
  static const char dmenufont[]       = "monospace:size=10";
  static const char col_gray1[]       = "#222222";
 diff --git a/dwm.c b/dwm.c
-index 20f8309..8cfbb1a 100644
+index 20f8309..55a8297 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -59,12 +59,30 @@
@@ -552,7 +552,7 @@ index 20f8309..8cfbb1a 100644
  	arrange(selmon);
  }
  
-@@ -1804,12 +2018,19 @@ unmapnotify(XEvent *e)
+@@ -1804,12 +2018,18 @@ unmapnotify(XEvent *e)
  			setclientstate(c, WithdrawnState);
  		else
  			unmanage(c, 0);
@@ -560,7 +560,6 @@ index 20f8309..8cfbb1a 100644
 +		/* KLUDGE! sometimes icons occasionally unmap their windows, but do
 +		 * _not_ destroy them. We map those windows back */
 +		XMapRaised(dpy, c->win);
-+		removesystrayicon(c);
 +		updatesystray();
  	}
  }
@@ -572,7 +571,7 @@ index 20f8309..8cfbb1a 100644
  	Monitor *m;
  	XSetWindowAttributes wa = {
  		.override_redirect = True,
-@@ -1822,10 +2043,15 @@ updatebars(void)
+@@ -1822,10 +2042,15 @@ updatebars(void)
  	for (m = mons; m; m = m->next) {
  		if (m->barwin)
  			continue;
@@ -589,7 +588,7 @@ index 20f8309..8cfbb1a 100644
  		XMapRaised(dpy, m->barwin);
  		XSetClassHint(dpy, m->barwin, &ch);
  	}
-@@ -2001,6 +2227,137 @@ updatestatus(void)
+@@ -2001,6 +2226,138 @@ updatestatus(void)
  	if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
  		strcpy(stext, "dwm-"VERSION);
  	drawbar(selmon);
@@ -671,6 +670,7 @@ index 20f8309..8cfbb1a 100644
 +	XMapWindow(dpy, systray->win);
 +	XMapSubwindows(dpy, systray->win);
 +	XSync(dpy, False);
++	drawbar(m);
 +}
 +
 +void

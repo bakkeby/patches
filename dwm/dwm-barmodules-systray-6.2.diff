@@ -1,16 +1,16 @@
-From dd88b0115deb4c9f42fc392e68ac8e72b5ed6877 Mon Sep 17 00:00:00 2001
+From 397c2161e7ff08faf42c1fdc7f43b736cdde2f7f Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 11:19:12 +0200
 Subject: [PATCH 2/2] Adding systray module
 
 ---
  config.def.h        |   3 +
- dwm.c               | 130 ++++++++++++++++++++++++++----
+ dwm.c               | 129 ++++++++++++++++++++++++++----
  patch/bar_systray.c | 187 ++++++++++++++++++++++++++++++++++++++++++++
  patch/bar_systray.h |  40 ++++++++++
  patch/include.c     |   3 +-
  patch/include.h     |   3 +-
- 6 files changed, 349 insertions(+), 17 deletions(-)
+ 6 files changed, 348 insertions(+), 17 deletions(-)
  create mode 100644 patch/bar_systray.c
  create mode 100644 patch/bar_systray.h
 
@@ -36,7 +36,7 @@ index 2534eac..d17b65c 100644
  	{ -1,       0,     BAR_ALIGN_NONE,   width_wintitle,        draw_wintitle,        click_wintitle,     "wintitle" },
  };
 diff --git a/dwm.c b/dwm.c
-index 03dccfb..ca79f5f 100644
+index 03dccfb..ed3fc50 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -63,6 +63,8 @@ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
@@ -274,7 +274,7 @@ index 03dccfb..ca79f5f 100644
  	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
  	netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
  	netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
-@@ -1956,6 +2050,12 @@ unmapnotify(XEvent *e)
+@@ -1956,6 +2050,11 @@ unmapnotify(XEvent *e)
  			setclientstate(c, WithdrawnState);
  		else
  			unmanage(c, 0);
@@ -282,7 +282,6 @@ index 03dccfb..ca79f5f 100644
 +		/* KLUDGE! sometimes icons occasionally unmap their windows, but do
 +		 * _not_ destroy them. We map those windows back */
 +		XMapRaised(dpy, c->win);
-+		removesystrayicon(c);
 +		drawbarwin(systray->bar);
  	}
  }
