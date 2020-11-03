@@ -1,6 +1,6 @@
-From 97f3177bc58d8b08ead7ac8a0142e81cd8bcb49c Mon Sep 17 00:00:00 2001
+From 771720506061c72a5217685e3fd7001db85690b4 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
-Date: Wed, 29 Jul 2020 11:19:33 +0200
+Date: Tue, 3 Nov 2020 20:15:29 +0100
 Subject: [PATCH 2/2] Monitor rules patch on top of pertag
 
 This patch allows the user to define layout, mfact, nmaster, showbar,
@@ -11,8 +11,8 @@ monitor.
 https://github.com/bakkeby/patches/wiki/monitorrules
 ---
  config.def.h |  6 +++++
- dwm.c        | 70 +++++++++++++++++++++++++++++++++++++++-------------
- 2 files changed, 59 insertions(+), 17 deletions(-)
+ dwm.c        | 67 +++++++++++++++++++++++++++++++++++++++++-----------
+ 2 files changed, 59 insertions(+), 14 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..36bfa8c 100644
@@ -32,7 +32,7 @@ index 1c0b587..36bfa8c 100644
  #define MODKEY Mod1Mask
  #define TAGKEYS(KEY,TAG) \
 diff --git a/dwm.c b/dwm.c
-index 55f8f92..ba8c44a 100644
+index 5254f27..b7a2782 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -143,6 +143,16 @@ typedef struct {
@@ -52,7 +52,7 @@ index 55f8f92..ba8c44a 100644
  /* function declarations */
  static void applyrules(Client *c);
  static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
-@@ -642,38 +652,64 @@ configurerequest(XEvent *e)
+@@ -644,31 +654,46 @@ configurerequest(XEvent *e)
  Monitor *
  createmon(void)
  {
@@ -112,11 +112,11 @@ index 55f8f92..ba8c44a 100644
 -		m->pertag->ltidxs[i][1] = m->lt[1];
  		m->pertag->sellts[i] = m->sellt;
  
--		/* init showbar */
--		m->pertag->showbars[i] = m->showbar;
--
- 		/* swap focus and zoomswap*/
+ 		/* init showbar */
+@@ -677,6 +702,20 @@ createmon(void)
+ 		#if ZOOMSWAP_PATCH
  		m->pertag->prevzooms[i] = NULL;
+ 		#endif // ZOOMSWAP_PATCH
 +
 +		for (j = 0; j < LENGTH(monrules); j++) {
 +			mr = &monrules[j];
