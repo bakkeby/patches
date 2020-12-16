@@ -1,4 +1,4 @@
-From 9709d08daa290c8c7319571cd9e6ef4ec40e7683 Mon Sep 17 00:00:00 2001
+From f63c4eddd27902bb8889c0af1467666697600bf6 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Wed, 6 May 2020 17:21:25 +0200
 Subject: [PATCH] vanitygaps - adds gaps to layouts
@@ -17,7 +17,7 @@ among the available clients.
  create mode 100644 vanitygaps.c
 
 diff --git a/config.def.h b/config.def.h
-index 1c0b587..a886863 100644
+index 1c0b587..dfdf05d 100644
 --- a/config.def.h
 +++ b/config.def.h
 @@ -3,6 +3,11 @@
@@ -46,7 +46,7 @@ index 1c0b587..a886863 100644
  	{ "[M]",      monocle },
 +	{ "[@]",      spiral },
 +	{ "[\\]",     dwindle },
-+	{ "H[]",      deck },
++	{ "D[]",      deck },
 +	{ "TTT",      bstack },
 +	{ "===",      bstackhoriz },
 +	{ "HHH",      grid },
