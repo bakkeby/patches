@@ -1,12 +1,12 @@
-From ee0175fdaaad2a8c0dd5fa4d5d290b0009244093 Mon Sep 17 00:00:00 2001
+From 7d45817a519eed41e214898452e58c1bb842dd5f Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 19 Dec 2020 19:56:17 +0100
 Subject: [PATCH] Named scratchpad variant
 
 ---
- config.def.h | 13 +++++++--
- dwm.c        | 78 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 88 insertions(+), 3 deletions(-)
+ config.def.h |  13 ++++--
+ dwm.c        | 116 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 126 insertions(+), 3 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..150df49 100644
@@ -44,7 +44,7 @@ index 1c0b587..150df49 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..66d1b2e 100644
+index 4465af1..ae971ed 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -148,7 +148,28 @@ index 4465af1..66d1b2e 100644
  void
  setup(void)
  {
-@@ -1652,6 +1680,19 @@ spawn(const Arg *arg)
+@@ -1616,6 +1644,20 @@ showhide(Client *c)
+ 	if (!c)
+ 		return;
+ 	if (ISVISIBLE(c)) {
++		/* Center floating scratchpad windows when moved from one monitor to another */
++		if (
++			c->scratchkey != 0 &&
++			c->isfloating &&
++			(
++				c->x < c->mon->mx ||
++				c->x > c->mon->mx + c->mon->mw ||
++				c->y < c->mon->my ||
++				c->y > c->mon->my + c->mon->mh
++			)
++		) {
++			c->x = c->mon->wx + (c->mon->ww / 2 - WIDTH(c) / 2);
++			c->y = c->mon->wy + (c->mon->wh / 2 - HEIGHT(c) / 2);
++		}
+ 		/* show clients top down */
+ 		XMoveWindow(dpy, c->win, c->x, c->y);
+ 		if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
+@@ -1652,6 +1694,19 @@ spawn(const Arg *arg)
  	}
  }
  
@@ -168,42 +189,66 @@ index 4465af1..66d1b2e 100644
  void
  tag(const Arg *arg)
  {
-@@ -1719,6 +1760,43 @@ togglefloating(const Arg *arg)
+@@ -1719,6 +1774,67 @@ togglefloating(const Arg *arg)
  	arrange(selmon);
  }
  
 +void
 +togglescratch(const Arg *arg)
 +{
-+	Client *c, *next, *found = NULL;
++	Client *c, *next, *found = NULL, *monclients = NULL;
 +	Monitor *mon;
-+	int nh = 0, nw = 0;
++	int nh = 0, nw = 0, wasvisible;
 +
 +	for (mon = mons; mon; mon = mon->next) {
++		wasvisible = 0;
++
 +		for (c = mon->clients; c; c = next) {
 +			next = c->next;
 +			if (c->scratchkey != ((char**)arg->v)[0][0])
 +				continue;
 +
-+			found = c;
++			/* awesomebar / wintitleactions compatibility
++			if (HIDDEN(c)) {
++				XMapWindow(dpy, c->win);
++				setclientstate(c, NormalState);
++			}
++			*/
 +
 +			if (c->mon != selmon) {
-+				c->tags = 0;
-+				if (c->w > selmon->ww)
-+					nw = selmon->ww - c->bw * 2;
-+				if (c->h > selmon->wh)
-+					nh = selmon->wh - c->bw * 2;
-+				if (nw > 0 || nh > 0)
-+					resizeclient(c, c->x, c->y, nw ? nw : c->w, nh ? nh : c->h);
-+				sendmon(c, selmon);
++				wasvisible = ISVISIBLE(c);
++				detach(c);
++				detachstack(c);
++				c->next = monclients;
++				monclients = c;
 +			} else
 +				c->tags = ISVISIBLE(c) ? 0 : selmon->tagset[selmon->seltags];
++
++			found = c;
 +		}
++
++		if (wasvisible)
++			arrange(mon);
++	}
++
++	for (c = monclients; c; c = next) {
++		next = c->next;
++		c->mon = selmon;
++		c->tags = selmon->tagset[selmon->seltags];
++		attach(c);
++		attachstack(c);
++		if (c->w > selmon->ww)
++			nw = selmon->ww - c->bw * 2;
++		if (c->h > selmon->wh)
++			nh = selmon->wh - c->bw * 2;
++		if (nw > 0 || nh > 0)
++			resizeclient(c, c->x, c->y, nw ? nw : c->w, nh ? nh : c->h);
++		found = c;
 +	}
 +
 +	if (found) {
-+		focus(ISVISIBLE(c) ? c : NULL);
 +		arrange(selmon);
++		focus(ISVISIBLE(c) ? c : NULL);
 +	} else {
 +		spawnscratch(arg);
 +	}
