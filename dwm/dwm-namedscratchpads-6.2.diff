@@ -1,12 +1,12 @@
-From cbaf61ff4fcd08cde7b39ae5307c7d6e8c48b5f6 Mon Sep 17 00:00:00 2001
+From afa9b2313a8c1d6745b61c6ae9ba9b078912fc43 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 19 Dec 2020 19:56:17 +0100
 Subject: [PATCH] Named scratchpad variant
 
 ---
  config.def.h |  13 ++++--
- dwm.c        | 126 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 136 insertions(+), 3 deletions(-)
+ dwm.c        | 129 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 139 insertions(+), 3 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..d05180d 100644
@@ -44,7 +44,7 @@ index 1c0b587..d05180d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..0ba426b 100644
+index 4465af1..5af8640 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -178,7 +178,7 @@ index 4465af1..0ba426b 100644
  void
  tag(const Arg *arg)
  {
-@@ -1719,6 +1763,88 @@ togglefloating(const Arg *arg)
+@@ -1719,6 +1763,91 @@ togglefloating(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -187,12 +187,12 @@ index 4465af1..0ba426b 100644
 +{
 +	Client *c, *next, *last, *found = NULL, *monclients = NULL;
 +	Monitor *mon;
-+	int wasvisible;
++	int wasvisible, tags = 0;
 +
 +	for (mon = mons; mon; mon = mon->next) {
 +		wasvisible = 0;
 +
-+		for (c = mon->clients; c; c = next) {
++		for (c = mon->stack; c; c = c->snext) {
 +			next = c->next;
 +			if (c->scratchkey != ((char**)arg->v)[0][0])
 +				continue;
@@ -204,21 +204,26 @@ index 4465af1..0ba426b 100644
 +			}
 +			*/
 +
++			if (found == NULL) {
++				found = c;
++				tags = ISVISIBLE(c) ? 0 : selmon->tagset[selmon->seltags];
++			}
++
 +			if (c->mon != selmon) {
 +				wasvisible = ISVISIBLE(c);
 +				detach(c);
 +				detachstack(c);
-+				c->next = monclients;
-+				monclients = c;
++				if (monclients)
++					monclients = monclients->next = c;
++				else
++					monclients = c;
 +			} else {
 +				detachstack(c);
 +				attachstack(c);
-+				c->tags = ISVISIBLE(c) ? 0 : selmon->tagset[selmon->seltags];
++				c->tags = tags;
 +				if (c->tags && c->isfloating)
 +					XRaiseWindow(dpy, c->win);
 +			}
-+
-+			found = c;
 +		}
 +
 +		if (wasvisible)
@@ -228,7 +233,7 @@ index 4465af1..0ba426b 100644
 +	for (c = monclients; c; c = next) {
 +		next = c->next;
 +		c->mon = selmon;
-+		c->tags = selmon->tagset[selmon->seltags];
++		c->tags = tags;
 +		/* Attach scratchpad clients from other monitors at the bottom of the stack */
 +		if (selmon->clients) {
 +			for (last = selmon->clients; last && last->next; last = last->next);
@@ -252,8 +257,6 @@ index 4465af1..0ba426b 100644
 +			resizeclient(c, c->x, c->y, c->w, c->h);
 +			XRaiseWindow(dpy, c->win);
 +		}
-+
-+		found = c;
 +	}
 +
 +	if (found) {
