@@ -1,4 +1,4 @@
-From f48a37d2b4211219fbc887e7ff2ed5c3f6d32c09 Mon Sep 17 00:00:00 2001
+From cbaf61ff4fcd08cde7b39ae5307c7d6e8c48b5f6 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 19 Dec 2020 19:56:17 +0100
 Subject: [PATCH] Named scratchpad variant
@@ -44,7 +44,7 @@ index 1c0b587..d05180d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..0d5cce2 100644
+index 4465af1..0ba426b 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -185,7 +185,7 @@ index 4465af1..0d5cce2 100644
 +void
 +togglescratch(const Arg *arg)
 +{
-+	Client *c, *next, *found = NULL, *monclients = NULL;
++	Client *c, *next, *last, *found = NULL, *monclients = NULL;
 +	Monitor *mon;
 +	int wasvisible;
 +
