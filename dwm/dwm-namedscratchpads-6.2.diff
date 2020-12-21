@@ -1,12 +1,12 @@
-From ac18098ad046b4daa52470b91929390085dc731e Mon Sep 17 00:00:00 2001
+From f48a37d2b4211219fbc887e7ff2ed5c3f6d32c09 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 19 Dec 2020 19:56:17 +0100
 Subject: [PATCH] Named scratchpad variant
 
 ---
  config.def.h |  13 ++++--
- dwm.c        | 119 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 129 insertions(+), 3 deletions(-)
+ dwm.c        | 126 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 136 insertions(+), 3 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..d05180d 100644
@@ -44,7 +44,7 @@ index 1c0b587..d05180d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..94c3354 100644
+index 4465af1..0d5cce2 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -178,7 +178,7 @@ index 4465af1..94c3354 100644
  void
  tag(const Arg *arg)
  {
-@@ -1719,6 +1763,81 @@ togglefloating(const Arg *arg)
+@@ -1719,6 +1763,88 @@ togglefloating(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -214,7 +214,8 @@ index 4465af1..94c3354 100644
 +				detachstack(c);
 +				attachstack(c);
 +				c->tags = ISVISIBLE(c) ? 0 : selmon->tagset[selmon->seltags];
-+				XRaiseWindow(dpy, c->win);
++				if (c->tags && c->isfloating)
++					XRaiseWindow(dpy, c->win);
 +			}
 +
 +			found = c;
@@ -228,7 +229,12 @@ index 4465af1..94c3354 100644
 +		next = c->next;
 +		c->mon = selmon;
 +		c->tags = selmon->tagset[selmon->seltags];
-+		attach(c);
++		/* Attach scratchpad clients from other monitors at the bottom of the stack */
++		if (selmon->clients) {
++			for (last = selmon->clients; last && last->next; last = last->next);
++			last->next = c;
++		} else
++			selmon->clients = c;
 +		attachstack(c);
 +
 +		/* Center floating scratchpad windows when moved from one monitor to another */
@@ -244,6 +250,7 @@ index 4465af1..94c3354 100644
 +				c->y = c->mon->wy + (c->mon->wh / 2 - HEIGHT(c) / 2);
 +			}
 +			resizeclient(c, c->x, c->y, c->w, c->h);
++			XRaiseWindow(dpy, c->win);
 +		}
 +
 +		found = c;
