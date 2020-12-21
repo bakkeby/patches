@@ -1,12 +1,12 @@
-From 1c1cbe4d8f985b040ca9658d2a0de08be5277acd Mon Sep 17 00:00:00 2001
+From d1c7cd907f79dc06bc205cb4992c589aeaf0801e Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 19 Dec 2020 19:56:17 +0100
 Subject: [PATCH] Named scratchpad variant
 
 ---
  config.def.h |  13 +++--
- dwm.c        | 132 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 142 insertions(+), 3 deletions(-)
+ dwm.c        | 134 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 144 insertions(+), 3 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..d05180d 100644
@@ -44,7 +44,7 @@ index 1c0b587..d05180d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..7ad8eb6 100644
+index 4465af1..7e73719 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -178,7 +178,7 @@ index 4465af1..7ad8eb6 100644
  void
  tag(const Arg *arg)
  {
-@@ -1719,6 +1763,94 @@ togglefloating(const Arg *arg)
+@@ -1719,6 +1763,96 @@ togglefloating(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -208,6 +208,8 @@ index 4465af1..7ad8eb6 100644
 +				found = c;
 +				tags = (c->tags == 0 ? selmon->tagset[selmon->seltags] : 0);
 +			}
++
++			unfocus(c, 0);
 +
 +			if (c->mon != selmon) {
 +				wasvisible = ISVISIBLE(c);
