@@ -1,12 +1,12 @@
-From d1c7cd907f79dc06bc205cb4992c589aeaf0801e Mon Sep 17 00:00:00 2001
+From b9d98369249f6927b810ad4e93f36f8740d68606 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 19 Dec 2020 19:56:17 +0100
 Subject: [PATCH] Named scratchpad variant
 
 ---
- config.def.h |  13 +++--
- dwm.c        | 134 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 144 insertions(+), 3 deletions(-)
+ config.def.h |  13 ++++-
+ dwm.c        | 158 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 168 insertions(+), 3 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..d05180d 100644
@@ -44,7 +44,7 @@ index 1c0b587..d05180d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..7e73719 100644
+index 4465af1..eb0a3ff 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -153,7 +153,7 @@ index 4465af1..7e73719 100644
  		showhide(c->snext);
  	} else {
 +		/* optional: auto-hide scratchpads when moving to other tags */
-+		if (c->scratchkey != 0 && c->tags != 0)
++		if (c->scratchkey != 0 && !(c->tags & c->mon->tagset[c->mon->seltags]))
 +			c->tags = 0;
  		/* hide clients bottom up */
  		showhide(c->snext);
@@ -178,7 +178,7 @@ index 4465af1..7e73719 100644
  void
  tag(const Arg *arg)
  {
-@@ -1719,6 +1763,96 @@ togglefloating(const Arg *arg)
+@@ -1719,6 +1763,120 @@ togglefloating(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -187,36 +187,62 @@ index 4465af1..7e73719 100644
 +{
 +	Client *c, *next, *last = NULL, *found = NULL, *monclients = NULL;
 +	Monitor *mon;
-+	int wasvisible, tags = 0;
++	int scratchvisible = 0; // whether the scratchpads are currently visible or not
++	int multimonscratch = 0; // whether we have scratchpads that are placed on multiple monitors
++	int scratchmon = -1; // the monitor where the scratchpads exist
 +
++	/* Looping through monitors and client's twice, the first time to work out whether we need
++	   to move clients across from one monitor to another or not */
++	for (mon = mons; mon; mon = mon->next)
++		for (c = mon->clients; c; c = c->next) {
++			if (c->scratchkey != ((char**)arg->v)[0][0])
++				continue;
++			if (scratchmon != -1 && scratchmon != mon->num)
++				multimonscratch = 1;
++
++			scratchmon = mon->num;
++
++			if (c->mon->tagset[c->mon->seltags] & c->tags) // && !HIDDEN(c)
++				scratchvisible = 1;
++		}
++
++	/* Now for the real deal. The logic should go like:
++	    - hidden scratchpads will be shown
++	    - shown scratchpads will be hidden, unless they are being moved to the current monitor
++	    - the scratchpads will be moved to the current monitor if they all reside on the same monitor
++	    - multiple scratchpads residing on separate monitors will be left in place
++	 */
 +	for (mon = mons; mon; mon = mon->next) {
-+		wasvisible = 0;
-+
 +		for (c = mon->stack; c; c = next) {
 +			next = c->snext;
 +			if (c->scratchkey != ((char**)arg->v)[0][0])
 +				continue;
 +
-+			/* awesomebar / wintitleactions compatibility
++			/* awesomebar / wintitleactions compatibility, unhide scratchpad if hidden
 +			if (HIDDEN(c)) {
 +				XMapWindow(dpy, c->win);
 +				setclientstate(c, NormalState);
 +			}
 +			*/
 +
-+			if (!found) {
++			/* Record the first found scratchpad client for focus purposes, but prioritise the
++			   scratchpad on the current monitor if one exists */
++			if (!found || (mon == selmon && c->mon != selmon))
 +				found = c;
-+				tags = (c->tags == 0 ? selmon->tagset[selmon->seltags] : 0);
-+			}
 +
-+			unfocus(c, 0);
++			unfocus(c, 0); // unfocus to avoid client border discrepancies
 +
-+			if (c->mon != selmon) {
-+				wasvisible = ISVISIBLE(c);
-+				tags = selmon->tagset[selmon->seltags];
++			/* If scratchpad clients reside on another monitor and we are moving them across then
++			   as we are looping through monitors we could be moving a client to a monitor that has
++			   not been processed yet, hence we could be processing a scratchpad twice. To avoid
++			   this we detach them and add them to a temporary list (monclients) which is to be
++			   processed later. */
++			if (!multimonscratch && c->mon != selmon) {
 +				detach(c);
 +				detachstack(c);
 +				c->next = NULL;
++				/* Note that we are adding clients at the end of the list, this is to preserve the
++				   order of clients as they were on the adjacent monitor (relevant when tiled) */
 +				if (last)
 +					last = last->next = c;
 +				else
@@ -224,21 +250,19 @@ index 4465af1..7e73719 100644
 +			} else {
 +				detachstack(c);
 +				attachstack(c);
-+				c->tags = tags;
++				c->tags = scratchvisible ? 0 : c->mon->tagset[c->mon->seltags];
 +				if (c->tags && c->isfloating)
 +					XRaiseWindow(dpy, c->win);
 +			}
 +		}
-+
-+		if (wasvisible)
-+			arrange(mon);
 +	}
 +
++	/* Attach moved scratchpad clients on the selected monitor */
 +	for (c = monclients; c; c = next) {
 +		next = c->next;
 +		c->next = NULL;
 +		c->mon = selmon;
-+		c->tags = tags;
++		c->tags = selmon->tagset[selmon->seltags];
 +		/* Attach scratchpad clients from other monitors at the bottom of the stack */
 +		if (selmon->clients) {
 +			for (last = selmon->clients; last && last->next; last = last->next);
@@ -266,7 +290,7 @@ index 4465af1..7e73719 100644
 +
 +	if (found) {
 +		focus(ISVISIBLE(found) ? found : NULL);
-+		arrange(selmon);
++		arrange(NULL);
 +	} else {
 +		spawnscratch(arg);
 +	}
