@@ -1,12 +1,12 @@
-From b9d98369249f6927b810ad4e93f36f8740d68606 Mon Sep 17 00:00:00 2001
+From c18a517706c2100b0da407a5f1e37a06ca2b890e Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 19 Dec 2020 19:56:17 +0100
 Subject: [PATCH] Named scratchpad variant
 
 ---
- config.def.h |  13 ++++-
- dwm.c        | 158 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 168 insertions(+), 3 deletions(-)
+ config.def.h |  13 +++-
+ dwm.c        | 164 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 174 insertions(+), 3 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..d05180d 100644
@@ -44,7 +44,7 @@ index 1c0b587..d05180d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..eb0a3ff 100644
+index 4465af1..19f9c18 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -178,7 +178,7 @@ index 4465af1..eb0a3ff 100644
  void
  tag(const Arg *arg)
  {
-@@ -1719,6 +1763,120 @@ togglefloating(const Arg *arg)
+@@ -1719,6 +1763,126 @@ togglefloating(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -190,6 +190,7 @@ index 4465af1..eb0a3ff 100644
 +	int scratchvisible = 0; // whether the scratchpads are currently visible or not
 +	int multimonscratch = 0; // whether we have scratchpads that are placed on multiple monitors
 +	int scratchmon = -1; // the monitor where the scratchpads exist
++	int numscratchpads = 0; // count of scratchpads
 +
 +	/* Looping through monitors and client's twice, the first time to work out whether we need
 +	   to move clients across from one monitor to another or not */
@@ -199,11 +200,10 @@ index 4465af1..eb0a3ff 100644
 +				continue;
 +			if (scratchmon != -1 && scratchmon != mon->num)
 +				multimonscratch = 1;
-+
-+			scratchmon = mon->num;
-+
 +			if (c->mon->tagset[c->mon->seltags] & c->tags) // && !HIDDEN(c)
-+				scratchvisible = 1;
++				++scratchvisible;
++			scratchmon = mon->num;
++			++numscratchpads;
 +		}
 +
 +	/* Now for the real deal. The logic should go like:
@@ -247,11 +247,11 @@ index 4465af1..eb0a3ff 100644
 +					last = last->next = c;
 +				else
 +					last = monclients = c;
++			} else if (scratchvisible == numscratchpads) {
++				c->tags = 0;
 +			} else {
-+				detachstack(c);
-+				attachstack(c);
-+				c->tags = scratchvisible ? 0 : c->mon->tagset[c->mon->seltags];
-+				if (c->tags && c->isfloating)
++				c->tags = c->mon->tagset[c->mon->seltags];
++				if (c->isfloating)
 +					XRaiseWindow(dpy, c->win);
 +			}
 +		}
@@ -260,7 +260,7 @@ index 4465af1..eb0a3ff 100644
 +	/* Attach moved scratchpad clients on the selected monitor */
 +	for (c = monclients; c; c = next) {
 +		next = c->next;
-+		c->next = NULL;
++		mon = c->mon;
 +		c->mon = selmon;
 +		c->tags = selmon->tagset[selmon->seltags];
 +		/* Attach scratchpad clients from other monitors at the bottom of the stack */
@@ -269,6 +269,7 @@ index 4465af1..eb0a3ff 100644
 +			last->next = c;
 +		} else
 +			selmon->clients = c;
++		c->next = NULL;
 +		attachstack(c);
 +
 +		/* Center floating scratchpad windows when moved from one monitor to another */
@@ -277,9 +278,12 @@ index 4465af1..eb0a3ff 100644
 +				c->w = selmon->ww - c->bw * 2;
 +			if (c->h > selmon->wh)
 +				c->h = selmon->wh - c->bw * 2;
-+			if (c->x < c->mon->mx || c->x > c->mon->mx + c->mon->mw ||
-+			    c->y < c->mon->my || c->y > c->mon->my + c->mon->mh)
-+			{
++
++			if (numscratchpads > 1) {
++				c->x = c->mon->wx + (c->x - mon->wx) * ((double)(abs(c->mon->ww - WIDTH(c))) / MAX(abs(mon->ww - WIDTH(c)), 1));
++				c->y = c->mon->wy + (c->y - mon->wy) * ((double)(abs(c->mon->wh - HEIGHT(c))) / MAX(abs(mon->wh - HEIGHT(c)), 1));
++			} else if (c->x < c->mon->mx || c->x > c->mon->mx + c->mon->mw ||
++			           c->y < c->mon->my || c->y > c->mon->my + c->mon->mh)	{
 +				c->x = c->mon->wx + (c->mon->ww / 2 - WIDTH(c) / 2);
 +				c->y = c->mon->wy + (c->mon->wh / 2 - HEIGHT(c) / 2);
 +			}
@@ -291,6 +295,8 @@ index 4465af1..eb0a3ff 100644
 +	if (found) {
 +		focus(ISVISIBLE(found) ? found : NULL);
 +		arrange(NULL);
++		if (found->isfloating)
++			XRaiseWindow(dpy, found->win);
 +	} else {
 +		spawnscratch(arg);
 +	}
