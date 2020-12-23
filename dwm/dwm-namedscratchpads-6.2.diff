@@ -1,18 +1,33 @@
-From c18a517706c2100b0da407a5f1e37a06ca2b890e Mon Sep 17 00:00:00 2001
+From c7d0e01f19d1cb90113b286369cae20c67bb913c Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 19 Dec 2020 19:56:17 +0100
 Subject: [PATCH] Named scratchpad variant
 
 ---
- config.def.h |  13 +++-
- dwm.c        | 164 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 174 insertions(+), 3 deletions(-)
+ config.def.h |  17 ++++-
+ dwm.c        | 175 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 186 insertions(+), 6 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
-index 1c0b587..d05180d 100644
+index 1c0b587..835d488 100644
 --- a/config.def.h
 +++ b/config.def.h
-@@ -26,9 +26,10 @@ static const Rule rules[] = {
+@@ -12,10 +12,14 @@ static const char col_gray2[]       = "#444444";
+ static const char col_gray3[]       = "#bbbbbb";
+ static const char col_gray4[]       = "#eeeeee";
+ static const char col_cyan[]        = "#005577";
++static const char col_red[]         = "#FF0000";
++static const char col_orange[]      = "#FF8800";
+ static const char *colors[][3]      = {
+ 	/*               fg         bg         border   */
+ 	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
+ 	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
++	[SchemeScratchSel]  = { col_gray4, col_cyan,  col_red  },
++	[SchemeScratchNorm] = { col_gray4, col_cyan,  col_orange },
+ };
+ 
+ /* tagging */
+@@ -26,9 +30,10 @@ static const Rule rules[] = {
  	 *	WM_CLASS(STRING) = instance, class
  	 *	WM_NAME(STRING) = title
  	 */
@@ -26,7 +41,7 @@ index 1c0b587..d05180d 100644
  };
  
  /* layout(s) */
-@@ -59,10 +60,16 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn()
+@@ -59,10 +64,16 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn()
  static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
  static const char *termcmd[]  = { "st", NULL };
  
@@ -44,9 +59,18 @@ index 1c0b587..d05180d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..19f9c18 100644
+index 4465af1..e0aa9a8 100644
 --- a/dwm.c
 +++ b/dwm.c
+@@ -59,7 +59,7 @@
+ 
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+-enum { SchemeNorm, SchemeSel }; /* color schemes */
++enum { SchemeNorm, SchemeSel, SchemeScratchNorm, SchemeScratchSel }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
 @@ -93,6 +93,7 @@ struct Client {
  	int bw, oldbw;
  	unsigned int tags;
@@ -115,7 +139,19 @@ index 4465af1..19f9c18 100644
  	c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
  }
  
-@@ -1265,6 +1274,15 @@ recttomon(int x, int y, int w, int h)
+@@ -795,7 +804,10 @@ focus(Client *c)
+ 		detachstack(c);
+ 		attachstack(c);
+ 		grabbuttons(c, 1);
+-		XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
++		if (c->scratchkey != 0)
++			XSetWindowBorder(dpy, c->win, scheme[SchemeScratchSel][ColBorder].pixel);
++		else
++			XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
+ 		setfocus(c);
+ 	} else {
+ 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+@@ -1265,6 +1277,15 @@ recttomon(int x, int y, int w, int h)
  	return r;
  }
  
@@ -131,7 +167,7 @@ index 4465af1..19f9c18 100644
  void
  resize(Client *c, int x, int y, int w, int h, int interact)
  {
-@@ -1526,6 +1544,16 @@ setmfact(const Arg *arg)
+@@ -1526,6 +1547,16 @@ setmfact(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -148,7 +184,7 @@ index 4465af1..19f9c18 100644
  void
  setup(void)
  {
-@@ -1622,6 +1650,9 @@ showhide(Client *c)
+@@ -1622,6 +1653,9 @@ showhide(Client *c)
  			resize(c, c->x, c->y, c->w, c->h, 0);
  		showhide(c->snext);
  	} else {
@@ -158,7 +194,7 @@ index 4465af1..19f9c18 100644
  		/* hide clients bottom up */
  		showhide(c->snext);
  		XMoveWindow(dpy, c->win, WIDTH(c) * -2, c->y);
-@@ -1652,6 +1683,19 @@ spawn(const Arg *arg)
+@@ -1652,6 +1686,19 @@ spawn(const Arg *arg)
  	}
  }
  
@@ -178,7 +214,7 @@ index 4465af1..19f9c18 100644
  void
  tag(const Arg *arg)
  {
-@@ -1719,6 +1763,126 @@ togglefloating(const Arg *arg)
+@@ -1719,6 +1766,125 @@ togglefloating(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -230,8 +266,6 @@ index 4465af1..19f9c18 100644
 +			if (!found || (mon == selmon && c->mon != selmon))
 +				found = c;
 +
-+			unfocus(c, 0); // unfocus to avoid client border discrepancies
-+
 +			/* If scratchpad clients reside on another monitor and we are moving them across then
 +			   as we are looping through monitors we could be moving a client to a monitor that has
 +			   not been processed yet, hence we could be processing a scratchpad twice. To avoid
@@ -250,6 +284,7 @@ index 4465af1..19f9c18 100644
 +			} else if (scratchvisible == numscratchpads) {
 +				c->tags = 0;
 +			} else {
++				XSetWindowBorder(dpy, c->win, scheme[SchemeScratchNorm][ColBorder].pixel);
 +				c->tags = c->mon->tagset[c->mon->seltags];
 +				if (c->isfloating)
 +					XRaiseWindow(dpy, c->win);
@@ -305,6 +340,18 @@ index 4465af1..19f9c18 100644
  void
  toggletag(const Arg *arg)
  {
+@@ -1752,7 +1918,10 @@ unfocus(Client *c, int setfocus)
+ 	if (!c)
+ 		return;
+ 	grabbuttons(c, 0);
+-	XSetWindowBorder(dpy, c->win, scheme[SchemeNorm][ColBorder].pixel);
++	if (c->scratchkey != 0)
++		XSetWindowBorder(dpy, c->win, scheme[SchemeScratchNorm][ColBorder].pixel);
++	else
++		XSetWindowBorder(dpy, c->win, scheme[SchemeNorm][ColBorder].pixel);
+ 	if (setfocus) {
+ 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+ 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
 -- 
 2.19.1
 
