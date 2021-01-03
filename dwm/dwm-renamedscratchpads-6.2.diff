@@ -1,4 +1,4 @@
-From c7d0e01f19d1cb90113b286369cae20c67bb913c Mon Sep 17 00:00:00 2001
+From 61c277ac151760bd4d6c25895b2cc05f51672f9e Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 19 Dec 2020 19:56:17 +0100
 Subject: [PATCH] Named scratchpad variant
@@ -59,7 +59,7 @@ index 1c0b587..835d488 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..e0aa9a8 100644
+index 4465af1..fcbcb9d 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -59,7 +59,7 @@
@@ -263,7 +263,7 @@ index 4465af1..e0aa9a8 100644
 +
 +			/* Record the first found scratchpad client for focus purposes, but prioritise the
 +			   scratchpad on the current monitor if one exists */
-+			if (!found || (mon == selmon && c->mon != selmon))
++			if (!found || (mon == selmon && found->mon != selmon))
 +				found = c;
 +
 +			/* If scratchpad clients reside on another monitor and we are moving them across then
