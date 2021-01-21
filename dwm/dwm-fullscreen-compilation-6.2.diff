@@ -1,4 +1,4 @@
-From 94b83f6248cc0a536b6cdc354182464e746aa659 Mon Sep 17 00:00:00 2001
+From 979a7c2d77f7284247c025d9657d5ff4b4972236 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 5 Sep 2020 14:32:26 +0200
 Subject: [PATCH] Compilation of fullscreen patches for dwm.
@@ -26,8 +26,8 @@ This incorporates, and expands on, the following patches:
    - losefullscreen
 ---
  config.def.h |   4 +-
- dwm.c        | 182 ++++++++++++++++++++++++++++++++++++++++-----------
- 2 files changed, 147 insertions(+), 39 deletions(-)
+ dwm.c        | 183 ++++++++++++++++++++++++++++++++++++++++-----------
+ 2 files changed, 148 insertions(+), 39 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..5f28f2c 100644
@@ -48,7 +48,7 @@ index 1c0b587..5f28f2c 100644
  	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
  	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..ab1f42c 100644
+index 4465af1..57f46eb 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -221,7 +221,7 @@ index 4465af1..ab1f42c 100644
  	detach(c);
  	detachstack(c);
  	c->mon = m;
-@@ -1472,28 +1491,69 @@ setfocus(Client *c)
+@@ -1472,29 +1491,71 @@ setfocus(Client *c)
  void
  setfullscreen(Client *c, int fullscreen)
  {
@@ -285,8 +285,6 @@ index 4465af1..ab1f42c 100644
 -		c->y = c->oldy;
 -		c->w = c->oldw;
 -		c->h = c->oldh;
--		resizeclient(c, c->x, c->y, c->w, c->h);
--		arrange(c->mon);
 +		c->isfloating = c->oldstate = c->oldstate & 1;
 +		if (restorefakefullscreen || c->fakefullscreen == 3)
 +			c->fakefullscreen = 1;
@@ -303,10 +301,14 @@ index 4465af1..ab1f42c 100644
 +			restack(c->mon);
 +		} else
 +			arrange(c->mon);
- 	}
++	} else
+ 		resizeclient(c, c->x, c->y, c->w, c->h);
+-		arrange(c->mon);
+-	}
  }
  
-@@ -1665,9 +1725,19 @@ tag(const Arg *arg)
+ void
+@@ -1665,9 +1726,19 @@ tag(const Arg *arg)
  void
  tagmon(const Arg *arg)
  {
@@ -328,7 +330,7 @@ index 4465af1..ab1f42c 100644
  }
  
  void
-@@ -1705,18 +1775,51 @@ togglebar(const Arg *arg)
+@@ -1705,18 +1776,51 @@ togglebar(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -386,7 +388,7 @@ index 4465af1..ab1f42c 100644
  }
  
  void
-@@ -1747,10 +1850,13 @@ toggleview(const Arg *arg)
+@@ -1747,10 +1851,13 @@ toggleview(const Arg *arg)
  }
  
  void
