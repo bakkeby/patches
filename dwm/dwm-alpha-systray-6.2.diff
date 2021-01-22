@@ -538,6 +538,7 @@ index 20f8309..55a8297 100644
  	selmon->showbar = !selmon->showbar;
  	updatebarpos(selmon);
  	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
++	int ypad = BAR_PADDING_PATCH ? vp : 0;
 +	if (showsystray) {
 +		XWindowChanges wc;
 +		if (!selmon->showbar)
@@ -545,7 +546,7 @@ index 20f8309..55a8297 100644
 +		else if (selmon->showbar) {
 +			wc.y = 0;
 +			if (!selmon->topbar)
-+				wc.y = selmon->mh - bh;
++				wc.y = selmon->mh - bh + ypad;
 +		}
 +		XConfigureWindow(dpy, systray->win, CWY, &wc);
 +	}
@@ -605,10 +606,10 @@ index 20f8309..55a8297 100644
 +	Monitor *m = systraytomon(NULL);
 +	unsigned int x = m->mx + m->mw;
 +	unsigned int w = 1, xpad = 0, ypad = 0;
-+	#if BARPADDING_PATCH
++	#if BAR_PADDING_PATCH
 +	xpad = sp;
 +	ypad = vp;
-+	#endif // BARPADDING_PATCH
++	#endif // BAR_PADDING_PATCH
 +
 +	if (!showsystray)
 +		return;
