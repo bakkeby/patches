@@ -1,4 +1,4 @@
-From 873a4bd7330d749146bac66356a558e80b8515c7 Mon Sep 17 00:00:00 2001
+From 7044085f4c3fed7ef1fb43289a17f63e0d402947 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 7 Apr 2020 10:53:35 +0200
 Subject: [PATCH 2/2] Adding systray patch
@@ -6,8 +6,8 @@ Subject: [PATCH 2/2] Adding systray patch
 Refer to https://dwm.suckless.org/patches/systray/
 ---
  config.def.h |   4 +
- dwm.c        | 423 +++++++++++++++++++++++++++++++++++++++++++++++----
- 2 files changed, 401 insertions(+), 26 deletions(-)
+ dwm.c        | 425 +++++++++++++++++++++++++++++++++++++++++++++++----
+ 2 files changed, 403 insertions(+), 26 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 4f68fe8..1952613 100644
@@ -25,7 +25,7 @@ index 4f68fe8..1952613 100644
  static const char dmenufont[]       = "monospace:size=10";
  static const char col_gray1[]       = "#222222";
 diff --git a/dwm.c b/dwm.c
-index 20f8309..b38ab83 100644
+index 20f8309..f0c6638 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -59,12 +59,30 @@
@@ -534,7 +534,7 @@ index 20f8309..b38ab83 100644
  void
  tag(const Arg *arg)
  {
-@@ -1711,6 +1914,21 @@ togglebar(const Arg *arg)
+@@ -1711,6 +1914,23 @@ togglebar(const Arg *arg)
  	selmon->showbar = !selmon->showbar;
  	updatebarpos(selmon);
  	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
@@ -543,20 +543,22 @@ index 20f8309..b38ab83 100644
 +		if (!selmon->showbar)
 +			wc.y = -bh;
 +		else if (selmon->showbar) {
++			#if BARPADDING_PATCH
++			wc.y = vp;
++			if (!selmon->topbar)
++				wc.y = selmon->mh - bh + vp;
++			#else
 +			wc.y = 0;
 +			if (!selmon->topbar)
-+				#if BARPADDING_PATCH
-+				wc.y = selmon->mh - bh + vp;
-+				#else
 +				wc.y = selmon->mh - bh;
-+				#endif // BARPADDING_PATCH
++			#endif // BARPADDING_PATCH
 +		}
 +		XConfigureWindow(dpy, systray->win, CWY, &wc);
 +	}
  	arrange(selmon);
  }
  
-@@ -1804,12 +2022,18 @@ unmapnotify(XEvent *e)
+@@ -1804,12 +2024,18 @@ unmapnotify(XEvent *e)
  			setclientstate(c, WithdrawnState);
  		else
  			unmanage(c, 0);
@@ -575,7 +577,7 @@ index 20f8309..b38ab83 100644
  	Monitor *m;
  	XSetWindowAttributes wa = {
  		.override_redirect = True,
-@@ -1822,10 +2046,15 @@ updatebars(void)
+@@ -1822,10 +2048,15 @@ updatebars(void)
  	for (m = mons; m; m = m->next) {
  		if (m->barwin)
  			continue;
@@ -592,7 +594,7 @@ index 20f8309..b38ab83 100644
  		XMapRaised(dpy, m->barwin);
  		XSetClassHint(dpy, m->barwin, &ch);
  	}
-@@ -2001,6 +2230,138 @@ updatestatus(void)
+@@ -2001,6 +2232,138 @@ updatestatus(void)
  	if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
  		strcpy(stext, "dwm-"VERSION);
  	drawbar(selmon);
@@ -731,7 +733,7 @@ index 20f8309..b38ab83 100644
  }
  
  void
-@@ -2085,6 +2446,16 @@ wintomon(Window w)
+@@ -2085,6 +2448,16 @@ wintomon(Window w)
  	return selmon;
  }
  
