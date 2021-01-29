@@ -1,15 +1,15 @@
-From 16e537884f404572272200ae70cefdf8562ff939 Mon Sep 17 00:00:00 2001
+From 5c86668af07d66a6f5e09efee7e6bc16dcd85899 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Wed, 27 Jan 2021 14:55:14 +0100
 Subject: [PATCH] Center clients within their allocated tile based on size
  hints
 
 ---
- dwm.c | 30 +++++++++++++++++++++++++++---
- 1 file changed, 27 insertions(+), 3 deletions(-)
+ dwm.c | 30 ++++++++++++++++++++++++++----
+ 1 file changed, 26 insertions(+), 4 deletions(-)
 
 diff --git a/dwm.c b/dwm.c
-index 4465af1..d1c84cd 100644
+index 4465af1..499ae91 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -190,6 +190,7 @@ static void quit(const Arg *arg);
@@ -28,17 +28,18 @@ index 4465af1..d1c84cd 100644
  			break;
  		case XA_WM_HINTS:
  			updatewmhints(c);
-@@ -1268,19 +1270,41 @@ recttomon(int x, int y, int w, int h)
+@@ -1266,21 +1268,41 @@ recttomon(int x, int y, int w, int h)
+ }
+ 
  void
- resize(Client *c, int x, int y, int w, int h, int interact)
+-resize(Client *c, int x, int y, int w, int h, int interact)
++resize(Client *c, int tx, int ty, int tw, int th, int interact)
  {
 -	if (applysizehints(c, &x, &y, &w, &h, interact))
 -		resizeclient(c, x, y, w, h);
-+	int xh = x, yh = y, wh = w, hh = h, a;
-+
-+	a = applysizehints(c, &xh, &yh, &wh, &hh, interact);
-+	if (a || w != wh || h != hh)
-+		resizeclientpad(c, xh, yh, wh, hh, w, h);
++	int wh = tw, hh = th;
++	if (applysizehints(c, &tx, &ty, &wh, &hh, interact))
++		resizeclientpad(c, tx, ty, wh, hh, tw, th);
  }
  
 +/* This wrapper is just for compatibility with other patches that may call resizeclient */
