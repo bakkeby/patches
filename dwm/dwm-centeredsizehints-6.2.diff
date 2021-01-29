@@ -1,15 +1,15 @@
-From cfef8ebeeac0c3be0fdc905ca285a0a121c3d9d8 Mon Sep 17 00:00:00 2001
+From 16e537884f404572272200ae70cefdf8562ff939 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Wed, 27 Jan 2021 14:55:14 +0100
 Subject: [PATCH] Center clients within their allocated tile based on size
  hints
 
 ---
- dwm.c | 31 ++++++++++++++++++++++++++-----
- 1 file changed, 26 insertions(+), 5 deletions(-)
+ dwm.c | 30 +++++++++++++++++++++++++++---
+ 1 file changed, 27 insertions(+), 3 deletions(-)
 
 diff --git a/dwm.c b/dwm.c
-index 4465af1..3c86193 100644
+index 4465af1..d1c84cd 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -190,6 +190,7 @@ static void quit(const Arg *arg);
@@ -24,24 +24,21 @@ index 4465af1..3c86193 100644
  			break;
  		case XA_WM_NORMAL_HINTS:
  			updatesizehints(c);
-+			resize(c, c->x, c->y, c->w, c->h, 0); // to force resizing when size hints are updated
++			arrangemon(c->mon);
  			break;
  		case XA_WM_HINTS:
  			updatewmhints(c);
-@@ -1268,20 +1270,39 @@ recttomon(int x, int y, int w, int h)
+@@ -1268,19 +1270,41 @@ recttomon(int x, int y, int w, int h)
  void
  resize(Client *c, int x, int y, int w, int h, int interact)
  {
 -	if (applysizehints(c, &x, &y, &w, &h, interact))
 -		resizeclient(c, x, y, w, h);
-+	int xh = x, yh = y, wh = w, hh = h, xpad = 0, ypad = 0, a;
++	int xh = x, yh = y, wh = w, hh = h, a;
 +
 +	a = applysizehints(c, &xh, &yh, &wh, &hh, interact);
-+
-+	xpad = (w - wh) / 2;
-+	ypad = (h - hh) / 2;
-+	if (a || xpad || ypad)
-+		resizeclientpad(c, xh, yh, wh, hh, xpad, ypad);
++	if (a || w != wh || h != hh)
++		resizeclientpad(c, xh, yh, wh, hh, w, h);
  }
  
 +/* This wrapper is just for compatibility with other patches that may call resizeclient */
@@ -49,42 +46,33 @@ index 4465af1..3c86193 100644
  resizeclient(Client *c, int x, int y, int w, int h)
  {
 -	XWindowChanges wc;
-+	resizeclientpad(c, x, y, w, h, 0, 0);
++	resizeclientpad(c, x, y, w, h, w, h);
 +}
  
 +/* This is essentially the resizeclient function renamed with two
-+ * additional parameters, xpad and yad. The function remains unaltered
-+ * except for the added lines below. */
++ * additional parameters, tw and th (for tile width and height). */
 +void
-+resizeclientpad(Client *c, int x, int y, int w, int h, int xpad, int ypad)
++resizeclientpad(Client *c, int x, int y, int w, int h, int tw, int th)
 +{
 +	XWindowChanges wc;
  	c->oldx = c->x; c->x = wc.x = x;
  	c->oldy = c->y; c->y = wc.y = y;
  	c->oldw = c->w; c->w = wc.width = w;
  	c->oldh = c->h; c->h = wc.height = h;
- 	wc.border_width = c->bw;
 +	if (!c->isfloating) {
-+		wc.x += xpad;
-+		wc.y += ypad;
++		if (w != tw) {
++			wc.x += (tw - w) / 2;
++			c->w = tw;
++		}
++		if (h != th) {
++			wc.y += (th - h) / 2;
++			c->h = th;
++		}
 +	}
++
+ 	wc.border_width = c->bw;
  	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
  	configure(c);
- 	XSync(dpy, False);
-@@ -1688,11 +1709,11 @@ tile(Monitor *m)
- 		if (i < m->nmaster) {
- 			h = (m->wh - my) / (MIN(n, m->nmaster) - i);
- 			resize(c, m->wx, m->wy + my, mw - (2*c->bw), h - (2*c->bw), 0);
--			my += HEIGHT(c);
-+			my += h;
- 		} else {
- 			h = (m->wh - ty) / (n - i);
- 			resize(c, m->wx + mw, m->wy + ty, m->ww - mw - (2*c->bw), h - (2*c->bw), 0);
--			ty += HEIGHT(c);
-+			ty += h;
- 		}
- }
- 
 -- 
 2.19.1
 
