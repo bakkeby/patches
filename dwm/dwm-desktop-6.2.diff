@@ -1,0 +1,53 @@
+From e76f9bab4f3d8c7d222cf098cf5215ab74a3a703 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Sat, 30 Jan 2021 12:06:54 +0100
+Subject: [PATCH] Adding desktop patch
+
+---
+ dwm.c | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index 4465af1..328540d 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1737,12 +1737,14 @@ toggletag(const Arg *arg)
+ void
+ toggleview(const Arg *arg)
+ {
++	Monitor *m;
+ 	unsigned int newtagset = selmon->tagset[selmon->seltags] ^ (arg->ui & TAGMASK);
+ 
+ 	if (newtagset) {
+-		selmon->tagset[selmon->seltags] = newtagset;
++		for (m = mons; m; m = m->next)
++			m->tagset[m->seltags] = newtagset;
+ 		focus(NULL);
+-		arrange(selmon);
++		arrange(NULL);
+ 	}
+ }
+ 
+@@ -2035,13 +2037,16 @@ updatewmhints(Client *c)
+ void
+ view(const Arg *arg)
+ {
++	Monitor *m;
+ 	if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
+ 		return;
+-	selmon->seltags ^= 1; /* toggle sel tagset */
++	for (m = mons; m; m = m->next)
++		m->seltags ^= 1; /* toggle sel tagset */
+ 	if (arg->ui & TAGMASK)
+-		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
++		for (m = mons; m; m = m->next)
++			m->tagset[m->seltags] = arg->ui & TAGMASK;
+ 	focus(NULL);
+-	arrange(selmon);
++	arrange(NULL);
+ }
+ 
+ Client *
+-- 
+2.19.1
+
