@@ -1,4 +1,4 @@
-From 4a8cbf612d4c6f6a307b38bbf1812c16245ffc5c Mon Sep 17 00:00:00 2001
+From 7aadf5ee20549704107f7c6c04b683b2ef0db08d Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Fri, 29 Jan 2021 19:29:59 +0100
 Subject: [PATCH] Alternative swallow patch that replaces clients instead of
@@ -58,7 +58,7 @@ index 6d36cb7..e65c09a 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index 4465af1..2b813c4 100644
+index 4465af1..9e1519d 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -40,6 +40,12 @@
@@ -312,7 +312,7 @@ index 4465af1..2b813c4 100644
 +{
 +	if (c->noswallow || c->isterminal)
 +		return 0;
-+	if (c->noswallow && !swallowfloating && c->isfloating)
++	if (!swallowfloating && c->isfloating)
 +		return 0;
 +
 +	replaceclient(t, c);
