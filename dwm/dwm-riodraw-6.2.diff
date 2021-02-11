@@ -1,0 +1,132 @@
+From dc7293dd15fd6982920324f172fa8a8cc5791da5 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Thu, 11 Feb 2021 11:08:32 +0100
+Subject: [PATCH] Adding rio-like draw-to-resize windows.
+
+This was backported from instantWM and depends on an external tool
+slop to be installed.
+
+Contributed by jzbor.
+---
+ config.def.h |  2 ++
+ dwm.c        | 77 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 79 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index 1c0b587..cc9e851 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,6 +5,7 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static const char slopstyle[]       = "-t 0 -c 0.92,0.85,0.69,0.3"; /* do NOT define -f (format) here */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";
+@@ -94,6 +95,7 @@ static Key keys[] = {
+ 	TAGKEYS(                        XK_8,                      7)
+ 	TAGKEYS(                        XK_9,                      8)
+ 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
++	{ MODKEY,                       XK_s,      riodraw,        {0} },
+ };
+ 
+ /* button definitions */
+diff --git a/dwm.c b/dwm.c
+index 4465af1..dd85686 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -192,6 +192,7 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
+ static void resizeclient(Client *c, int x, int y, int w, int h);
+ static void resizemouse(const Arg *arg);
+ static void restack(Monitor *m);
++static void riodraw(const Arg *arg);
+ static void run(void);
+ static void scan(void);
+ static int sendevent(Client *c, Atom proto);
+@@ -1369,6 +1370,82 @@ restack(Monitor *m)
+ 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+ }
+ 
++/* drag out an area using slop and resize the selected window to it. */
++void
++riodraw(const Arg *arg)
++{
++	char str[100];
++	int i;
++	char strout[100];
++	int dimensions[4];
++	int width, height, x, y;
++	char tmpstring[30] = {0};
++	char slopcmd[100] = "slop -f x%xx%yx%wx%hx ";
++	int firstchar = 0;
++	int counter = 0;
++	Monitor *m;
++	Client *c;
++
++	if (!selmon->sel)
++		return;
++	strcat(slopcmd, slopstyle);
++	FILE *fp = popen(slopcmd, "r");
++
++	while (fgets(str, 100, fp) != NULL) {
++		strcat(strout, str);
++	}
++
++	pclose(fp);
++
++	if (strlen(strout) < 6) {
++		return;
++	}
++
++	for (i = 0; i < strlen(strout); i++){
++		if (!firstchar) {
++			if (strout[i] == 'x')
++				firstchar = 1;
++			continue;
++		}
++
++		if (strout[i] != 'x') {
++			tmpstring[strlen(tmpstring)] = strout[i];
++		} else {
++			dimensions[counter] = atoi(tmpstring);
++			counter++;
++			memset(tmpstring,0,strlen(tmpstring));
++		}
++	}
++
++	x = dimensions[0];
++	y = dimensions[1];
++	width = dimensions[2];
++	height = dimensions[3];
++
++	if (!selmon->sel)
++		return;
++
++	c = selmon->sel;
++
++	if (width > 50 && height > 50 && x > -40 && y > -40 && width < selmon->mw + 40 && height < selmon->mh + 40 &&
++			(abs(c->w - width) > 20 || abs(c->h - height) > 20 || abs(c->x - x) > 20 || abs(c->y - y) > 20)) {
++		if ((m = recttomon(x, y, width, height)) != selmon) {
++			sendmon(c, m);
++			unfocus(selmon->sel, 0);
++			selmon = m;
++			focus(NULL);
++		}
++
++		if (!c->isfloating)
++			togglefloating(NULL);
++		resizeclient(c, x, y, width - (c->bw * 2), height - (c->bw * 2));
++		arrange(selmon);
++	} else {
++		fprintf(stderr, "error %s", strout);
++	}
++	memset(tmpstring,0,strlen(tmpstring));
++}
++
+ void
+ run(void)
+ {
+-- 
+2.19.1
+
