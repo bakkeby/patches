@@ -1,4 +1,4 @@
-From 4426fd56306827971de1a02931943dccfb917f7d Mon Sep 17 00:00:00 2001
+From 68887de47546cbe64bf156f6aedd8b0191c28ba1 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 19 Oct 2020 17:37:59 +0200
 Subject: [PATCH] focusdir: focus on the next client by direction (up, down,
@@ -25,7 +25,7 @@ index 1c0b587..6bcce07 100644
  	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
  	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..1f6de42 100644
+index 4465af1..f9410f0 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -166,6 +166,7 @@ static void drawbars(void);
@@ -46,14 +46,14 @@ index 4465af1..1f6de42 100644
 +
 +	Client *s = selmon->sel, *f = NULL, *c, *next;
 +
++	if (!s)
++		return;
++
 +	unsigned int score = -1;
 +	unsigned int client_score;
 +	int dist;
 +	int dirweight = 20;
 +	int isfloating = s->isfloating;
-+
-+	if (!s)
-+		return;
 +
 +	next = s->next;
 +	if (!next)
@@ -101,7 +101,7 @@ index 4465af1..1f6de42 100644
 +		}
 +	}
 +
-+	if (f != s) {
++	if (f && f != s) {
 +		focus(f);
 +		restack(f->mon);
 +	}
