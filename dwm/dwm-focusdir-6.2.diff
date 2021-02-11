@@ -1,4 +1,4 @@
-From 68887de47546cbe64bf156f6aedd8b0191c28ba1 Mon Sep 17 00:00:00 2001
+From eee865367a7903abeffd652ed293c090717294de Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 19 Oct 2020 17:37:59 +0200
 Subject: [PATCH] focusdir: focus on the next client by direction (up, down,
@@ -6,8 +6,8 @@ Subject: [PATCH] focusdir: focus on the next client by direction (up, down,
 
 ---
  config.def.h |  4 ++++
- dwm.c        | 68 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 72 insertions(+)
+ dwm.c        | 67 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 71 insertions(+)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..6bcce07 100644
@@ -25,7 +25,7 @@ index 1c0b587..6bcce07 100644
  	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
  	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..f9410f0 100644
+index 4465af1..c4b5995 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -166,6 +166,7 @@ static void drawbars(void);
@@ -36,14 +36,13 @@ index 4465af1..f9410f0 100644
  static void focusin(XEvent *e);
  static void focusmon(const Arg *arg);
  static void focusstack(const Arg *arg);
-@@ -805,6 +806,73 @@ focus(Client *c)
+@@ -805,6 +806,72 @@ focus(Client *c)
  	drawbars();
  }
  
 +void
 +focusdir(const Arg *arg)
 +{
-+
 +	Client *s = selmon->sel, *f = NULL, *c, *next;
 +
 +	if (!s)
