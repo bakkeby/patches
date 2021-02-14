@@ -502,7 +502,7 @@ index 4465af1..c03f0a3 100644
 2.19.1
 
 
-From 95efbff305e7454b5f099fa3beb991ef82228e8e Mon Sep 17 00:00:00 2001
+From 9604d9c985d3fda27aedc4d65e64b14190668259 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 14 Feb 2021 14:16:33 +0100
 Subject: [PATCH 2/2] Adding riodraw on top of swallow
@@ -536,7 +536,7 @@ index 392ae32..01e2901 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index c03f0a3..716eed7 100644
+index c03f0a3..9f15d9c 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -204,6 +204,10 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
@@ -662,7 +662,7 @@ index c03f0a3..716eed7 100644
 +		drawbar(c->mon);
 +		arrange(c->mon);
 +	} else
-+		fprintf(stderr, "rioposition: refusing to position client %s at x (%d), y (%d), w (%d), h (%d)", c->name, x, y, w, h);
++		fprintf(stderr, "rioposition: refusing to position client %s at x (%d), y (%d), w (%d), h (%d)\n", c->name, x, y, w, h);
 +
 +	riodimensions[3] = -1;
 +	rioclient = NULL;
