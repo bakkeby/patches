@@ -1,28 +1,29 @@
-From 9604d9c985d3fda27aedc4d65e64b14190668259 Mon Sep 17 00:00:00 2001
+From 3e35e86615a06e0a1f5be06ffa60352c07fafe8b Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 14 Feb 2021 14:16:33 +0100
 Subject: [PATCH 2/2] Adding riodraw on top of swallow
 
 ---
- config.def.h |   5 +++
+ config.def.h |   6 +++
  dwm.c        | 124 ++++++++++++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 128 insertions(+), 1 deletion(-)
+ 2 files changed, 129 insertions(+), 1 deletion(-)
 
 diff --git a/config.def.h b/config.def.h
-index 392ae32..01e2901 100644
+index 392ae32..ed467c8 100644
 --- a/config.def.h
 +++ b/config.def.h
-@@ -6,6 +6,9 @@ static const unsigned int snap      = 32;       /* snap pixel */
+@@ -6,6 +6,10 @@ static const unsigned int snap      = 32;       /* snap pixel */
  static const int swallowfloating    = 0;        /* 1 means swallow floating windows by default */
  static const int showbar            = 1;        /* 0 means no bar */
  static const int topbar             = 1;        /* 0 means bottom bar */
 +static const char slopspawnstyle[]  = "-t 0 -c 0.92,0.85,0.69,0.3 -o"; /* do NOT define -f (format) here */
 +static const char slopresizestyle[] = "-t 0 -c 0.92,0.85,0.69,0.3"; /* do NOT define -f (format) here */
 +static const int riodraw_borders    = 0;        /* 0 or 1, indicates whether the area drawn using slop includes the window borders */
++static const int riodraw_matchpid   = 1;        /* 0 or 1, indicates whether to match the PID of the client that was spawned with riospawn */
  static const char *fonts[]          = { "monospace:size=10" };
  static const char dmenufont[]       = "monospace:size=10";
  static const char col_gray1[]       = "#222222";
-@@ -66,6 +69,8 @@ static Key keys[] = {
+@@ -66,6 +70,8 @@ static Key keys[] = {
  	/* modifier                     key        function        argument */
  	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
  	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
@@ -32,7 +33,7 @@ index 392ae32..01e2901 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index c03f0a3..9f15d9c 100644
+index c03f0a3..2deb505 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -204,6 +204,10 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
@@ -70,7 +71,7 @@ index c03f0a3..9f15d9c 100644
  	}
 +
 +	if (!c->swallowing) {
-+		if (riopid && isdescprocess(riopid, c->pid)) {
++		if (riopid && (!riodraw_matchpid || isdescprocess(riopid, c->pid))) {
 +			if (riodimensions[3] == -1) {
 +				c->isfloating = 1;
 +				rioclient = c;
