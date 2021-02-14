@@ -1,0 +1,209 @@
+From 4462b3cf0a51c146e1cffada661de257d5a07819 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Sun, 14 Feb 2021 18:07:22 +0100
+Subject: [PATCH] Adding riodraw patch with no PID matching
+
+---
+ config.def.h |   5 +++
+ config.mk    |   6 ++-
+ dwm.c        | 113 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 122 insertions(+), 2 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 1c0b587..d727f3f 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,6 +5,9 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static const char slopspawnstyle[]  = "-t 0 -c 0.92,0.85,0.69,0.3 -o"; /* do NOT define -f (format) here */
++static const char slopresizestyle[] = "-t 0 -c 0.92,0.85,0.69,0.3"; /* do NOT define -f (format) here */
++static const int riodraw_borders    = 0;        /* 0 or 1, indicates whether the area drawn using slop includes the window borders */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";
+@@ -63,6 +66,8 @@ static Key keys[] = {
+ 	/* modifier                     key        function        argument */
+ 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
+ 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
++	{ MODKEY|ControlMask,           XK_Return, riospawn,       {.v = termcmd } },
++	{ MODKEY,                       XK_s,      rioresize,      {0} },
+ 	{ MODKEY,                       XK_b,      togglebar,      {0} },
+ 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
+ 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
+diff --git a/config.mk b/config.mk
+index 6d36cb7..e65c09a 100644
+--- a/config.mk
++++ b/config.mk
+@@ -19,10 +19,14 @@ FREETYPELIBS = -lfontconfig -lXft
+ FREETYPEINC = /usr/include/freetype2
+ # OpenBSD (uncomment)
+ #FREETYPEINC = ${X11INC}/freetype2
++#KVMLIB = -lkvm
++
++# This is needed for the swallow patch
++XCBLIBS = -lX11-xcb -lxcb -lxcb-res
+ 
+ # includes and libs
+ INCS = -I${X11INC} -I${FREETYPEINC}
+-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS}
++LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${XCBLIBS} ${KVMLIB}
+ 
+ # flags
+ CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
+diff --git a/dwm.c b/dwm.c
+index 4465af1..2343b11 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -48,7 +48,7 @@
+ #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
+ #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
+ #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
+-                               * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
++							   * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
+ #define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
+ #define LENGTH(X)               (sizeof X / sizeof X[0])
+ #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
+@@ -192,6 +192,10 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
+ static void resizeclient(Client *c, int x, int y, int w, int h);
+ static void resizemouse(const Arg *arg);
+ static void restack(Monitor *m);
++static void riodraw(const char slopstyle[]);
++static void rioposition(Client *c, int x, int y, int w, int h);
++static void rioresize(const Arg *arg);
++static void riospawn(const Arg *arg);
+ static void run(void);
+ static void scan(void);
+ static int sendevent(Client *c, Atom proto);
+@@ -243,6 +247,9 @@ static int bh, blw = 0;      /* bar geometry */
+ static int lrpad;            /* sum of left and right padding for text */
+ static int (*xerrorxlib)(Display *, XErrorEvent *);
+ static unsigned int numlockmask = 0;
++static int riodimensions[4] = { -1, -1, -1, -1 };
++static Client *rioclient = NULL;
++static pid_t riopid = 0;
+ static void (*handler[LASTEvent]) (XEvent *) = {
+ 	[ButtonPress] = buttonpress,
+ 	[ClientMessage] = clientmessage,
+@@ -1071,6 +1078,16 @@ manage(Window w, XWindowAttributes *wa)
+ 	if (c->mon == selmon)
+ 		unfocus(selmon->sel, 0);
+ 	c->mon->sel = c;
++
++	if (riopid) {
++		if (riodimensions[3] == -1) {
++			c->isfloating = 1;
++			rioclient = c;
++			c->x = WIDTH(c) * -2;
++		}
++		else
++			rioposition(c, riodimensions[0], riodimensions[1], riodimensions[2], riodimensions[3]);
++	}
+ 	arrange(c->mon);
+ 	XMapWindow(dpy, c->win);
+ 	focus(NULL);
+@@ -1369,6 +1386,100 @@ restack(Monitor *m)
+ 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+ }
+ 
++void
++riodraw(const char slopstyle[])
++{
++	int i;
++	char str[100];
++	char strout[100];
++	char tmpstring[30] = {0};
++	char slopcmd[100] = "slop -f x%xx%yx%wx%hx ";
++	int firstchar = 0;
++	int counter = 0;
++
++	if (!riopid && !rioclient)
++		return;
++
++	strcat(slopcmd, slopstyle);
++	FILE *fp = popen(slopcmd, "r");
++
++	while (fgets(str, 100, fp) != NULL)
++		strcat(strout, str);
++
++	pclose(fp);
++
++	if (strlen(strout) < 6)
++		return;
++
++	for (i = 0; i < strlen(strout); i++){
++		if (!firstchar) {
++			if (strout[i] == 'x')
++				firstchar = 1;
++			continue;
++		}
++
++		if (strout[i] != 'x')
++			tmpstring[strlen(tmpstring)] = strout[i];
++		else {
++			riodimensions[counter] = atoi(tmpstring);
++			counter++;
++			memset(tmpstring,0,strlen(tmpstring));
++		}
++	}
++
++	if (rioclient)
++		rioposition(rioclient, riodimensions[0], riodimensions[1], riodimensions[2], riodimensions[3]);
++}
++
++void
++rioposition(Client *c, int x, int y, int w, int h)
++{
++	Monitor *m;
++	if (w > 50 && h > 50 && x > -40 && y > -40 &&
++			(abs(c->w - w) > 20 || abs(c->h - h) > 20 || abs(c->x - x) > 20 || abs(c->y - y) > 20)) {
++		if ((m = recttomon(x, y, w, h)) && m != c->mon) {
++			detach(c);
++			detachstack(c);
++			c->mon = m;
++			c->tags = m->tagset[m->seltags];
++			attach(c);
++			attachstack(c);
++			selmon = m;
++			focus(c);
++		}
++
++		c->isfloating = 1;
++		if (riodraw_borders)
++			resizeclient(c, x, y, w - (c->bw * 2), h - (c->bw * 2));
++		else
++			resizeclient(c, x - c->bw, y - c->bw, w, h);
++		drawbar(c->mon);
++		arrange(c->mon);
++	} else
++		fprintf(stderr, "rioposition: refusing to position client %s at x (%d), y (%d), w (%d), h (%d)\n", c->name, x, y, w, h);
++
++	riodimensions[3] = -1;
++	rioclient = NULL;
++	riopid = 0;
++}
++
++/* drag out an area using slop and resize the selected window to it */
++void
++rioresize(const Arg *arg)
++{
++	rioclient = (arg && arg->v ? (Client*)arg->v : selmon->sel);
++	riodraw(slopresizestyle);
++}
++
++/* spawn a new window and drag out an area using slop to postiion it */
++void
++riospawn(const Arg *arg)
++{
++	spawn(arg);
++	riopid = 1;
++	riodraw(slopspawnstyle);
++}
++
+ void
+ run(void)
+ {
+-- 
+2.19.1
+
