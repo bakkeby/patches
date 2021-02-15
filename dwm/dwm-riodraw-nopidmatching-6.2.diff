@@ -1,29 +1,31 @@
-From 4462b3cf0a51c146e1cffada661de257d5a07819 Mon Sep 17 00:00:00 2001
+From e4b5fdee80a84c5f67b1c5180d5b7e58de400134 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 14 Feb 2021 18:07:22 +0100
 Subject: [PATCH] Adding riodraw patch with no PID matching
 
 ---
- config.def.h |   5 +++
+ config.def.h |   7 +++
  config.mk    |   6 ++-
- dwm.c        | 113 ++++++++++++++++++++++++++++++++++++++++++++++++++-
- 3 files changed, 122 insertions(+), 2 deletions(-)
+ dwm.c        | 118 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 129 insertions(+), 2 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
-index 1c0b587..d727f3f 100644
+index 1c0b587..50e3f1b 100644
 --- a/config.def.h
 +++ b/config.def.h
-@@ -5,6 +5,9 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+@@ -5,6 +5,11 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
  static const unsigned int snap      = 32;       /* snap pixel */
  static const int showbar            = 1;        /* 0 means no bar */
  static const int topbar             = 1;        /* 0 means bottom bar */
 +static const char slopspawnstyle[]  = "-t 0 -c 0.92,0.85,0.69,0.3 -o"; /* do NOT define -f (format) here */
 +static const char slopresizestyle[] = "-t 0 -c 0.92,0.85,0.69,0.3"; /* do NOT define -f (format) here */
 +static const int riodraw_borders    = 0;        /* 0 or 1, indicates whether the area drawn using slop includes the window borders */
++static const int riodraw_spawnasync = 0;        /* 0 means that the application is only spawned after a successful selection while
++                                                 * 1 means that the application is being initialised in the background while the selection is made */
  static const char *fonts[]          = { "monospace:size=10" };
  static const char dmenufont[]       = "monospace:size=10";
  static const char col_gray1[]       = "#222222";
-@@ -63,6 +66,8 @@ static Key keys[] = {
+@@ -63,6 +68,8 @@ static Key keys[] = {
  	/* modifier                     key        function        argument */
  	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
  	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
@@ -53,7 +55,7 @@ index 6d36cb7..e65c09a 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index 4465af1..2343b11 100644
+index 4465af1..2ad4b9f 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -48,7 +48,7 @@
@@ -69,46 +71,44 @@ index 4465af1..2343b11 100644
  static void resizeclient(Client *c, int x, int y, int w, int h);
  static void resizemouse(const Arg *arg);
  static void restack(Monitor *m);
-+static void riodraw(const char slopstyle[]);
++static int riodraw(Client *c, const char slopstyle[]);
 +static void rioposition(Client *c, int x, int y, int w, int h);
 +static void rioresize(const Arg *arg);
 +static void riospawn(const Arg *arg);
  static void run(void);
  static void scan(void);
  static int sendevent(Client *c, Atom proto);
-@@ -243,6 +247,9 @@ static int bh, blw = 0;      /* bar geometry */
+@@ -243,6 +247,8 @@ static int bh, blw = 0;      /* bar geometry */
  static int lrpad;            /* sum of left and right padding for text */
  static int (*xerrorxlib)(Display *, XErrorEvent *);
  static unsigned int numlockmask = 0;
 +static int riodimensions[4] = { -1, -1, -1, -1 };
-+static Client *rioclient = NULL;
 +static pid_t riopid = 0;
  static void (*handler[LASTEvent]) (XEvent *) = {
  	[ButtonPress] = buttonpress,
  	[ClientMessage] = clientmessage,
-@@ -1071,6 +1078,16 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1071,6 +1077,15 @@ manage(Window w, XWindowAttributes *wa)
  	if (c->mon == selmon)
  		unfocus(selmon->sel, 0);
  	c->mon->sel = c;
 +
 +	if (riopid) {
-+		if (riodimensions[3] == -1) {
-+			c->isfloating = 1;
-+			rioclient = c;
-+			c->x = WIDTH(c) * -2;
-+		}
-+		else
++		if (riodimensions[3] != -1)
 +			rioposition(c, riodimensions[0], riodimensions[1], riodimensions[2], riodimensions[3]);
++		else {
++			killclient(&((Arg) { .v = c }));
++			return;
++		}
 +	}
  	arrange(c->mon);
  	XMapWindow(dpy, c->win);
  	focus(NULL);
-@@ -1369,6 +1386,100 @@ restack(Monitor *m)
+@@ -1369,6 +1384,107 @@ restack(Monitor *m)
  	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
  }
  
-+void
-+riodraw(const char slopstyle[])
++int
++riodraw(Client *c, const char slopstyle[])
 +{
 +	int i;
 +	char str[100];
@@ -117,9 +117,6 @@ index 4465af1..2343b11 100644
 +	char slopcmd[100] = "slop -f x%xx%yx%wx%hx ";
 +	int firstchar = 0;
 +	int counter = 0;
-+
-+	if (!riopid && !rioclient)
-+		return;
 +
 +	strcat(slopcmd, slopstyle);
 +	FILE *fp = popen(slopcmd, "r");
@@ -130,7 +127,7 @@ index 4465af1..2343b11 100644
 +	pclose(fp);
 +
 +	if (strlen(strout) < 6)
-+		return;
++		return 0;
 +
 +	for (i = 0; i < strlen(strout); i++){
 +		if (!firstchar) {
@@ -148,39 +145,43 @@ index 4465af1..2343b11 100644
 +		}
 +	}
 +
-+	if (rioclient)
-+		rioposition(rioclient, riodimensions[0], riodimensions[1], riodimensions[2], riodimensions[3]);
++	if (riodimensions[0] <= -40 || riodimensions[1] <= -40 || riodimensions[2] <= 50 || riodimensions[3] <= 50) {
++		riodimensions[3] = -1;
++		return 0;
++	}
++
++	if (c) {
++		rioposition(c, riodimensions[0], riodimensions[1], riodimensions[2], riodimensions[3]);
++		return 0;
++	}
++
++	return 1;
 +}
 +
 +void
 +rioposition(Client *c, int x, int y, int w, int h)
 +{
 +	Monitor *m;
-+	if (w > 50 && h > 50 && x > -40 && y > -40 &&
-+			(abs(c->w - w) > 20 || abs(c->h - h) > 20 || abs(c->x - x) > 20 || abs(c->y - y) > 20)) {
-+		if ((m = recttomon(x, y, w, h)) && m != c->mon) {
-+			detach(c);
-+			detachstack(c);
-+			c->mon = m;
-+			c->tags = m->tagset[m->seltags];
-+			attach(c);
-+			attachstack(c);
-+			selmon = m;
-+			focus(c);
-+		}
++	if ((m = recttomon(x, y, w, h)) && m != c->mon) {
++		detach(c);
++		detachstack(c);
++		c->mon = m;
++		c->tags = m->tagset[m->seltags];
++		attach(c);
++		attachstack(c);
++		selmon = m;
++		focus(c);
++	}
 +
-+		c->isfloating = 1;
-+		if (riodraw_borders)
-+			resizeclient(c, x, y, w - (c->bw * 2), h - (c->bw * 2));
-+		else
-+			resizeclient(c, x - c->bw, y - c->bw, w, h);
-+		drawbar(c->mon);
-+		arrange(c->mon);
-+	} else
-+		fprintf(stderr, "rioposition: refusing to position client %s at x (%d), y (%d), w (%d), h (%d)\n", c->name, x, y, w, h);
++	c->isfloating = 1;
++	if (riodraw_borders)
++		resizeclient(c, x, y, w - (c->bw * 2), h - (c->bw * 2));
++	else
++		resizeclient(c, x - c->bw, y - c->bw, w, h);
++	drawbar(c->mon);
++	arrange(c->mon);
 +
 +	riodimensions[3] = -1;
-+	rioclient = NULL;
 +	riopid = 0;
 +}
 +
@@ -188,17 +189,23 @@ index 4465af1..2343b11 100644
 +void
 +rioresize(const Arg *arg)
 +{
-+	rioclient = (arg && arg->v ? (Client*)arg->v : selmon->sel);
-+	riodraw(slopresizestyle);
++	Client *c = (arg && arg->v ? (Client*)arg->v : selmon->sel);
++	if (c)
++		riodraw(c, slopresizestyle);
 +}
 +
 +/* spawn a new window and drag out an area using slop to postiion it */
 +void
 +riospawn(const Arg *arg)
 +{
-+	spawn(arg);
-+	riopid = 1;
-+	riodraw(slopspawnstyle);
++	if (riodraw_spawnasync) {
++		spawn(arg);
++		riopid = 1;
++		riodraw(NULL, slopspawnstyle);
++	} else if (riodraw(NULL, slopspawnstyle)) {
++		spawn(arg);
++		riopid = 1;
++	}
 +}
 +
  void
