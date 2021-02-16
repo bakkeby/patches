@@ -1,4 +1,4 @@
-From 1657de261f05e469e5688013ab03aea41d8178d0 Mon Sep 17 00:00:00 2001
+From 59eee254a130fee41394a90121686a4ee337fc9c Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 21 Jan 2021 11:08:15 +0100
 Subject: [PATCH] Adding placemouse patch
@@ -32,7 +32,7 @@ index 1c0b587..86f878a 100644
  	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
  	{ ClkTagBar,            0,              Button1,        view,           {0} },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..76f02c8 100644
+index 4465af1..87bec7f 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -49,6 +49,8 @@
@@ -72,10 +72,10 @@ index 4465af1..76f02c8 100644
  
 +void
 +moveorplace(const Arg *arg) {
-+    if ((!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating))
-+        movemouse(arg);
-+    else
-+        placemouse(arg);
++	if ((!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating))
++		movemouse(arg);
++	else
++		placemouse(arg);
 +}
 +
  void
