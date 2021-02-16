@@ -1,32 +1,38 @@
-From 20eee79a8c2b3db4cc22a424b3cc6c730e0e0997 Mon Sep 17 00:00:00 2001
+From 1657de261f05e469e5688013ab03aea41d8178d0 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 21 Jan 2021 11:08:15 +0100
 Subject: [PATCH] Adding placemouse patch
 
 ---
- config.def.h |   6 ++
- dwm.c        | 156 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 162 insertions(+)
+ config.def.h |  12 +++-
+ dwm.c        | 165 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 176 insertions(+), 1 deletion(-)
 
 diff --git a/config.def.h b/config.def.h
-index 1c0b587..b7f8e3e 100644
+index 1c0b587..86f878a 100644
 --- a/config.def.h
 +++ b/config.def.h
-@@ -105,6 +105,12 @@ static Button buttons[] = {
+@@ -104,7 +104,17 @@ static Button buttons[] = {
+ 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
  	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
  	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
- 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
+-	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 +	/* placemouse options, choose which feels more natural:
 +	 *    0 - tiled position is relative to mouse cursor
 +	 *    1 - tiled postiion is relative to window center
 +	 *    2 - mouse pointer warps to window center
++	 *
++	 * The moveorplace uses movemouse or placemouse depending on the floating state
++	 * of the selected client. Set up individual keybindings for the two if you want
++	 * to control these separately (i.e. to retain the feature to move a tiled window
++	 * into a floating position).
 +	 */
-+	{ ClkClientWin,         MODKEY|ControlMask, Button1,    placemouse,     {.i = 1} },
++	{ ClkClientWin,         MODKEY,         Button1,        moveorplace,    {.i = 1} },
  	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
  	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
  	{ ClkTagBar,            0,              Button1,        view,           {0} },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..c64623f 100644
+index 4465af1..76f02c8 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -49,6 +49,8 @@
@@ -46,9 +52,11 @@ index 4465af1..c64623f 100644
  	Client *next;
  	Client *snext;
  	Monitor *mon;
-@@ -184,9 +187,11 @@ static void monocle(Monitor *m);
+@@ -183,10 +186,13 @@ static void maprequest(XEvent *e);
+ static void monocle(Monitor *m);
  static void motionnotify(XEvent *e);
  static void movemouse(const Arg *arg);
++static void moveorplace(const Arg *arg);
  static Client *nexttiled(Client *c);
 +static void placemouse(const Arg *arg);
  static void pop(Client *);
@@ -58,7 +66,22 @@ index 4465af1..c64623f 100644
  static Monitor *recttomon(int x, int y, int w, int h);
  static void resize(Client *c, int x, int y, int w, int h, int interact);
  static void resizeclient(Client *c, int x, int y, int w, int h);
-@@ -1199,6 +1204,138 @@ nexttiled(Client *c)
+@@ -1132,6 +1138,14 @@ motionnotify(XEvent *e)
+ 	mon = m;
+ }
+ 
++void
++moveorplace(const Arg *arg) {
++    if ((!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating))
++        movemouse(arg);
++    else
++        placemouse(arg);
++}
++
+ void
+ movemouse(const Arg *arg)
+ {
+@@ -1199,6 +1213,138 @@ nexttiled(Client *c)
  	return c;
  }
  
@@ -184,9 +207,9 @@ index 4465af1..c64623f 100644
 +		attach(c);
 +		attachstack(c);
 +		selmon = m;
-+		focus(c);
 +	}
 +
++	focus(c);
 +	c->beingmoved = 0;
 +
 +	if (nx != -9999)
@@ -197,7 +220,7 @@ index 4465af1..c64623f 100644
  void
  pop(Client *c)
  {
-@@ -1251,6 +1388,21 @@ quit(const Arg *arg)
+@@ -1251,6 +1397,21 @@ quit(const Arg *arg)
  	running = 0;
  }
  
@@ -219,7 +242,7 @@ index 4465af1..c64623f 100644
  Monitor *
  recttomon(int x, int y, int w, int h)
  {
-@@ -1281,6 +1433,10 @@ resizeclient(Client *c, int x, int y, int w, int h)
+@@ -1281,6 +1442,10 @@ resizeclient(Client *c, int x, int y, int w, int h)
  	c->oldy = c->y; c->y = wc.y = y;
  	c->oldw = c->w; c->w = wc.width = w;
  	c->oldh = c->h; c->h = wc.height = h;
