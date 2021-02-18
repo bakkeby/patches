@@ -1,4 +1,4 @@
-From dd945d425269fe51138c0870a3d62a5c39e56011 Mon Sep 17 00:00:00 2001
+From 373abb6af8203ae73194a5a1121c2a374e425352 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Fri, 1 May 2020 22:46:52 +0200
 Subject: [PATCH] flextile-deluxe layout - a re-envisoned and revamped 
@@ -27,19 +27,19 @@ Features:
       -- and many more
    - supports rmaster like layout mirroring
 ---
- config.def.h      |  32 +-
- dwm.c             | 189 ++++++++----
- flextile-deluxe.c | 741 ++++++++++++++++++++++++++++++++++++++++++++++
- flextile-deluxe.h | 113 +++++++
- 4 files changed, 1021 insertions(+), 54 deletions(-)
+ config.def.h      |  33 +-
+ dwm.c             | 189 +++++++---
+ flextile-deluxe.c | 861 ++++++++++++++++++++++++++++++++++++++++++++++
+ flextile-deluxe.h | 116 +++++++
+ 4 files changed, 1145 insertions(+), 54 deletions(-)
  create mode 100644 flextile-deluxe.c
  create mode 100644 flextile-deluxe.h
 
 diff --git a/config.def.h b/config.def.h
-index 1c0b587..1df9709 100644
+index 1c0b587..57b88f9 100644
 --- a/config.def.h
 +++ b/config.def.h
-@@ -34,13 +34,26 @@ static const Rule rules[] = {
+@@ -34,13 +34,27 @@ static const Rule rules[] = {
  /* layout(s) */
  static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
  static const int nmaster     = 1;    /* number of clients in master area */
@@ -54,23 +54,24 @@ index 1c0b587..1df9709 100644
 +	/* symbol     arrange function, { nmaster, nstack, layout, master axis, stack axis, secondary stack axis } */
 +	{ "[]=",      flextile,         { -1, -1, SPLIT_VERTICAL, TOP_TO_BOTTOM, TOP_TO_BOTTOM, 0, NULL } }, // default tile layout
 +	{ "><>",      NULL,             {0} },    /* no layout function means floating behavior */
-+	{ "[M]",      flextile,         { -1, -1, NO_SPLIT, MONOCLE, 0, 0, NULL } }, // monocle
++	{ "[M]",      flextile,         { -1, -1, NO_SPLIT, MONOCLE, MONOCLE, 0, NULL } }, // monocle
 +	{ "|||",      flextile,         { -1, -1, SPLIT_VERTICAL, LEFT_TO_RIGHT, TOP_TO_BOTTOM, 0, NULL } }, // columns (col) layout
 +	{ ">M>",      flextile,         { -1, -1, FLOATING_MASTER, LEFT_TO_RIGHT, LEFT_TO_RIGHT, 0, NULL } }, // floating master
 +	{ "[D]",      flextile,         { -1, -1, SPLIT_VERTICAL, TOP_TO_BOTTOM, MONOCLE, 0, NULL } }, // deck
 +	{ "TTT",      flextile,         { -1, -1, SPLIT_HORIZONTAL, LEFT_TO_RIGHT, LEFT_TO_RIGHT, 0, NULL } }, // bstack
 +	{ "===",      flextile,         { -1, -1, SPLIT_HORIZONTAL, LEFT_TO_RIGHT, TOP_TO_BOTTOM, 0, NULL } }, // bstackhoriz
 +	{ "|M|",      flextile,         { -1, -1, SPLIT_HORIZONTAL, LEFT_TO_RIGHT, TOP_TO_BOTTOM, 0, monoclesymbols } }, // centeredmaster
-+	{ ":::",      flextile,         { -1, -1, NO_SPLIT, GAPPLESSGRID, 0, 0, NULL } }, // gappless grid
-+	{ "[\\]",     flextile,         { -1, -1, NO_SPLIT, DWINDLE, 0, 0, NULL } }, // fibonacci dwindle
-+	{ "(@)",      flextile,         { -1, -1, NO_SPLIT, SPIRAL, 0, 0, NULL } }, // fibonacci spiral
++	{ ":::",      flextile,         { -1, -1, NO_SPLIT, GAPPLESSGRID, GAPPLESSGRID, 0, NULL } }, // gappless grid
++	{ "[\\]",     flextile,         { -1, -1, NO_SPLIT, DWINDLE, DWINDLE, 0, NULL } }, // fibonacci dwindle
++	{ "(@)",      flextile,         { -1, -1, NO_SPLIT, SPIRAL, SPIRAL, 0, NULL } }, // fibonacci spiral
++	{ "[T]",      flextile,         { -1, -1, SPLIT_VERTICAL, LEFT_TO_RIGHT, TATAMI, 0, NULL } }, // tatami mats
 +	#if CYCLELAYOUTS_PATCH
 +	{ NULL,       NULL,             {0} },
 +	#endif
  };
  
  /* key definitions */
-@@ -68,6 +81,8 @@ static Key keys[] = {
+@@ -68,6 +82,8 @@ static Key keys[] = {
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
  	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
  	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
@@ -79,7 +80,7 @@ index 1c0b587..1df9709 100644
  	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
  	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
  	{ MODKEY,                       XK_Return, zoom,           {0} },
-@@ -76,6 +91,15 @@ static Key keys[] = {
+@@ -76,6 +92,15 @@ static Key keys[] = {
  	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
  	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
  	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
@@ -417,10 +418,10 @@ index 4465af1..efd00e7 100644
  }
 diff --git a/flextile-deluxe.c b/flextile-deluxe.c
 new file mode 100644
-index 0000000..3c3ccf2
+index 0000000..9c54302
 --- /dev/null
 +++ b/flextile-deluxe.c
-@@ -0,0 +1,741 @@
+@@ -0,0 +1,861 @@
 +typedef struct {
 +	void (*arrange)(Monitor *, int, int, int, int, int, int, int);
 +} LayoutArranger;
@@ -458,6 +459,7 @@ index 0000000..3c3ccf2
 +	{ arrange_horizgrid },
 +	{ arrange_dwindle },
 +	{ arrange_spiral },
++	{ arrange_tatami },
 +};
 +
 +static void
@@ -963,23 +965,19 @@ index 0000000..3c3ccf2
 +					if (s) {
 +						ny += nh + ih;
 +						nh += hrest;
-+					}
-+					else {
++					} else {
 +						nh -= hrest;
 +						ny -= nh + ih;
 +					}
-+				}
-+				else if ((i % 4) == 1) {
++				} else if ((i % 4) == 1) {
 +					nx += nw + iv;
 +					nw += wrest;
-+				}
-+				else if ((i % 4) == 2) {
++				} else if ((i % 4) == 2) {
 +					ny += nh + ih;
 +					nh += hrest;
 +					if (i < n - 1)
 +						nw += wrest;
-+				}
-+				else if ((i % 4) == 3) {
++				} else if ((i % 4) == 3) {
 +					if (s) {
 +						nx += nw + iv;
 +						nw -= wrest;
@@ -995,8 +993,7 @@ index 0000000..3c3ccf2
 +						wrest = 0;
 +					}
 +					ny = y;
-+				}
-+				else if (i == 1)
++				} else if (i == 1)
 +					nw = w - nw - iv;
 +				i++;
 +			}
@@ -1016,6 +1013,130 @@ index 0000000..3c3ccf2
 +arrange_spiral(Monitor *m, int x, int y, int h, int w, int ih, int iv, int n, int an, int ai)
 +{
 +	arrange_fibonacci(m, x, y, h, w, ih, iv, n, an, ai, 0);
++}
++
++static void
++arrange_tatami(Monitor *m, int x, int y, int h, int w, int ih, int iv, int n, int an, int ai)
++{
++	unsigned int i, j, nx, ny, nw, nh, tnx, tny, tnw, tnh, nhrest, hrest, wrest, areas, mats, cats;
++	Client *c;
++
++	nx = x;
++	ny = y;
++	nw = w;
++	nh = h;
++
++	mats = an / 5;
++	cats = an % 5;
++	hrest = 0;
++	wrest = 0;
++
++	areas = mats + (cats > 0);
++	nh = (h - ih * (areas - 1)) / areas;
++	nhrest = (h - ih * (areas - 1)) % areas;
++
++	for (i = 0, j = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), j++) {
++		if (j >= ai && j < (ai + an)) {
++
++			tnw = nw;
++			tnx = nx;
++			tnh = nh;
++			tny = ny;
++
++			if (j < ai + cats) {
++				/* Arrange cats (all excess clients that can't be tiled as mats). Cats sleep on mats. */
++
++	 			switch (cats) {
++				case 1: // fill
++					break;
++				case 2: // up and down
++					if ((i % 5) == 0) //up
++						tnh = (nh - ih) / 2 + (nh - ih) % 2;
++					else if ((i % 5) == 1) { //down
++						tny += (nh - ih) / 2 + (nh - ih) % 2 + ih;
++						tnh = (nh - ih) / 2;
++					}
++					break;
++				case 3: //bottom, up-left and up-right
++					if ((i % 5) == 0) { // up-left
++						tnw = (nw - iv) / 2 + (nw - iv) % 2;
++						tnh = (nh - ih) * 2 / 3 + (nh - ih) * 2 % 3;
++					} else if ((i % 5) == 1) { // up-right
++						tnx += (nw - iv) / 2 + (nw - iv) % 2 + iv;
++						tnw = (nw - iv) / 2;
++						tnh = (nh - ih) * 2 / 3 + (nh - ih) * 2 % 3;
++					} else if ((i % 5) == 2) { //bottom
++						tnh = (nh - ih) / 3;
++						tny += (nh - ih) * 2 / 3 + (nh - ih) * 2 % 3 + ih;
++					}
++					break;
++				case 4: // bottom, left, right and top
++					if ((i % 5) == 0) { //top
++						hrest = (nh - 2 * ih) % 4;
++						tnh = (nh - 2 * ih) / 4 + (hrest ? 1 : 0);
++					} else if ((i % 5) == 1) { // left
++						tnw = (nw - iv) / 2 + (nw - iv) % 2;
++						tny += (nh - 2 * ih) / 4 + (hrest ? 1 : 0) + ih;
++						tnh = (nh - 2 * ih) * 2 / 4 + (hrest > 1 ? 1 : 0);
++					} else if ((i % 5) == 2) { // right
++						tnx += (nw - iv) / 2 + (nw - iv) % 2 + iv;
++						tnw = (nw - iv) / 2;
++						tny += (nh - 2 * ih) / 4 + (hrest ? 1 : 0) + ih;
++						tnh = (nh - 2 * ih) * 2 / 4 + (hrest > 1 ? 1 : 0);
++					} else if ((i % 5) == 3) { // bottom
++						tny += (nh - 2 * ih) / 4 + (hrest ? 1 : 0) + (nh - 2 * ih) * 2 / 4 + (hrest > 1 ? 1 : 0) + 2 * ih;
++						tnh = (nh - 2 * ih) / 4 + (hrest > 2 ? 1 : 0);
++					}
++					break;
++				}
++
++			} else {
++				/* Arrange mats. One mat is a collection of five clients arranged tatami style */
++
++				if (((i - cats) % 5) == 0) {
++					if ((cats > 0) || ((i - cats) >= 5)) {
++						tny = ny = ny + nh + (nhrest > 0 ? 1 : 0) + ih;
++						--nhrest;
++					}
++				}
++
++				switch ((i - cats) % 5) {
++				case 0: // top-left-vert
++					wrest = (nw - 2 * iv) % 3;
++					hrest = (nh - 2 * ih) % 3;
++					tnw = (nw - 2 * iv) / 3 + (wrest ? 1 : 0);
++					tnh = (nh - 2 * ih) * 2 / 3 + hrest + iv;
++					break;
++				case 1: // top-right-hor
++					tnx += (nw - 2 * iv) / 3 + (wrest ? 1 : 0) + iv;
++					tnw = (nw - 2 * iv) * 2 / 3 + (wrest > 1 ? 1 : 0) + iv;
++					tnh = (nh - 2 * ih) / 3 + (hrest ? 1 : 0);
++					break;
++				case 2: // center
++					tnx += (nw - 2 * iv) / 3 + (wrest ? 1 : 0) + iv;
++					tnw = (nw - 2 * iv) / 3 + (wrest > 1 ? 1 : 0);
++					tny += (nh - 2 * ih) / 3 + (hrest ? 1 : 0) + ih;
++					tnh = (nh - 2 * ih) / 3 + (hrest > 1 ? 1 : 0);
++					break;
++				case 3: // bottom-right-vert
++					tnx += (nw - 2 * iv) * 2 / 3 + wrest + 2 * iv;
++					tnw = (nw - 2 * iv) / 3;
++					tny += (nh - 2 * ih) / 3 + (hrest ? 1 : 0) + ih;
++					tnh = (nh - 2 * ih) * 2 / 3 + hrest + iv;
++					break;
++				case 4: // (oldest) bottom-left-hor
++					tnw = (nw - 2 * iv) * 2 / 3 + wrest + iv;
++					tny += (nh - 2 * ih) * 2 / 3 + hrest + 2 * iv;
++					tnh = (nh - 2 * ih) / 3;
++					break;
++				}
++
++			}
++
++			resize(c, tnx, tny, tnw - 2 * c->bw, tnh - 2 * c->bw, False);
++			++i;
++		}
++	}
 +}
 +
 +static void
@@ -1165,10 +1286,10 @@ index 0000000..3c3ccf2
 \ No newline at end of file
 diff --git a/flextile-deluxe.h b/flextile-deluxe.h
 new file mode 100644
-index 0000000..b0aadd4
+index 0000000..366be3f
 --- /dev/null
 +++ b/flextile-deluxe.h
-@@ -0,0 +1,113 @@
+@@ -0,0 +1,116 @@
 +static void flextile(Monitor *m);
 +static void mirrorlayout(const Arg *arg);
 +static void rotatelayoutaxis(const Arg *arg);
@@ -1207,6 +1328,7 @@ index 0000000..b0aadd4
 +static void arrange_horizgrid(Monitor *m, int ax, int ay, int ah, int aw, int ih, int iv, int n, int an, int ai);
 +static void arrange_dwindle(Monitor *m, int ax, int ay, int ah, int aw, int ih, int iv, int n, int an, int ai);
 +static void arrange_spiral(Monitor *m, int ax, int ay, int ah, int aw, int ih, int iv, int n, int an, int ai);
++static void arrange_tatami(Monitor *m, int ax, int ay, int ah, int aw, int ih, int iv, int n, int an, int ai);
 +
 +/* Named flextile constants */
 +enum {
@@ -1267,6 +1389,7 @@ index 0000000..b0aadd4
 +	HORIZGRID,         // clients are arranged in a horizontal grid
 +	DWINDLE,           // clients are arranged in fibonacci dwindle mode
 +	SPIRAL,            // clients are arranged in fibonacci spiral mode
++	TATAMI,            // clients are arranged as tatami mats
 +	AXIS_LAST,
 +};
 +
@@ -1281,6 +1404,7 @@ index 0000000..b0aadd4
 +	126, // "~",
 +	92,  // "\\",
 +	64,  // "@",
++	84,  // "T",
 +};
 -- 
 2.19.1
