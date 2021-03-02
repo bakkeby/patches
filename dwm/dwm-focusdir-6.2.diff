@@ -1,13 +1,9 @@
-From 4426fd56306827971de1a02931943dccfb917f7d Mon Sep 17 00:00:00 2001
+
+From eee865367a7903abeffd652ed293c090717294de Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 19 Oct 2020 17:37:59 +0200
 Subject: [PATCH] focusdir: focus on the next client by direction (up, down,
  left, right)
-
----
- config.def.h |  4 ++++
- dwm.c        | 68 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 72 insertions(+)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..6bcce07 100644
@@ -25,7 +21,7 @@ index 1c0b587..6bcce07 100644
  	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
  	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..1f6de42 100644
+index 4465af1..5412d2e 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -166,6 +166,7 @@ static void drawbars(void);
@@ -36,10 +32,10 @@ index 4465af1..1f6de42 100644
  static void focusin(XEvent *e);
  static void focusmon(const Arg *arg);
  static void focusstack(const Arg *arg);
-@@ -805,6 +806,73 @@ focus(Client *c)
+@@ -805,6 +806,75 @@ focus(Client *c)
  	drawbars();
  }
- 
+
 +void
 +focusdir(const Arg *arg)
 +{
@@ -47,8 +43,9 @@ index 4465af1..1f6de42 100644
 +	Client *s = selmon->sel, *f = NULL, *c, *next;
 +
 +	unsigned int score = -1;
++	int dist = 3000000;
 +	unsigned int client_score;
-+	int dist;
++	int client_dist;
 +	int dirweight = 20;
 +	int isfloating = s->isfloating;
 +
@@ -69,33 +66,34 @@ index 4465af1..1f6de42 100644
 +
 +		switch (arg->i) {
 +		case 0: // left
-+			dist = s->x - c->x - c->w;
++			client_dist = s->x - c->x - c->w;
 +			client_score =
-+				dirweight * MIN(abs(dist), abs(dist + s->mon->ww)) +
++				dirweight * MIN(abs(client_dist), abs(client_dist + s->mon->ww)) +
 +				abs(s->y - c->y);
 +			break;
 +		case 1: // right
-+			dist = c->x - s->x - s->w;
++			client_dist = c->x - s->x - s->w;
 +			client_score =
-+				dirweight * MIN(abs(dist), abs(dist + s->mon->ww)) +
++				dirweight * MIN(abs(client_dist), abs(client_dist + s->mon->ww)) +
 +				abs(c->y - s->y);
 +			break;
 +		case 2: // up
-+			dist = s->y - c->y - c->h;
++			client_dist = s->y - c->y - c->h;
 +			client_score =
-+				dirweight * MIN(abs(dist), abs(dist + s->mon->wh)) +
++				dirweight * MIN(abs(client_dist), abs(client_dist + s->mon->wh)) +
 +				abs(s->x - c->x);
 +			break;
 +		default:
 +		case 3: // down
-+			dist = c->y - s->y - s->h;
++			client_dist = c->y - s->y - s->h;
 +			client_score =
-+				dirweight * MIN(abs(dist), abs(dist + s->mon->wh)) +
++				dirweight * MIN(abs(client_dist), abs(client_dist + s->mon->wh)) +
 +				abs(c->x - s->x);
 +			break;
 +		}
 +
-+		if (((arg->i == 0 || arg->i == 2) && client_score <= score) || client_score < score) {
++		if ((((arg->i == 0 || arg->i == 2) && client_score <= score) || client_score < score)
++				|| (dist == client_dist && c == s->snext && !(s->x == c->x && s->y == c->y))){
 +			score = client_score;
 +			f = c;
 +		}
@@ -110,6 +108,3 @@ index 4465af1..1f6de42 100644
  /* there are some broken focus acquiring clients needing extra handling */
  void
  focusin(XEvent *e)
--- 
-2.19.1
-
