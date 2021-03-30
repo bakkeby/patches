@@ -1,4 +1,4 @@
-From a5fbc74a306c1bfeaa8450fd774e1fb99efc9626 Mon Sep 17 00:00:00 2001
+From 125e6e3c6eff1e0a548079dfde46cd1b9836f679 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 23 Jun 2020 11:59:12 +0200
 Subject: [PATCH] floatpos: Control the size and position of floating windows
@@ -10,8 +10,8 @@ Refer to:
 https://github.com/bakkeby/patches/wiki/floatpos/
 ---
  config.def.h |  46 ++++++++++++-
- dwm.c        | 187 ++++++++++++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 228 insertions(+), 5 deletions(-)
+ dwm.c        | 186 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 227 insertions(+), 5 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..8605e95 100644
@@ -85,7 +85,7 @@ index 1c0b587..8605e95 100644
  	TAGKEYS(                        XK_2,                      1)
  	TAGKEYS(                        XK_3,                      2)
 diff --git a/dwm.c b/dwm.c
-index 4465af1..ce19701 100644
+index 4465af1..2ef8b93 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -165,7 +165,7 @@ index 4465af1..ce19701 100644
  void
  focus(Client *c)
  {
-@@ -871,6 +893,123 @@ getatomprop(Client *c, Atom prop)
+@@ -871,6 +893,122 @@ getatomprop(Client *c, Atom prop)
  	return atom;
  }
  
@@ -251,8 +251,6 @@ index 4465af1..ce19701 100644
 +	case 'W': // normal size, position takes precedence
 +		if (pCh == 'S' && cp + size > min_p + max_s)
 +			size = min_p + max_s - cp;
-+		else if (pCh == 'Z' && size > cp - max_s)
-+			size = cp - min_p;
 +		else if (size > max_s)
 +			size = max_s;
 +
@@ -264,7 +262,8 @@ index 4465af1..ce19701 100644
 +				cp = min_p;
 +			else if (delta)
 +				cp = min_p + max_s;
-+		}
++		} else if (pCh == 'Z')
++			cp -= size - cs;
 +
 +		cs = size;
 +		break;
@@ -289,7 +288,7 @@ index 4465af1..ce19701 100644
  int
  getrootptr(int *x, int *y)
  {
-@@ -1029,8 +1168,10 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1029,8 +1167,10 @@ manage(Window w, XWindowAttributes *wa)
  	c->w = c->oldw = wa->width;
  	c->h = c->oldh = wa->height;
  	c->oldbw = wa->border_width;
@@ -300,7 +299,7 @@ index 4465af1..ce19701 100644
  	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
  		c->mon = t->mon;
  		c->tags = t->tags;
-@@ -1047,7 +1188,6 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1047,7 +1187,6 @@ manage(Window w, XWindowAttributes *wa)
  	/* only fix client y-offset, if the client center might cover the bar */
  	c->y = MAX(c->y, ((c->mon->by == c->mon->my) && (c->x + (c->w / 2) >= c->mon->wx)
  		&& (c->x + (c->w / 2) < c->mon->wx + c->mon->ww)) ? bh : c->mon->my);
@@ -308,7 +307,7 @@ index 4465af1..ce19701 100644
  
  	wc.border_width = c->bw;
  	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
-@@ -1457,6 +1597,49 @@ sendevent(Client *c, Atom proto)
+@@ -1457,6 +1596,49 @@ sendevent(Client *c, Atom proto)
  	return exists;
  }
  
