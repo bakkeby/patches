@@ -1,4 +1,4 @@
-From 397c2161e7ff08faf42c1fdc7f43b736cdde2f7f Mon Sep 17 00:00:00 2001
+From c9abc365fe139c55f564daf386aa5c1c29a20111 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 11:19:12 +0200
 Subject: [PATCH 2/2] Adding systray module
@@ -6,11 +6,11 @@ Subject: [PATCH 2/2] Adding systray module
 ---
  config.def.h        |   3 +
  dwm.c               | 129 ++++++++++++++++++++++++++----
- patch/bar_systray.c | 187 ++++++++++++++++++++++++++++++++++++++++++++
+ patch/bar_systray.c | 190 ++++++++++++++++++++++++++++++++++++++++++++
  patch/bar_systray.h |  40 ++++++++++
  patch/include.c     |   3 +-
  patch/include.h     |   3 +-
- 6 files changed, 348 insertions(+), 17 deletions(-)
+ 6 files changed, 351 insertions(+), 17 deletions(-)
  create mode 100644 patch/bar_systray.c
  create mode 100644 patch/bar_systray.h
 
@@ -288,10 +288,10 @@ index 03dccfb..ed3fc50 100644
  
 diff --git a/patch/bar_systray.c b/patch/bar_systray.c
 new file mode 100644
-index 0000000..b1efe88
+index 0000000..3ae2e56
 --- /dev/null
 +++ b/patch/bar_systray.c
-@@ -0,0 +1,187 @@
+@@ -0,0 +1,190 @@
 +static Systray *systray = NULL;
 +static unsigned long systrayorientation = _NET_SYSTEM_TRAY_ORIENTATION_HORZ;
 +
@@ -310,8 +310,11 @@ index 0000000..b1efe88
 +int
 +draw_systray(Bar *bar, BarDrawArg *a)
 +{
-+	if (!showsystray)
++	if (!showsystray) {
++		if (systray)
++			XMoveWindow(dpy, systray->win, -500, bar->by);
 +		return a->x;
++	}
 +
 +	XSetWindowAttributes wa;
 +	Client *i;
