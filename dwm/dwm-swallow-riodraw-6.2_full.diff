@@ -141,9 +141,6 @@ index 4465af1..c03f0a3 100644
  		if (ev->value_mask & CWBorderWidth)
  			c->bw = ev->border_width;
  		else if (c->isfloating || !selmon->lt[selmon->sellt]->arrange) {
-+			if (c->ignorecfgreqpos && c->ignorecfgreqsize)
-+				return;
-+
  			m = c->mon;
 -			if (ev->value_mask & CWX) {
 -				c->oldx = c->x;
@@ -156,7 +153,7 @@ index 4465af1..c03f0a3 100644
 -			if (ev->value_mask & CWWidth) {
 -				c->oldw = c->w;
 -				c->w = ev->width;
-+			if (c->ignorecfgreqpos) {
++			if (!c->ignorecfgreqpos) {
 +				if (ev->value_mask & CWX) {
 +					c->oldx = c->x;
 +					c->x = m->mx + ev->x;
@@ -169,7 +166,7 @@ index 4465af1..c03f0a3 100644
 -			if (ev->value_mask & CWHeight) {
 -				c->oldh = c->h;
 -				c->h = ev->height;
-+			if (c->ignorecfgreqsize) {
++			if (!c->ignorecfgreqsize) {
 +				if (ev->value_mask & CWWidth) {
 +					c->oldw = c->w;
 +					c->w = ev->width;
