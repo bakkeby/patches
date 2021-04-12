@@ -1,4 +1,4 @@
-From 80e1f9d79fb41ba69cfed05fb191c971bba20c42 Mon Sep 17 00:00:00 2001
+From da7dd6fe065d10478034d308727508a3e17529ca Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 14 Feb 2021 14:16:33 +0100
 Subject: [PATCH 2/2] Adding riodraw on top of swallow
@@ -35,7 +35,7 @@ index 392ae32..0bc8a7d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index c03f0a3..70f855c 100644
+index 547a7d4..5e95151 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -204,6 +204,10 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);

@@ -1,4 +1,4 @@
-From 7d27280b0620cb9217da816037279d9a02ab36f8 Mon Sep 17 00:00:00 2001
+From 1def94327d67514333d974f17572ccb5e3645dad Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Fri, 29 Jan 2021 19:29:59 +0100
 Subject: [PATCH] Alternative swallow patch that replaces clients instead of
@@ -58,7 +58,7 @@ index 6d36cb7..e65c09a 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index 4465af1..c03f0a3 100644
+index 4465af1..547a7d4 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -40,6 +40,12 @@
@@ -156,7 +156,7 @@ index 4465af1..c03f0a3 100644
 -			if (ev->value_mask & CWWidth) {
 -				c->oldw = c->w;
 -				c->w = ev->width;
-+			if (c->ignorecfgreqpos) {
++			if (!c->ignorecfgreqpos) {
 +				if (ev->value_mask & CWX) {
 +					c->oldx = c->x;
 +					c->x = m->mx + ev->x;
@@ -169,7 +169,7 @@ index 4465af1..c03f0a3 100644
 -			if (ev->value_mask & CWHeight) {
 -				c->oldh = c->h;
 -				c->h = ev->height;
-+			if (c->ignorecfgreqsize) {
++			if (!c->ignorecfgreqsize) {
 +				if (ev->value_mask & CWWidth) {
 +					c->oldw = c->w;
 +					c->w = ev->width;
