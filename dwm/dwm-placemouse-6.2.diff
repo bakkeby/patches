@@ -1,12 +1,12 @@
-From 59eee254a130fee41394a90121686a4ee337fc9c Mon Sep 17 00:00:00 2001
+From c345a8ae768b3867440951a4b427da696072c084 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 21 Jan 2021 11:08:15 +0100
 Subject: [PATCH] Adding placemouse patch
 
 ---
  config.def.h |  12 +++-
- dwm.c        | 165 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 176 insertions(+), 1 deletion(-)
+ dwm.c        | 166 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 177 insertions(+), 1 deletion(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..86f878a 100644
@@ -32,7 +32,7 @@ index 1c0b587..86f878a 100644
  	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
  	{ ClkTagBar,            0,              Button1,        view,           {0} },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..87bec7f 100644
+index 4465af1..8a0ae73 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -49,6 +49,8 @@
@@ -72,7 +72,7 @@ index 4465af1..87bec7f 100644
  
 +void
 +moveorplace(const Arg *arg) {
-+	if ((!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating))
++	if ((!selmon->lt[selmon->sellt]->arrange || (selmon->sel && selmon->sel->isfloating)))
 +		movemouse(arg);
 +	else
 +		placemouse(arg);
@@ -81,7 +81,7 @@ index 4465af1..87bec7f 100644
  void
  movemouse(const Arg *arg)
  {
-@@ -1199,6 +1213,138 @@ nexttiled(Client *c)
+@@ -1199,6 +1213,139 @@ nexttiled(Client *c)
  	return c;
  }
  
@@ -204,6 +204,7 @@ index 4465af1..87bec7f 100644
 +		detachstack(c);
 +		arrangemon(c->mon);
 +		c->mon = m;
++		c->tags = m->tagset[m->seltags];
 +		attach(c);
 +		attachstack(c);
 +		selmon = m;
@@ -220,7 +221,7 @@ index 4465af1..87bec7f 100644
  void
  pop(Client *c)
  {
-@@ -1251,6 +1397,21 @@ quit(const Arg *arg)
+@@ -1251,6 +1398,21 @@ quit(const Arg *arg)
  	running = 0;
  }
  
@@ -242,7 +243,7 @@ index 4465af1..87bec7f 100644
  Monitor *
  recttomon(int x, int y, int w, int h)
  {
-@@ -1281,6 +1442,10 @@ resizeclient(Client *c, int x, int y, int w, int h)
+@@ -1281,6 +1443,10 @@ resizeclient(Client *c, int x, int y, int w, int h)
  	c->oldy = c->y; c->y = wc.y = y;
  	c->oldw = c->w; c->w = wc.width = w;
  	c->oldh = c->h; c->h = wc.height = h;
