@@ -1,4 +1,4 @@
-From e4b5fdee80a84c5f67b1c5180d5b7e58de400134 Mon Sep 17 00:00:00 2001
+From b58c29d5326f02d048d4c9da6ed4345294b478b2 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 14 Feb 2021 18:07:22 +0100
 Subject: [PATCH] Adding riodraw patch with no PID matching
@@ -55,7 +55,7 @@ index 6d36cb7..e65c09a 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index 4465af1..2ad4b9f 100644
+index 4465af1..7b1b1d7 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -48,7 +48,7 @@
@@ -165,6 +165,7 @@ index 4465af1..2ad4b9f 100644
 +	if ((m = recttomon(x, y, w, h)) && m != c->mon) {
 +		detach(c);
 +		detachstack(c);
++		arrange(c->mon);
 +		c->mon = m;
 +		c->tags = m->tagset[m->seltags];
 +		attach(c);
@@ -178,7 +179,6 @@ index 4465af1..2ad4b9f 100644
 +		resizeclient(c, x, y, w - (c->bw * 2), h - (c->bw * 2));
 +	else
 +		resizeclient(c, x - c->bw, y - c->bw, w, h);
-+	drawbar(c->mon);
 +	arrange(c->mon);
 +
 +	riodimensions[3] = -1;
