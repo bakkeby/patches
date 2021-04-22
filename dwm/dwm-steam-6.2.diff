@@ -1,4 +1,4 @@
-From 2550931c66e10e667ce56a6761cbadd12b331c52 Mon Sep 17 00:00:00 2001
+From 1dfc5eb2d0bc17984a6398453e0026f98ca488ad Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 10 Aug 2020 16:45:00 +0200
 Subject: [PATCH] Steam patch
@@ -10,11 +10,11 @@ x and y co-ordinates which can make the window, if floating, jump around the scr
 This patch works around this age-old issue by ignoring the x and y co-ordinates for
 ConfigureNotify requests relating to Steam windows.
 ---
- dwm.c | 20 +++++++++++++-------
- 1 file changed, 13 insertions(+), 7 deletions(-)
+ dwm.c | 22 +++++++++++++++-------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
 
 diff --git a/dwm.c b/dwm.c
-index 4465af1..598d36d 100644
+index 4465af1..e758060 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -58,6 +58,15 @@ index 4465af1..598d36d 100644
  			}
  			if (ev->value_mask & CWWidth) {
  				c->oldw = c->w;
+@@ -1466,6 +1472,8 @@ setfocus(Client *c)
+ 			XA_WINDOW, 32, PropModeReplace,
+ 			(unsigned char *) &(c->win), 1);
+ 	}
++	if (c->issteam)
++		setclientstate(c, NormalState);
+ 	sendevent(c, wmatom[WMTakeFocus]);
+ }
+ 
 -- 
 2.19.1
 
