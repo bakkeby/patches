@@ -1,16 +1,16 @@
-From 578895f88a593933ad169535b71403dec3ad2c95 Mon Sep 17 00:00:00 2001
+From 6dad04f197cd5cf6867794728cbeaad0b0100aca Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 15:17:52 +0200
 Subject: [PATCH 2/2] Adding status2d module
 
 ---
  config.def.h         |   2 +-
- dwm.c                |   6 +-
- patch/bar_status2d.c | 222 +++++++++++++++++++++++++++++++++++++++++++
+ dwm.c                |   7 +-
+ patch/bar_status2d.c | 225 +++++++++++++++++++++++++++++++++++++++++++
  patch/bar_status2d.h |  13 +++
  patch/include.c      |   5 +-
  patch/include.h      |   5 +-
- 6 files changed, 245 insertions(+), 8 deletions(-)
+ 6 files changed, 249 insertions(+), 8 deletions(-)
  create mode 100644 patch/bar_status2d.c
  create mode 100644 patch/bar_status2d.h
 
@@ -28,7 +28,7 @@ index 2534eac..5acf4e5 100644
  };
  
 diff --git a/dwm.c b/dwm.c
-index 03dccfb..49eaccb 100644
+index 03dccfb..3fe9faa 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -289,7 +289,7 @@ static void zoom(const Arg *arg);
@@ -49,21 +49,22 @@ index 03dccfb..49eaccb 100644
  		free(scheme[i]);
  	XDestroyWindow(dpy, wmcheckwin);
  	drw_free(drw);
-@@ -1726,7 +1726,7 @@ setup(void)
+@@ -1726,7 +1726,8 @@ setup(void)
  	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
  	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
  	/* init appearance */
 -	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
 +	scheme = ecalloc(LENGTH(colors) + 1, sizeof(Clr *));
++	scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], 3);
  	for (i = 0; i < LENGTH(colors); i++)
  		scheme[i] = drw_scm_create(drw, colors[i], 3);
  	/* init bars */
 diff --git a/patch/bar_status2d.c b/patch/bar_status2d.c
 new file mode 100644
-index 0000000..998bae6
+index 0000000..5863d44
 --- /dev/null
 +++ b/patch/bar_status2d.c
-@@ -0,0 +1,222 @@
+@@ -0,0 +1,225 @@
 +int
 +width_status2d(Bar *bar, BarWidthArg *a)
 +{
@@ -133,6 +134,7 @@ index 0000000..998bae6
 +	#else
 +	memcpy(text, stext, len);
 +	#endif // BAR_STATUSCMD_PATCH
++	text[len] = '\0';
 +
 +	x += lrpad / 2;
 +	drw_setscheme(drw, scheme[LENGTH(colors)]);
@@ -160,8 +162,9 @@ index 0000000..998bae6
 +			while (text[++i] != '^') {
 +				if (text[i] == 'c') {
 +					char buf[8];
-+					if (i + 7 > len) {
++					if (i + 7 > len - 1) {
 +						i += 7;
++						len = 0;
 +						break;
 +					}
 +					memcpy(buf, (char*)text+i+1, 7);
@@ -176,8 +179,9 @@ index 0000000..998bae6
 +					i += 7;
 +				} else if (text[i] == 'b') {
 +					char buf[8];
-+					if (i + 7 > len) {
++					if (i + 7 > len - 1) {
 +						i += 7;
++						len = 0;
 +						break;
 +					}
 +					memcpy(buf, (char*)text+i+1, 7);
@@ -219,7 +223,7 @@ index 0000000..998bae6
 +			isCode = 0;
 +		}
 +	}
-+	if (!isCode) {
++	if (!isCode && len) {
 +		#if BAR_PANGO_PATCH
 +		w = TEXTWM(text) - lrpad;
 +		drw_text(drw, x, 0, w, bh, 0, text, 0, True);
