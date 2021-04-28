@@ -1,4 +1,4 @@
-From 373abb6af8203ae73194a5a1121c2a374e425352 Mon Sep 17 00:00:00 2001
+From 5f801f3a6995a034bca70df655f2e6ede051fbb8 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Fri, 1 May 2020 22:46:52 +0200
 Subject: [PATCH] flextile-deluxe layout - a re-envisoned and revamped 
@@ -28,10 +28,10 @@ Features:
    - supports rmaster like layout mirroring
 ---
  config.def.h      |  33 +-
- dwm.c             | 189 +++++++---
+ dwm.c             | 190 +++++++---
  flextile-deluxe.c | 861 ++++++++++++++++++++++++++++++++++++++++++++++
  flextile-deluxe.h | 116 +++++++
- 4 files changed, 1145 insertions(+), 54 deletions(-)
+ 4 files changed, 1146 insertions(+), 54 deletions(-)
  create mode 100644 flextile-deluxe.c
  create mode 100644 flextile-deluxe.h
 
@@ -97,7 +97,7 @@ index 1c0b587..57b88f9 100644
  	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
  	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..efd00e7 100644
+index 4465af1..98bc2bd 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -106,14 +106,28 @@ typedef struct {
@@ -183,7 +183,15 @@ index 4465af1..efd00e7 100644
  /* compile-time check if all tags fit into an unsigned int bit array. */
  struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
  
-@@ -631,16 +660,51 @@ Monitor *
+@@ -506,6 +535,7 @@ cleanupmon(Monitor *mon)
+ 	}
+ 	XUnmapWindow(dpy, mon->barwin);
+ 	XDestroyWindow(dpy, mon->barwin);
++	free(mon->pertag);
+ 	free(mon);
+ }
+ 
+@@ -631,16 +661,51 @@ Monitor *
  createmon(void)
  {
  	Monitor *m;
@@ -235,7 +243,7 @@ index 4465af1..efd00e7 100644
  	return m;
  }
  
-@@ -966,7 +1030,7 @@ grabkeys(void)
+@@ -966,7 +1031,7 @@ grabkeys(void)
  void
  incnmaster(const Arg *arg)
  {
@@ -244,7 +252,7 @@ index 4465af1..efd00e7 100644
  	arrange(selmon);
  }
  
-@@ -1100,21 +1164,6 @@ maprequest(XEvent *e)
+@@ -1100,21 +1165,6 @@ maprequest(XEvent *e)
  		manage(ev->window, &wa);
  }
  
@@ -266,7 +274,7 @@ index 4465af1..efd00e7 100644
  void
  motionnotify(XEvent *e)
  {
-@@ -1500,10 +1549,29 @@ setfullscreen(Client *c, int fullscreen)
+@@ -1500,10 +1550,29 @@ setfullscreen(Client *c, int fullscreen)
  void
  setlayout(const Arg *arg)
  {
@@ -299,7 +307,7 @@ index 4465af1..efd00e7 100644
  	strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, sizeof selmon->ltsymbol);
  	if (selmon->sel)
  		arrange(selmon);
-@@ -1522,7 +1590,7 @@ setmfact(const Arg *arg)
+@@ -1522,7 +1591,7 @@ setmfact(const Arg *arg)
  	f = arg->f < 1.0 ? arg->f + selmon->mfact : arg->f - 1.0;
  	if (f < 0.1 || f > 0.9)
  		return;
@@ -308,7 +316,7 @@ index 4465af1..efd00e7 100644
  	arrange(selmon);
  }
  
-@@ -1670,36 +1738,10 @@ tagmon(const Arg *arg)
+@@ -1670,36 +1739,10 @@ tagmon(const Arg *arg)
  	sendmon(selmon->sel, dirtomon(arg->i));
  }
  
@@ -346,7 +354,7 @@ index 4465af1..efd00e7 100644
  	updatebarpos(selmon);
  	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
  	arrange(selmon);
-@@ -1738,9 +1780,29 @@ void
+@@ -1738,9 +1781,29 @@ void
  toggleview(const Arg *arg)
  {
  	unsigned int newtagset = selmon->tagset[selmon->seltags] ^ (arg->ui & TAGMASK);
@@ -376,7 +384,7 @@ index 4465af1..efd00e7 100644
  		focus(NULL);
  		arrange(selmon);
  	}
-@@ -2035,11 +2097,38 @@ updatewmhints(Client *c)
+@@ -2035,11 +2098,38 @@ updatewmhints(Client *c)
  void
  view(const Arg *arg)
  {

@@ -1,4 +1,4 @@
-From 771720506061c72a5217685e3fd7001db85690b4 Mon Sep 17 00:00:00 2001
+From 1e8c293b43ab16219344d63c7fda809b66b39f19 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 3 Nov 2020 20:15:29 +0100
 Subject: [PATCH 2/2] Monitor rules patch on top of pertag
@@ -32,7 +32,7 @@ index 1c0b587..36bfa8c 100644
  #define MODKEY Mod1Mask
  #define TAGKEYS(KEY,TAG) \
 diff --git a/dwm.c b/dwm.c
-index 5254f27..b7a2782 100644
+index 466177c..8597936 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -143,6 +143,16 @@ typedef struct {
@@ -52,7 +52,7 @@ index 5254f27..b7a2782 100644
  /* function declarations */
  static void applyrules(Client *c);
  static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
-@@ -644,31 +654,46 @@ configurerequest(XEvent *e)
+@@ -645,31 +655,46 @@ configurerequest(XEvent *e)
  Monitor *
  createmon(void)
  {
@@ -113,7 +113,7 @@ index 5254f27..b7a2782 100644
  		m->pertag->sellts[i] = m->sellt;
  
  		/* init showbar */
-@@ -677,6 +702,20 @@ createmon(void)
+@@ -678,6 +703,20 @@ createmon(void)
  		#if ZOOMSWAP_PATCH
  		m->pertag->prevzooms[i] = NULL;
  		#endif // ZOOMSWAP_PATCH

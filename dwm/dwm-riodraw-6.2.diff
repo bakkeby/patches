@@ -1,4 +1,4 @@
-From 1e0cad18ab363bca14b2e7e42cde5678b6b23e5e Mon Sep 17 00:00:00 2001
+From 995fccf76dea0e701a76a39ff11d8f98f8ba1b87 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 11 Feb 2021 11:08:32 +0100
 Subject: [PATCH] Adding rio-like draw-to-resize windows.
@@ -60,7 +60,7 @@ index 6d36cb7..e65c09a 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index 4465af1..8954fcb 100644
+index 4465af1..59eb871 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -40,6 +40,12 @@
@@ -255,8 +255,8 @@ index 4465af1..8954fcb 100644
 +riodraw(Client *c, const char slopstyle[])
 +{
 +	int i;
-+	char str[100];
-+	char strout[100];
++	char str[100] = {0};
++	char strout[100] = {0};
 +	char tmpstring[30] = {0};
 +	char slopcmd[100] = "slop -f x%xx%yx%wx%hx ";
 +	int firstchar = 0;
