@@ -1,4 +1,4 @@
-From fb3713e426c42c45837f4a943cef2f496a1577e3 Mon Sep 17 00:00:00 2001
+From 6fe4ab2ab8347f7b7288efbeb393593cc885b6a5 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 15 Sep 2020 08:34:59 +0200
 Subject: [PATCH 2/2] Adding fake fullscreen compatible noborder patch
@@ -8,7 +8,7 @@ Subject: [PATCH 2/2] Adding fake fullscreen compatible noborder patch
  1 file changed, 9 insertions(+)
 
 diff --git a/dwm.c b/dwm.c
-index 5352547..0bf05cd 100644
+index 74307ad..eaaf033 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -1293,6 +1293,15 @@ resizeclient(Client *c, int x, int y, int w, int h)
@@ -26,7 +26,7 @@ index 5352547..0bf05cd 100644
 +	}
  	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
  	configure(c);
- 	if (c->fakefullscreen == 1)
+ 	XSync(dpy, False);
 -- 
 2.19.1
 
