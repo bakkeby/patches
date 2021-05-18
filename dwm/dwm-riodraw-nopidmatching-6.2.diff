@@ -1,4 +1,4 @@
-From b58c29d5326f02d048d4c9da6ed4345294b478b2 Mon Sep 17 00:00:00 2001
+From 268de92756f6c39e180c609f4348e01b3e86502e Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 14 Feb 2021 18:07:22 +0100
 Subject: [PATCH] Adding riodraw patch with no PID matching
@@ -55,7 +55,7 @@ index 6d36cb7..e65c09a 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index 4465af1..7b1b1d7 100644
+index 4465af1..d82b34a 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -48,7 +48,7 @@
@@ -111,8 +111,8 @@ index 4465af1..7b1b1d7 100644
 +riodraw(Client *c, const char slopstyle[])
 +{
 +	int i;
-+	char str[100];
-+	char strout[100];
++	char str[100] = {0};
++	char strout[100] = {0};
 +	char tmpstring[30] = {0};
 +	char slopcmd[100] = "slop -f x%xx%yx%wx%hx ";
 +	int firstchar = 0;
