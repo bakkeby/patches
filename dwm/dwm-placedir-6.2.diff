@@ -1,0 +1,145 @@
+From 782641d908feecba022be1e7653e20f3bc4993f6 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Tue, 1 Jun 2021 13:54:19 +0200
+Subject: [PATCH] Adding placedir, moving clients around with behaviour similar
+ to that of focusdir
+
+---
+ config.def.h |  4 +++
+ dwm.c        | 98 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 102 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index 1c0b587..74ccb2b 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -66,6 +66,10 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_b,      togglebar,      {0} },
+ 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
+ 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
++	{ MODKEY|ControlMask,           XK_Left,   placedir,       {.i = 0 } }, // left
++	{ MODKEY|ControlMask,           XK_Right,  placedir,       {.i = 1 } }, // right
++	{ MODKEY|ControlMask,           XK_Up,     placedir,       {.i = 2 } }, // up
++	{ MODKEY|ControlMask,           XK_Down,   placedir,       {.i = 3 } }, // down
+ 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
+ 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
+ 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+diff --git a/dwm.c b/dwm.c
+index 4465af1..8bc6182 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -184,6 +184,7 @@ static void monocle(Monitor *m);
+ static void motionnotify(XEvent *e);
+ static void movemouse(const Arg *arg);
+ static Client *nexttiled(Client *c);
++static void placedir(const Arg *arg);
+ static void pop(Client *);
+ static void propertynotify(XEvent *e);
+ static void quit(const Arg *arg);
+@@ -1199,6 +1200,103 @@ nexttiled(Client *c)
+ 	return c;
+ }
+ 
++void
++placedir(const Arg *arg)
++{
++	Client *s = selmon->sel, *f = NULL, *c, *next, *fprior, *sprior;
++
++	if (!s || s->isfloating)
++		return;
++
++	unsigned int score = -1;
++	unsigned int client_score;
++	int dist;
++	int dirweight = 20;
++
++	next = s->next;
++	if (!next)
++		next = s->mon->clients;
++	for (c = next; c != s; c = next) {
++
++		next = c->next;
++		if (!next)
++			next = s->mon->clients;
++
++		if (!ISVISIBLE(c)) // || HIDDEN(c)
++			continue;
++
++		switch (arg->i) {
++		case 0: // left
++			dist = s->x - c->x - c->w;
++			client_score =
++				dirweight * MIN(abs(dist), abs(dist + s->mon->ww)) +
++				abs(s->y - c->y);
++			break;
++		case 1: // right
++			dist = c->x - s->x - s->w;
++			client_score =
++				dirweight * MIN(abs(dist), abs(dist + s->mon->ww)) +
++				abs(c->y - s->y);
++			break;
++		case 2: // up
++			dist = s->y - c->y - c->h;
++			client_score =
++				dirweight * MIN(abs(dist), abs(dist + s->mon->wh)) +
++				abs(s->x - c->x);
++			break;
++		default:
++		case 3: // down
++			dist = c->y - s->y - s->h;
++			client_score =
++				dirweight * MIN(abs(dist), abs(dist + s->mon->wh)) +
++				abs(c->x - s->x);
++			break;
++		}
++
++		if (((arg->i == 0 || arg->i == 2) && client_score <= score) || client_score < score) {
++			score = client_score;
++			f = c;
++		}
++	}
++
++	if (f && f != s) {
++		for (fprior = f->mon->clients; fprior && fprior->next != f; fprior = fprior->next);
++		for (sprior = s->mon->clients; sprior && sprior->next != s; sprior = sprior->next);
++
++		if (s == fprior) {
++			next = f->next;
++			if (sprior)
++				sprior->next = f;
++			else
++				f->mon->clients = f;
++			f->next = s;
++			s->next = next;
++		} else if (f == sprior) {
++			next = s->next;
++			if (fprior)
++				fprior->next = s;
++			else
++				s->mon->clients = s;
++			s->next = f;
++			f->next = next;
++		} else { // clients are not adjacent to each other
++			next = f->next;
++			f->next = s->next;
++			s->next = next;
++			if (fprior)
++				fprior->next = s;
++			else
++				s->mon->clients = s;
++			if (sprior)
++				sprior->next = f;
++			else
++				f->mon->clients = f;
++		}
++
++		arrange(f->mon);
++	}
++}
++
+ void
+ pop(Client *c)
+ {
+-- 
+2.19.1
+
