@@ -1,18 +1,26 @@
-From cd0e2f74816acd0943a2fec865751290383b5987 Mon Sep 17 00:00:00 2001
+From 44a4f2afa3c4a89ed9b0dc86358f686c38343a53 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Thu, 3 Jun 2021 12:04:33 +0200
 Subject: [PATCH 2/2] Holdbar patch on top of keypressrelease
 
 ---
- config.def.h |  4 +++-
- dwm.c        | 22 +++++++++++++++++++++-
- 2 files changed, 24 insertions(+), 2 deletions(-)
+ config.def.h |  5 +++--
+ dwm.c        | 24 ++++++++++++++++++++++--
+ 2 files changed, 25 insertions(+), 4 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
-index 06a6eee..3729e3c 100644
+index 06a6eee..055db91 100644
 --- a/config.def.h
 +++ b/config.def.h
-@@ -44,7 +44,7 @@ static const Layout layouts[] = {
+@@ -3,7 +3,6 @@
+ /* appearance */
+ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+-static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+@@ -44,7 +43,7 @@ static const Layout layouts[] = {
  };
  
  /* key definitions */
@@ -21,36 +29,50 @@ index 06a6eee..3729e3c 100644
  #define TAGKEYS(KEY,TAG) \
  	{ KeyPress,   MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
  	{ KeyPress,   MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
-@@ -61,6 +61,8 @@ static const char *termcmd[]  = { "st", NULL };
+@@ -61,6 +60,8 @@ static const char *termcmd[]  = { "st", NULL };
  
  static Key keys[] = {
  	/* type       modifier                      key        function        argument */
-+	{ KeyPress,   0,                            XK_Super_L,enablebar,      {0} },
-+	{ KeyRelease, MODKEY,                       XK_Super_L,disablebar,     {0} },
++	{ KeyPress,   0,                            XK_Super_L,showbar,        {0} },
++	{ KeyRelease, MODKEY,                       XK_Super_L,hidebar,        {0} },
  	{ KeyPress,   MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
  	{ KeyPress,   MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
  	{ KeyPress,   MODKEY,                       XK_b,      togglebar,      {0} },
 diff --git a/dwm.c b/dwm.c
-index 9dcc53e..d7ae4a2 100644
+index 9dcc53e..76826e5 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -162,8 +162,10 @@ static void destroynotify(XEvent *e);
- static void detach(Client *c);
- static void detachstack(Client *c);
- static Monitor *dirtomon(int dir);
-+static void disablebar(const Arg *arg);
- static void drawbar(Monitor *m);
- static void drawbars(void);
-+static void enablebar(const Arg *arg);
- static void enternotify(XEvent *e);
- static void expose(XEvent *e);
- static void focus(Client *c);
-@@ -694,6 +696,15 @@ dirtomon(int dir)
- 	return m;
+@@ -175,6 +175,7 @@ static long getstate(Window w);
+ static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
+ static void grabbuttons(Client *c, int focused);
+ static void grabkeys(void);
++static void hidebar(const Arg *arg);
+ static void incnmaster(const Arg *arg);
+ static void keypress(XEvent *e);
+ static void killclient(const Arg *arg);
+@@ -206,6 +207,7 @@ static void setup(void);
+ static void seturgent(Client *c, int urg);
+ static void showhide(Client *c);
+ static void sigchld(int unused);
++static void showbar(const Arg *arg);
+ static void spawn(const Arg *arg);
+ static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
+@@ -638,7 +640,7 @@ createmon(void)
+ 	m->tagset[0] = m->tagset[1] = 1;
+ 	m->mfact = mfact;
+ 	m->nmaster = nmaster;
+-	m->showbar = showbar;
++	m->showbar = 0;
+ 	m->topbar = topbar;
+ 	m->lt[0] = &layouts[0];
+ 	m->lt[1] = &layouts[1 % LENGTH(layouts)];
+@@ -965,6 +967,15 @@ grabkeys(void)
+ 	}
  }
  
 +void
-+disablebar(const Arg *arg)
++hidebar(const Arg *arg)
 +{
 +	if (selmon->showbar == 2) {
 +		selmon->showbar = 1;
@@ -59,14 +81,14 @@ index 9dcc53e..d7ae4a2 100644
 +}
 +
  void
- drawbar(Monitor *m)
+ incnmaster(const Arg *arg)
  {
-@@ -753,6 +764,15 @@ drawbars(void)
- 		drawbar(m);
+@@ -1639,6 +1650,15 @@ sigchld(int unused)
+ 	while (0 < waitpid(-1, NULL, WNOHANG));
  }
  
 +void
-+enablebar(const Arg *arg)
++showbar(const Arg *arg)
 +{
 +	if (!selmon->showbar) {
 +		togglebar(arg);
@@ -75,7 +97,7 @@ index 9dcc53e..d7ae4a2 100644
 +}
 +
  void
- enternotify(XEvent *e)
+ spawn(const Arg *arg)
  {
 @@ -1702,7 +1722,7 @@ tile(Monitor *m)
  void
