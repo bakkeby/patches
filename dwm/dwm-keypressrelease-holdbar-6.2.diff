@@ -1,0 +1,91 @@
+From cd0e2f74816acd0943a2fec865751290383b5987 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Thu, 3 Jun 2021 12:04:33 +0200
+Subject: [PATCH 2/2] Holdbar patch on top of keypressrelease
+
+---
+ config.def.h |  4 +++-
+ dwm.c        | 22 +++++++++++++++++++++-
+ 2 files changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 06a6eee..3729e3c 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -44,7 +44,7 @@ static const Layout layouts[] = {
+ };
+ 
+ /* key definitions */
+-#define MODKEY Mod1Mask
++#define MODKEY Mod4Mask
+ #define TAGKEYS(KEY,TAG) \
+ 	{ KeyPress,   MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
+ 	{ KeyPress,   MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
+@@ -61,6 +61,8 @@ static const char *termcmd[]  = { "st", NULL };
+ 
+ static Key keys[] = {
+ 	/* type       modifier                      key        function        argument */
++	{ KeyPress,   0,                            XK_Super_L,enablebar,      {0} },
++	{ KeyRelease, MODKEY,                       XK_Super_L,disablebar,     {0} },
+ 	{ KeyPress,   MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
+ 	{ KeyPress,   MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+ 	{ KeyPress,   MODKEY,                       XK_b,      togglebar,      {0} },
+diff --git a/dwm.c b/dwm.c
+index 9dcc53e..d7ae4a2 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -162,8 +162,10 @@ static void destroynotify(XEvent *e);
+ static void detach(Client *c);
+ static void detachstack(Client *c);
+ static Monitor *dirtomon(int dir);
++static void disablebar(const Arg *arg);
+ static void drawbar(Monitor *m);
+ static void drawbars(void);
++static void enablebar(const Arg *arg);
+ static void enternotify(XEvent *e);
+ static void expose(XEvent *e);
+ static void focus(Client *c);
+@@ -694,6 +696,15 @@ dirtomon(int dir)
+ 	return m;
+ }
+ 
++void
++disablebar(const Arg *arg)
++{
++	if (selmon->showbar == 2) {
++		selmon->showbar = 1;
++		togglebar(arg);
++	}
++}
++
+ void
+ drawbar(Monitor *m)
+ {
+@@ -753,6 +764,15 @@ drawbars(void)
+ 		drawbar(m);
+ }
+ 
++void
++enablebar(const Arg *arg)
++{
++	if (!selmon->showbar) {
++		togglebar(arg);
++		selmon->showbar = 2;
++	}
++}
++
+ void
+ enternotify(XEvent *e)
+ {
+@@ -1702,7 +1722,7 @@ tile(Monitor *m)
+ void
+ togglebar(const Arg *arg)
+ {
+-	selmon->showbar = !selmon->showbar;
++	selmon->showbar = (selmon->showbar == 2 ? 1 : !selmon->showbar);
+ 	updatebarpos(selmon);
+ 	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
+ 	arrange(selmon);
+-- 
+2.19.1
+
