@@ -1,0 +1,98 @@
+From b0f56cb0228afc5bda80ea233d1cffe1a19f292f Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Tue, 7 Apr 2020 11:40:30 +0200
+Subject: [PATCH] Lose fullscreen on focus change
+
+---
+ dwm.c | 20 ++++++++++++++------
+ 1 file changed, 14 insertions(+), 6 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index 4465af1..a300ba0 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -418,15 +418,16 @@ buttonpress(XEvent *e)
+ {
+ 	unsigned int i, x, click;
+ 	Arg arg = {0};
+-	Client *c;
++	Client *c, *sel;
+ 	Monitor *m;
+ 	XButtonPressedEvent *ev = &e->xbutton;
+ 
+ 	click = ClkRootWin;
+ 	/* focus monitor if necessary */
+ 	if ((m = wintomon(ev->window)) && m != selmon) {
+-		unfocus(selmon->sel, 1);
++		sel = selmon->sel;
+ 		selmon = m;
++		unfocus(sel, 1);
+ 		focus(NULL);
+ 	}
+ 	if (ev->window == selmon->barwin) {
+@@ -754,7 +755,7 @@ drawbars(void)
+ void
+ enternotify(XEvent *e)
+ {
+-	Client *c;
++	Client *c, *sel;
+ 	Monitor *m;
+ 	XCrossingEvent *ev = &e->xcrossing;
+ 
+@@ -763,8 +764,9 @@ enternotify(XEvent *e)
+ 	c = wintoclient(ev->window);
+ 	m = c ? c->mon : wintomon(ev->window);
+ 	if (m != selmon) {
+-		unfocus(selmon->sel, 1);
++		sel = selmon->sel;
+ 		selmon = m;
++		unfocus(sel, 1);
+ 	} else if (!c || c == selmon->sel)
+ 		return;
+ 	focus(c);
+@@ -819,13 +821,15 @@ void
+ focusmon(const Arg *arg)
+ {
+ 	Monitor *m;
++	Client *sel;
+ 
+ 	if (!mons->next)
+ 		return;
+ 	if ((m = dirtomon(arg->i)) == selmon)
+ 		return;
+-	unfocus(selmon->sel, 0);
++	sel = selmon->sel;
+ 	selmon = m;
++	unfocus(sel, 0);
+ 	focus(NULL);
+ }
+ 
+@@ -1120,13 +1124,15 @@ motionnotify(XEvent *e)
+ {
+ 	static Monitor *mon = NULL;
+ 	Monitor *m;
++	Client *sel;
+ 	XMotionEvent *ev = &e->xmotion;
+ 
+ 	if (ev->window != root)
+ 		return;
+ 	if ((m = recttomon(ev->x_root, ev->y_root, 1, 1)) != mon && mon) {
+-		unfocus(selmon->sel, 1);
++		sel = selmon->sel;
+ 		selmon = m;
++		unfocus(sel, 1);
+ 		focus(NULL);
+ 	}
+ 	mon = m;
+@@ -1751,6 +1757,8 @@ unfocus(Client *c, int setfocus)
+ {
+ 	if (!c)
+ 		return;
++	if (c->isfullscreen && ISVISIBLE(c) && c->mon == selmon)
++		setfullscreen(c, 0);
+ 	grabbuttons(c, 0);
+ 	XSetWindowBorder(dpy, c->win, scheme[SchemeNorm][ColBorder].pixel);
+ 	if (setfocus) {
+-- 
+2.19.1
+
