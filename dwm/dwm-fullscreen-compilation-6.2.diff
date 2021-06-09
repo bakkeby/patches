@@ -1,4 +1,4 @@
-From 4637d9b0d4a4e4ecd5560037247923c620f12973 Mon Sep 17 00:00:00 2001
+From f5fe34d1b382795ad47cd63cf43198c79c6845a5 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 5 Sep 2020 14:32:26 +0200
 Subject: [PATCH] Compilation of fullscreen patches for dwm.
@@ -26,8 +26,8 @@ This incorporates, and expands on, the following patches:
    - losefullscreen
 ---
  config.def.h |   4 +-
- dwm.c        | 181 ++++++++++++++++++++++++++++++++++++++++-----------
- 2 files changed, 147 insertions(+), 38 deletions(-)
+ dwm.c        | 178 ++++++++++++++++++++++++++++++++++++++++++---------
+ 2 files changed, 152 insertions(+), 30 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..5f28f2c 100644
@@ -48,7 +48,7 @@ index 1c0b587..5f28f2c 100644
  	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
  	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..74307ad 100644
+index 4465af1..763c224 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -59,7 +59,15 @@ index 4465af1..74307ad 100644
  	Client *next;
  	Client *snext;
  	Monitor *mon;
-@@ -210,10 +211,12 @@ static void tag(const Arg *arg);
+@@ -177,6 +178,7 @@ static void grabkeys(void);
+ static void incnmaster(const Arg *arg);
+ static void keypress(XEvent *e);
+ static void killclient(const Arg *arg);
++static void losefullscreen(Client *next);
+ static void manage(Window w, XWindowAttributes *wa);
+ static void mappingnotify(XEvent *e);
+ static void maprequest(XEvent *e);
+@@ -210,7 +212,9 @@ static void tag(const Arg *arg);
  static void tagmon(const Arg *arg);
  static void tile(Monitor *);
  static void togglebar(const Arg *arg);
@@ -68,21 +76,8 @@ index 4465af1..74307ad 100644
 +static void togglefullscreen(const Arg *arg);
  static void toggletag(const Arg *arg);
  static void toggleview(const Arg *arg);
--static void unfocus(Client *c, int setfocus);
-+static void unfocus(Client *c, int setfocus, Client *nextfocus);
- static void unmanage(Client *c, int destroyed);
- static void unmapnotify(XEvent *e);
- static void updatebarpos(Monitor *m);
-@@ -425,7 +428,7 @@ buttonpress(XEvent *e)
- 	click = ClkRootWin;
- 	/* focus monitor if necessary */
- 	if ((m = wintomon(ev->window)) && m != selmon) {
--		unfocus(selmon->sel, 1);
-+		unfocus(selmon->sel, 1, NULL);
- 		selmon = m;
- 		focus(NULL);
- 	}
-@@ -519,9 +522,12 @@ clientmessage(XEvent *e)
+ static void unfocus(Client *c, int setfocus);
+@@ -519,9 +523,12 @@ clientmessage(XEvent *e)
  		return;
  	if (cme->message_type == netatom[NetWMState]) {
  		if (cme->data.l[1] == netatom[NetWMFullscreen]
@@ -96,7 +91,7 @@ index 4465af1..74307ad 100644
  	} else if (cme->message_type == netatom[NetActiveWindow]) {
  		if (c != selmon->sel && !c->isurgent)
  			seturgent(c, 1);
-@@ -565,7 +571,7 @@ configurenotify(XEvent *e)
+@@ -565,7 +572,7 @@ configurenotify(XEvent *e)
  			updatebars();
  			for (m = mons; m; m = m->next) {
  				for (c = m->clients; c; c = c->next)
@@ -105,79 +100,61 @@ index 4465af1..74307ad 100644
  						resizeclient(c, m->mx, m->my, m->mw, m->mh);
  				XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, bh);
  			}
-@@ -754,7 +760,7 @@ drawbars(void)
- void
- enternotify(XEvent *e)
+@@ -785,8 +792,10 @@ focus(Client *c)
  {
--	Client *c;
-+	Client *c, *sel;
- 	Monitor *m;
- 	XCrossingEvent *ev = &e->xcrossing;
- 
-@@ -763,8 +769,9 @@ enternotify(XEvent *e)
- 	c = wintoclient(ev->window);
- 	m = c ? c->mon : wintomon(ev->window);
- 	if (m != selmon) {
--		unfocus(selmon->sel, 1);
-+		sel = selmon->sel;
- 		selmon = m;
-+		unfocus(sel, 1, c);
- 	} else if (!c || c == selmon->sel)
- 		return;
- 	focus(c);
-@@ -786,7 +793,7 @@ focus(Client *c)
  	if (!c || !ISVISIBLE(c))
  		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
- 	if (selmon->sel && selmon->sel != c)
--		unfocus(selmon->sel, 0);
-+		unfocus(selmon->sel, 0, c);
+-	if (selmon->sel && selmon->sel != c)
++	if (selmon->sel && selmon->sel != c) {
++		losefullscreen(c);
+ 		unfocus(selmon->sel, 0);
++	}
  	if (c) {
  		if (c->mon != selmon)
  			selmon = c->mon;
-@@ -819,13 +826,15 @@ void
- focusmon(const Arg *arg)
+@@ -834,6 +843,12 @@ focusstack(const Arg *arg)
  {
- 	Monitor *m;
-+	Client *sel;
+ 	Client *c = NULL, *i;
  
- 	if (!mons->next)
++	/* Note that this patch is made for dwm 6.2. If applying this on top of the latest master
++	 * then the https://dwm.suckless.org/patches/alwaysfullscreen/ patch has been merged
++	 * upstream, which prevents focus to drift from windows that are in fake fullscreen.
++	 * To address this issue use this if statement instead:
++	 *   if (!selmon->sel || (selmon->sel->isfullscreen && selmon->sel->fakefullscreen != 1))
++	 */
+ 	if (!selmon->sel)
  		return;
- 	if ((m = dirtomon(arg->i)) == selmon)
- 		return;
--	unfocus(selmon->sel, 0);
-+	sel = selmon->sel;
- 	selmon = m;
-+	unfocus(sel, 0, NULL);
- 	focus(NULL);
+ 	if (arg->i > 0) {
+@@ -1014,6 +1029,16 @@ killclient(const Arg *arg)
+ 	}
  }
  
-@@ -1069,7 +1078,7 @@ manage(Window w, XWindowAttributes *wa)
++void
++losefullscreen(Client *next)
++{
++	Client *sel = selmon->sel;
++	if (!sel || !next)
++		return;
++	if (sel->isfullscreen && sel->fakefullscreen != 1 && ISVISIBLE(sel) && sel->mon == next->mon && !next->isfloating)
++		setfullscreen(sel, 0);
++}
++
+ void
+ manage(Window w, XWindowAttributes *wa)
+ {
+@@ -1068,8 +1093,10 @@ manage(Window w, XWindowAttributes *wa)
+ 		(unsigned char *) &(c->win), 1);
  	XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h); /* some windows require this */
  	setclientstate(c, NormalState);
- 	if (c->mon == selmon)
--		unfocus(selmon->sel, 0);
-+		unfocus(selmon->sel, 0, c);
+-	if (c->mon == selmon)
++	if (c->mon == selmon) {
++		losefullscreen(c);
+ 		unfocus(selmon->sel, 0);
++	}
  	c->mon->sel = c;
  	arrange(c->mon);
  	XMapWindow(dpy, c->win);
-@@ -1120,13 +1129,15 @@ motionnotify(XEvent *e)
- {
- 	static Monitor *mon = NULL;
- 	Monitor *m;
-+	Client *sel;
- 	XMotionEvent *ev = &e->xmotion;
- 
- 	if (ev->window != root)
- 		return;
- 	if ((m = recttomon(ev->x_root, ev->y_root, 1, 1)) != mon && mon) {
--		unfocus(selmon->sel, 1);
-+		sel = selmon->sel;
- 		selmon = m;
-+		unfocus(sel, 1, NULL);
- 		focus(NULL);
- 	}
- 	mon = m;
-@@ -1143,7 +1154,7 @@ movemouse(const Arg *arg)
+@@ -1143,7 +1170,7 @@ movemouse(const Arg *arg)
  
  	if (!(c = selmon->sel))
  		return;
@@ -186,7 +163,7 @@ index 4465af1..74307ad 100644
  		return;
  	restack(selmon);
  	ocx = c->x;
-@@ -1298,7 +1309,7 @@ resizemouse(const Arg *arg)
+@@ -1298,7 +1325,7 @@ resizemouse(const Arg *arg)
  
  	if (!(c = selmon->sel))
  		return;
@@ -195,16 +172,7 @@ index 4465af1..74307ad 100644
  		return;
  	restack(selmon);
  	ocx = c->x;
-@@ -1412,7 +1423,7 @@ sendmon(Client *c, Monitor *m)
- {
- 	if (c->mon == m)
- 		return;
--	unfocus(c, 1);
-+	unfocus(c, 1, NULL);
- 	detach(c);
- 	detachstack(c);
- 	c->mon = m;
-@@ -1472,29 +1483,79 @@ setfocus(Client *c)
+@@ -1472,29 +1499,79 @@ setfocus(Client *c)
  void
  setfullscreen(Client *c, int fullscreen)
  {
@@ -299,7 +267,7 @@ index 4465af1..74307ad 100644
  }
  
  void
-@@ -1665,9 +1726,19 @@ tag(const Arg *arg)
+@@ -1665,9 +1742,19 @@ tag(const Arg *arg)
  void
  tagmon(const Arg *arg)
  {
@@ -321,7 +289,7 @@ index 4465af1..74307ad 100644
  }
  
  void
-@@ -1705,18 +1776,51 @@ togglebar(const Arg *arg)
+@@ -1705,18 +1792,51 @@ togglebar(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -379,21 +347,6 @@ index 4465af1..74307ad 100644
  }
  
  void
-@@ -1747,10 +1851,13 @@ toggleview(const Arg *arg)
- }
- 
- void
--unfocus(Client *c, int setfocus)
-+unfocus(Client *c, int setfocus, Client *nextfocus)
- {
- 	if (!c)
- 		return;
-+	if (c->isfullscreen && ISVISIBLE(c) && c->mon == selmon && nextfocus && !nextfocus->isfloating)
-+		if (c->fakefullscreen != 1)
-+			setfullscreen(c, 0);
- 	grabbuttons(c, 0);
- 	XSetWindowBorder(dpy, c->win, scheme[SchemeNorm][ColBorder].pixel);
- 	if (setfocus) {
 -- 
 2.19.1
 
