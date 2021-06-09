@@ -1,4 +1,4 @@
-From 69e0705d78f3e3691ae5bacc199ca61bcaf04ea4 Mon Sep 17 00:00:00 2001
+From 747adbe7b2fe9cb0ad7275117b48b4168500b452 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 5 Sep 2020 18:22:35 +0200
 Subject: [PATCH 2/2] Adding fullscreen-compilation compatible tagswapmon patch
@@ -22,10 +22,10 @@ index 5f28f2c..c47cddb 100644
  	TAGKEYS(                        XK_2,                      1)
  	TAGKEYS(                        XK_3,                      2)
 diff --git a/dwm.c b/dwm.c
-index 74307ad..90dff7d 100644
+index b1d0936..6e5bc3d 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -209,6 +209,7 @@ static void sigchld(int unused);
+@@ -210,6 +210,7 @@ static void sigchld(int unused);
  static void spawn(const Arg *arg);
  static void tag(const Arg *arg);
  static void tagmon(const Arg *arg);
@@ -33,7 +33,7 @@ index 74307ad..90dff7d 100644
  static void tile(Monitor *);
  static void togglebar(const Arg *arg);
  static void togglefakefullscreen(const Arg *arg);
-@@ -1741,6 +1742,71 @@ tagmon(const Arg *arg)
+@@ -1762,6 +1763,71 @@ tagmon(const Arg *arg)
  		sendmon(c, dirtomon(arg->i));
  }
  

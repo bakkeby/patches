@@ -1,4 +1,4 @@
-From 62f53f4025048b478bf9951f81742b3c6f65b09d Mon Sep 17 00:00:00 2001
+From edc9e38090cea18f638a0c6a70fc836f0e42780b Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sat, 5 Sep 2020 18:24:28 +0200
 Subject: [PATCH 2/2] Adding fullscreen-compilation compatible tagallmon patch
@@ -22,10 +22,10 @@ index 5f28f2c..0d5456a 100644
  	TAGKEYS(                        XK_2,                      1)
  	TAGKEYS(                        XK_3,                      2)
 diff --git a/dwm.c b/dwm.c
-index 74307ad..1e8c847 100644
+index b1d0936..6417513 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -208,6 +208,7 @@ static void showhide(Client *c);
+@@ -209,6 +209,7 @@ static void showhide(Client *c);
  static void sigchld(int unused);
  static void spawn(const Arg *arg);
  static void tag(const Arg *arg);
@@ -33,7 +33,7 @@ index 74307ad..1e8c847 100644
  static void tagmon(const Arg *arg);
  static void tile(Monitor *);
  static void togglebar(const Arg *arg);
-@@ -1723,6 +1724,50 @@ tag(const Arg *arg)
+@@ -1744,6 +1745,50 @@ tag(const Arg *arg)
  	}
  }
  

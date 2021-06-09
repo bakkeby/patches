@@ -1,4 +1,4 @@
-From 6fe4ab2ab8347f7b7288efbeb393593cc885b6a5 Mon Sep 17 00:00:00 2001
+From b151e3d6ca421112b86e6b17328bf8aabd51ab9c Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Tue, 15 Sep 2020 08:34:59 +0200
 Subject: [PATCH 2/2] Adding fake fullscreen compatible noborder patch
@@ -8,10 +8,10 @@ Subject: [PATCH 2/2] Adding fake fullscreen compatible noborder patch
  1 file changed, 9 insertions(+)
 
 diff --git a/dwm.c b/dwm.c
-index 74307ad..eaaf033 100644
+index b1d0936..36b0608 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -1293,6 +1293,15 @@ resizeclient(Client *c, int x, int y, int w, int h)
+@@ -1314,6 +1314,15 @@ resizeclient(Client *c, int x, int y, int w, int h)
  	c->oldw = c->w; c->w = wc.width = w;
  	c->oldh = c->h; c->h = wc.height = h;
  	wc.border_width = c->bw;

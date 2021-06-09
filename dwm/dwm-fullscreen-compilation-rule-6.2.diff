@@ -1,4 +1,4 @@
-From 55cdcb33d04d6271ca720f8cb07b6820caac6a61 Mon Sep 17 00:00:00 2001
+From e0e096f565942088fa14774433523e43136e0e36 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Wed, 12 May 2021 16:05:54 +0200
 Subject: [PATCH 2/2] Adding fake fullscreen client rule
@@ -26,7 +26,7 @@ index 5f28f2c..dd98367 100644
  
  /* layout(s) */
 diff --git a/dwm.c b/dwm.c
-index 74307ad..b6a64e4 100644
+index b1d0936..246888f 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -139,6 +139,7 @@ typedef struct {
@@ -37,7 +37,7 @@ index 74307ad..b6a64e4 100644
  	int monitor;
  } Rule;
  
-@@ -302,6 +303,7 @@ applyrules(Client *c)
+@@ -303,6 +304,7 @@ applyrules(Client *c)
  		{
  			c->isfloating = r->isfloating;
  			c->tags |= r->tags;
