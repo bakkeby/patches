@@ -502,15 +502,15 @@ index 4465af1..547a7d4 100644
 2.19.1
 
 
-From da7dd6fe065d10478034d308727508a3e17529ca Mon Sep 17 00:00:00 2001
+From 84b5af1722e1d856be6839be5ee23568d051c1e8 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Sun, 14 Feb 2021 14:16:33 +0100
 Subject: [PATCH 2/2] Adding riodraw on top of swallow
 
 ---
  config.def.h |   8 ++++
- dwm.c        | 127 ++++++++++++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 134 insertions(+), 1 deletion(-)
+ dwm.c        | 128 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 135 insertions(+), 1 deletion(-)
 
 diff --git a/config.def.h b/config.def.h
 index 392ae32..0bc8a7d 100644
@@ -539,7 +539,7 @@ index 392ae32..0bc8a7d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 547a7d4..5e95151 100644
+index 547a7d4..d325194 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -204,6 +204,10 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
@@ -589,7 +589,7 @@ index 547a7d4..5e95151 100644
  	arrange(c->mon);
  	XMapWindow(dpy, c->win);
  	if (focusclient)
-@@ -1461,6 +1480,104 @@ restack(Monitor *m)
+@@ -1461,6 +1480,105 @@ restack(Monitor *m)
  	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
  }
  
@@ -651,6 +651,7 @@ index 547a7d4..5e95151 100644
 +	if ((m = recttomon(x, y, w, h)) && m != c->mon) {
 +		detach(c);
 +		detachstack(c);
++		arrange(c->mon);
 +		c->mon = m;
 +		c->tags = m->tagset[m->seltags];
 +		attach(c);
@@ -694,7 +695,7 @@ index 547a7d4..5e95151 100644
  void
  run(void)
  {
-@@ -1731,9 +1848,16 @@ sigchld(int unused)
+@@ -1731,9 +1849,16 @@ sigchld(int unused)
  void
  spawn(const Arg *arg)
  {
@@ -712,7 +713,7 @@ index 547a7d4..5e95151 100644
  		if (dpy)
  			close(ConnectionNumber(dpy));
  		setsid();
-@@ -1742,6 +1866,7 @@ spawn(const Arg *arg)
+@@ -1742,6 +1867,7 @@ spawn(const Arg *arg)
  		perror(" failed");
  		exit(EXIT_SUCCESS);
  	}
