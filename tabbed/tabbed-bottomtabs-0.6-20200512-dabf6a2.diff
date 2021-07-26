@@ -1,0 +1,43 @@
+From ac564c08a540185e0562a22f01b9261df5437645 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Mon, 26 Jul 2021 11:09:49 +0200
+Subject: [PATCH] Adding bottom tabs patch
+
+---
+ tabbed.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/tabbed.c b/tabbed.c
+index eafe28a..a727a44 100644
+--- a/tabbed.c
++++ b/tabbed.c
+@@ -332,7 +332,7 @@ drawbar(void)
+ 		dc.w = ww;
+ 		XFetchName(dpy, win, &name);
+ 		drawtext(name ? name : "", dc.norm);
+-		XCopyArea(dpy, dc.drawable, win, dc.gc, 0, 0, ww, bh, 0, 0);
++		XCopyArea(dpy, dc.drawable, win, dc.gc, 0, 0, ww, bh, 0, wh - bh);
+ 		XSync(dpy, False);
+ 
+ 		return;
+@@ -371,7 +371,7 @@ drawbar(void)
+ 		dc.x += dc.w;
+ 		clients[c]->tabx = dc.x;
+ 	}
+-	XCopyArea(dpy, dc.drawable, win, dc.gc, 0, 0, ww, bh, 0, 0);
++	XCopyArea(dpy, dc.drawable, win, dc.gc, 0, 0, ww, bh, 0, wh - bh);
+ 	XSync(dpy, False);
+ }
+ 
+@@ -881,7 +881,7 @@ resize(int c, int w, int h)
+ 	XWindowChanges wc;
+ 
+ 	ce.x = 0;
+-	ce.y = wc.y = bh;
++	ce.y = wc.y = 0;
+ 	ce.width = wc.width = w;
+ 	ce.height = wc.height = h;
+ 	ce.type = ConfigureNotify;
+-- 
+2.32.0
+
