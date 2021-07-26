@@ -1,16 +1,25 @@
-From ac564c08a540185e0562a22f01b9261df5437645 Mon Sep 17 00:00:00 2001
+From 3c5f53d4e674c5f9c4077722f0c04688f8be1127 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 26 Jul 2021 11:09:49 +0200
 Subject: [PATCH] Adding bottom tabs patch
 
 ---
- tabbed.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ tabbed.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/tabbed.c b/tabbed.c
-index eafe28a..a727a44 100644
+index eafe28a..7fcd53c 100644
 --- a/tabbed.c
 +++ b/tabbed.c
+@@ -182,7 +182,7 @@ buttonpress(const XEvent *e)
+ 	int i, fc;
+ 	Arg arg;
+ 
+-	if (ev->y < 0 || ev->y > bh)
++	if (ev->y < wh - bh)
+ 		return;
+ 
+ 	if (((fc = getfirsttab()) > 0 && ev->x < TEXTW(before)) || ev->x < 0)
 @@ -332,7 +332,7 @@ drawbar(void)
  		dc.w = ww;
  		XFetchName(dpy, win, &name);
