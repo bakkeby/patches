@@ -1,0 +1,27 @@
+From 679297c1dcf3c5e768608629e0154ebd648c196a Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Mon, 26 Jul 2021 08:56:09 +0200
+Subject: [PATCH] Centers window titles within tabs
+
+Ref.
+https://www.reddit.com/r/suckless/comments/oi4zjl/tabbed_text_alignment/
+---
+ tabbed.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/tabbed.c b/tabbed.c
+index eafe28a..52039eb 100644
+--- a/tabbed.c
++++ b/tabbed.c
+@@ -406,6 +406,8 @@ drawtext(const char *text, XftColor col[ColLast])
+ 		     buf[--i] = titletrim[--j])
+ 			;
+ 	}
++	else
++		x += (dc.w - TEXTW(buf)) / 2; // center text
+ 
+ 	d = XftDrawCreate(dpy, dc.drawable, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
+ 	XftDrawStringUtf8(d, &col[ColFG], dc.font.xfont, x, y, (XftChar8 *) buf, len);
+-- 
+2.32.0
+
