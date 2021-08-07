@@ -1,4 +1,4 @@
-From 1def94327d67514333d974f17572ccb5e3645dad Mon Sep 17 00:00:00 2001
+From f7ca16b6b30fa4759dd05155ea61af811f050ba2 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Fri, 29 Jan 2021 19:29:59 +0100
 Subject: [PATCH] Alternative swallow patch that replaces clients instead of
@@ -7,8 +7,8 @@ Subject: [PATCH] Alternative swallow patch that replaces clients instead of
 ---
  config.def.h |   9 +-
  config.mk    |   6 +-
- dwm.c        | 297 +++++++++++++++++++++++++++++++++++++++++++++++----
- 3 files changed, 285 insertions(+), 27 deletions(-)
+ dwm.c        | 300 +++++++++++++++++++++++++++++++++++++++++++++++----
+ 3 files changed, 288 insertions(+), 27 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..392ae32 100644
@@ -58,7 +58,7 @@ index 6d36cb7..e65c09a 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index 4465af1..547a7d4 100644
+index 4465af1..d55c2f5 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -40,6 +40,12 @@
@@ -292,7 +292,7 @@ index 4465af1..547a7d4 100644
 +
 +	XMoveWindow(dpy, old->win, WIDTH(old) * -2, old->y);
 +
-+	if (ISVISIBLE(new)) {
++	if (ISVISIBLE(new) && !new->isfullscreen) {
 +		if (new->isfloating)
 +			resize(new, old->x, old->y, new->w - 2*new->bw, new->h - 2*new->bw, 0);
 +		else
@@ -303,7 +303,7 @@ index 4465af1..547a7d4 100644
  void
  resize(Client *c, int x, int y, int w, int h, int interact)
  {
-@@ -1652,6 +1744,28 @@ spawn(const Arg *arg)
+@@ -1652,6 +1744,31 @@ spawn(const Arg *arg)
  	}
  }
  
@@ -314,6 +314,9 @@ index 4465af1..547a7d4 100644
 +		return 0;
 +	if (!swallowfloating && c->isfloating)
 +		return 0;
++
++	if (t->isfullscreen)
++		setfullscreen(c, 1);
 +
 +	replaceclient(t, c);
 +	c->ignorecfgreqpos = 1;
@@ -332,7 +335,7 @@ index 4465af1..547a7d4 100644
  void
  tag(const Arg *arg)
  {
-@@ -1762,9 +1876,17 @@ unfocus(Client *c, int setfocus)
+@@ -1762,9 +1879,17 @@ unfocus(Client *c, int setfocus)
  void
  unmanage(Client *c, int destroyed)
  {
@@ -350,7 +353,7 @@ index 4465af1..547a7d4 100644
  	detach(c);
  	detachstack(c);
  	if (!destroyed) {
-@@ -2044,6 +2166,133 @@ view(const Arg *arg)
+@@ -2044,6 +2169,133 @@ view(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -484,7 +487,7 @@ index 4465af1..547a7d4 100644
  Client *
  wintoclient(Window w)
  {
-@@ -2135,10 +2384,12 @@ main(int argc, char *argv[])
+@@ -2135,10 +2387,12 @@ main(int argc, char *argv[])
  		fputs("warning: no locale support\n", stderr);
  	if (!(dpy = XOpenDisplay(NULL)))
  		die("dwm: cannot open display");
