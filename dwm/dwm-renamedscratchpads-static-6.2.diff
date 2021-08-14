@@ -1,4 +1,4 @@
-From 332fb0f170f9dac1c7f153ca8744056a3b1d2432 Mon Sep 17 00:00:00 2001
+From ec3621f78be402646c0153ec5de24b3d2feacb4c Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 21 Dec 2020 20:18:18 +0100
 Subject: [PATCH] Another namedscratchpads variant where scratchpads remain on
@@ -45,7 +45,7 @@ index 1c0b587..d05180d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 4465af1..a07409e 100644
+index 4465af1..d8e7c94 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -209,7 +209,7 @@ index 4465af1..a07409e 100644
 +
 +			if (!found || mon == selmon) {
 +				found = c;
-+				tags = (c->tags == 0 ? selmon->tagset[selmon->seltags] : 0);
++				tags = (c->tags == 0 ? c->mon->tagset[c->mon->seltags] : 0);
 +			}
 +
 +			detachstack(c);
