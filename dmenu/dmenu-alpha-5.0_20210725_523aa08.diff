@@ -277,5 +277,5 @@ index 4c67419..4f66f0d 100644
  /* Cursor abstraction */
  Cur *drw_cur_create(Drw *drw, int shape);
 -- 
-2.32.0
+2.33.0
 

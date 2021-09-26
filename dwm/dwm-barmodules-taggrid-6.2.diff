@@ -1,4 +1,4 @@
-From 309128900da962d6f46030fa2975c50b76cd2895 Mon Sep 17 00:00:00 2001
+From fbb66e4a6d703247979b8c2a6718aa8f0265804f Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Mon, 20 Jul 2020 15:57:24 +0200
 Subject: [PATCH 2/2] Adding taggrid module
