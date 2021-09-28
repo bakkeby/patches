@@ -1,4 +1,4 @@
-From f7ca16b6b30fa4759dd05155ea61af811f050ba2 Mon Sep 17 00:00:00 2001
+From 21f99dac0e04a4e23f8aa28dad83368398268f36 Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Fri, 29 Jan 2021 19:29:59 +0100
 Subject: [PATCH] Alternative swallow patch that replaces clients instead of
@@ -58,7 +58,7 @@ index 6d36cb7..e65c09a 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index 4465af1..d55c2f5 100644
+index 4465af1..abff8be 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -40,6 +40,12 @@
@@ -294,9 +294,9 @@ index 4465af1..d55c2f5 100644
 +
 +	if (ISVISIBLE(new) && !new->isfullscreen) {
 +		if (new->isfloating)
-+			resize(new, old->x, old->y, new->w - 2*new->bw, new->h - 2*new->bw, 0);
++			resize(new, old->x, old->y, new->w, new->h, 0);
 +		else
-+			resize(new, old->x, old->y, old->w - 2*new->bw, old->h - 2*new->bw, 0);
++			resize(new, old->x, old->y, old->w, old->h, 0);
 +	}
 +}
 +
