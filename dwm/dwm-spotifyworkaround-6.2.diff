@@ -1,0 +1,44 @@
+From 2c2ee392dce154de42aa32ce0156745c616a9973 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Tue, 21 Dec 2021 13:27:48 +0100
+Subject: [PATCH] Workaround for programs like spotify which do not offer
+ instance or class hints when they initially map, resulting in no rules
+ applying
+
+---
+ dwm.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/dwm.c b/dwm.c
+index 4465af1..eb54fd2 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -63,7 +63,7 @@ enum { SchemeNorm, SchemeSel }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
+-enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
++enum { WMClass, WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
+ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
+ 
+@@ -1242,6 +1242,8 @@ propertynotify(XEvent *e)
+ 		}
+ 		if (ev->atom == netatom[NetWMWindowType])
+ 			updatewindowtype(c);
++		if (ev->atom == wmatom[WMClass])
++			applyrules(c);
+ 	}
+ }
+ 
+@@ -1549,6 +1551,7 @@ setup(void)
+ 	updategeom();
+ 	/* init atoms */
+ 	utf8string = XInternAtom(dpy, "UTF8_STRING", False);
++	wmatom[WMClass] = XInternAtom(dpy, "WM_CLASS", False);
+ 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
+ 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
+ 	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
+-- 
+2.19.1
+
