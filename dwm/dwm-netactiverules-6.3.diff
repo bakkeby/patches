@@ -1,0 +1,217 @@
+From bbc5059faa2372e6d01ae4c5e5de9ec230a6c020 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 13:00:24 +0100
+Subject: [PATCH] This is an example patch extending the focusonnetactive patch
+  to offer different behaviours on receipt of the net active event signal and
+ a  per client rule for what action to take.
+
+An example use case is to ignore net active signals from Steam,
+which triggers every time the client get focus.
+
+Being an example patch this has a lot of comments explaining why
+code is being added in the places where they are and what the code
+does. It is not the intention that the comments is kept. It is
+intended as a learning exercise for making changes like this from
+scratch.
+
+This patch was created in relation to this reddit post:
+https://www.reddit.com/r/suckless/comments/gyrszt/dwm_and_steam_issue_with_steam_always_taking/
+---
+ config.def.h |  16 ++++++--
+ dwm.c        | 104 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 115 insertions(+), 5 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..33b0b42 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,6 +5,16 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++/* Default action to take when we receive a net active signal.
++ *    0 - disable / does nothing
++ *    1 - focus the client (as per the focusonnetactive patch)
++ *    2 - focus the client tag in addition to the current tags
++ *    3 - set the urgency bit (as per dwm default)
++ *    4 - client is shown on current tag in addition to its existing tags
++ *    5 - client is moved to current tag
++ *    6 - client receives focus only if current tag is shown
++ */
++static const int defnetactiverule   = 1;
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";
+@@ -26,9 +36,9 @@ static const Rule rules[] = {
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class      instance    title       tags mask     isfloating   monitor   netactiverule */
++	{ "Gimp",     NULL,       NULL,       0,            1,           -1,       -1 },
++	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1,       -1 },
+ };
+ 
+ /* layout(s) */
+diff --git a/dwm.c b/dwm.c
+index a96f33c..b1bc3f7 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -66,6 +66,18 @@ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+ enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
+ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
++// Adding an enum here is not strictly necessary, but it
++// can help avoid "magic" numbers in your code base. An
++// example of this is when you read the code and you go
++// "wtf is 58?". Here we have that DoNothing is 0, Focus
++// is 1 and Urgent is 3. Other enums have a *Last value
++// at the end - this is only used when one need to loop
++// through all the values. Also note that you can use
++// these rather than plain numbers in your configuration
++// file, e.g. defnetactiverule = Focus;
++// I left the configuration with plain numbers just for
++// consistency.
++enum { DoNothing, Focus, FocusPlus, Urgent, ShowClient, MoveClient, FocusIfShown }; /* net active rule options */
+ 
+ typedef union {
+ 	int i;
+@@ -91,6 +103,11 @@ struct Client {
+ 	int oldx, oldy, oldw, oldh;
+ 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
+ 	int bw, oldbw;
++	// We need to associate a specific behaviour on
++	// a per-client basis. As such we need to set a
++	// value for the client and therefore we also
++	// need a variable to store this in.
++	int onnetactive;
+ 	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+ 	Client *next;
+@@ -139,6 +156,12 @@ typedef struct {
+ 	unsigned int tags;
+ 	int isfloating;
+ 	int monitor;
++	// Adding our new rule option, making it an int.
++	// Note that the order of the fields here are
++	// important and the "columns" for the rules
++	// array in your config needs to be in this
++	// exact order.
++	int netactiverule;
+ } Rule;
+ 
+ /* function declarations */
+@@ -288,6 +311,11 @@ applyrules(Client *c)
+ 	/* rule matching */
+ 	c->isfloating = 0;
+ 	c->tags = 0;
++	// In case we have no rule set up for our client, or
++	// the rule value is -1, then we'll want to set the
++	// default action to take when we receive a net active
++	// signal.
++	c->onnetactive = defnetactiverule;
+ 	XGetClassHint(dpy, c->win, &ch);
+ 	class    = ch.res_class ? ch.res_class : broken;
+ 	instance = ch.res_name  ? ch.res_name  : broken;
+@@ -303,6 +331,11 @@ applyrules(Client *c)
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+ 			if (m)
+ 				c->mon = m;
++			// If our net active rule is not -1, then associate
++			// that action value with our client.
++			if (r->netactiverule > -1)
++				c->onnetactive = r->netactiverule;
++
+ 		}
+ 	}
+ 	if (ch.res_class)
+@@ -515,6 +548,7 @@ clientmessage(XEvent *e)
+ {
+ 	XClientMessageEvent *cme = &e->xclient;
+ 	Client *c = wintoclient(cme->window);
++	unsigned int i;
+ 
+ 	if (!c)
+ 		return;
+@@ -524,8 +558,74 @@ clientmessage(XEvent *e)
+ 			setfullscreen(c, (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
+ 				|| (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
+ 	} else if (cme->message_type == netatom[NetActiveWindow]) {
+-		if (c != selmon->sel && !c->isurgent)
+-			seturgent(c, 1);
++		// OK, so we have received the net active window signal,
++		// let's decide what to do about it.
++		switch(c->onnetactive) {
++		default:
++			break;
++		case DoNothing:
++			// Yes let's just not do anything. This is
++			// redudnant as we could have just left it
++			// for the default, but at last this is
++			// explicit and sort of readable.
++			break;
++		case Focus:
++			// This is lifted straight from the original
++			// focusonnetactive patch.
++			for (i = 0; i < LENGTH(tags) && !((1 << i) & c->tags); i++);
++			if (i < LENGTH(tags)) {
++				const Arg a = {.ui = 1 << i};
++				selmon = c->mon;
++				view(&a);
++				focus(c);
++				restack(selmon);
++			}
++			break;
++		case FocusPlus:
++			// Similar to the original focusonnetactive
++			// logic, but shows the client's tag in
++			// addition to your current tags.
++			for (i = 0; i < LENGTH(tags) && !((1 << i) & c->tags); i++);
++			if (i < LENGTH(tags)) {
++				selmon = c->mon;
++				view(&((Arg) {.ui = c->mon->seltags | (1 << i)}));
++				focus(c);
++				restack(selmon);
++			}
++			break;
++		case ShowClient:
++			// If client is not already on any of the currently
++			// viewed tags, then let the client be shown on the
++			// currently viewed tag(s) in addition to the client's
++			// existing tags.
++			if (!(c->mon->tagset[c->mon->seltags] & c->tags))
++				c->tags |= c->mon->tagset[c->mon->seltags];
++			focus(c);
++			arrange(c->mon);
++			break;
++		case MoveClient:
++			// If client is not already on any of the currently
++			// viewed tags, then move the client to the currently
++			// viewed tag(s).
++			if (!(c->mon->tagset[c->mon->seltags] & c->tags))
++				c->tags = c->mon->tagset[c->mon->seltags];
++			focus(c);
++			arrange(c->mon);
++			break;
++		case FocusIfShown:
++			// If client is already shown on the currently viewed
++			// tag then focus it, otherwise do nothing.
++			if ((c->mon->tagset[c->mon->seltags] & c->tags))
++				focus(c);
++			break;
++		case Urgent:
++			// This is simply the original code.
++			if (c != selmon->sel && !c->isurgent)
++				seturgent(c, 1);
++			break;
++		// You could easily extend this to add other behaviours
++		// should you want it.
++		}
+ 	}
+ }
+ 
+-- 
+2.19.1
+

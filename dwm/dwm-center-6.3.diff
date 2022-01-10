@@ -1,0 +1,92 @@
+From 687f8c8ff590302462e629f8313b8fc6371e09ca Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:17:58 +0100
+Subject: [PATCH] Adding 6.3 center patch with multi-monitor fix and 
+ auto-centering of floating popup windows
+
+Refer to https://dwm.suckless.org/patches/center/
+---
+ config.def.h |  6 +++---
+ dwm.c        | 13 +++++++++++--
+ 2 files changed, 14 insertions(+), 5 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..dd91fa6 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -26,9 +26,9 @@ static const Rule rules[] = {
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class      instance    title       tags mask     iscentered   isfloating   monitor */
++	{ "Gimp",     NULL,       NULL,       0,            0,           1,           -1 },
++	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           0,           -1 },
+ };
+ 
+ /* layout(s) */
+diff --git a/dwm.c b/dwm.c
+index a96f33c..b7b97e3 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -92,7 +92,7 @@ struct Client {
+ 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
+ 	int bw, oldbw;
+ 	unsigned int tags;
+-	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
++	int isfixed, iscentered, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+ 	Client *next;
+ 	Client *snext;
+ 	Monitor *mon;
+@@ -137,6 +137,7 @@ typedef struct {
+ 	const char *instance;
+ 	const char *title;
+ 	unsigned int tags;
++	int iscentered;
+ 	int isfloating;
+ 	int monitor;
+ } Rule;
+@@ -286,6 +287,7 @@ applyrules(Client *c)
+ 	XClassHint ch = { NULL, NULL };
+ 
+ 	/* rule matching */
++	c->iscentered = 0;
+ 	c->isfloating = 0;
+ 	c->tags = 0;
+ 	XGetClassHint(dpy, c->win, &ch);
+@@ -298,6 +300,7 @@ applyrules(Client *c)
+ 		&& (!r->class || strstr(class, r->class))
+ 		&& (!r->instance || strstr(instance, r->instance)))
+ 		{
++			c->iscentered = r->iscentered;
+ 			c->isfloating = r->isfloating;
+ 			c->tags |= r->tags;
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+@@ -1060,6 +1063,10 @@ manage(Window w, XWindowAttributes *wa)
+ 	updatewindowtype(c);
+ 	updatesizehints(c);
+ 	updatewmhints(c);
++	if (c->iscentered) {
++		c->x = c->mon->mx + (c->mon->mw - WIDTH(c)) / 2;
++		c->y = c->mon->my + (c->mon->mh - HEIGHT(c)) / 2;
++	}
+ 	XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
+ 	grabbuttons(c, 0);
+ 	if (!c->isfloating)
+@@ -2015,8 +2022,10 @@ updatewindowtype(Client *c)
+ 
+ 	if (state == netatom[NetWMFullscreen])
+ 		setfullscreen(c, 1);
+-	if (wtype == netatom[NetWMWindowTypeDialog])
++	if (wtype == netatom[NetWMWindowTypeDialog]) {
++		c->iscentered = 1;
+ 		c->isfloating = 1;
++	}
+ }
+ 
+ void
+-- 
+2.19.1
+

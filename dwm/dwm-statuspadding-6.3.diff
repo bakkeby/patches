@@ -1,0 +1,54 @@
+From 3b58e394ee65fdbf425746922853b1dc7530daa1 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 13:42:17 +0100
+Subject: [PATCH] Adding statuspadding patch
+
+Refer to:
+https://dwm.suckless.org/patches/statuspadding/
+---
+ config.def.h | 2 ++
+ dwm.c        | 8 ++++----
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..6cb845c 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,6 +5,8 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static const int horizpadbar        = 2;        /* horizontal padding for statusbar */
++static const int vertpadbar         = 0;        /* vertical padding for statusbar */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";
+diff --git a/dwm.c b/dwm.c
+index a96f33c..a1b8c95 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -708,8 +708,8 @@ drawbar(Monitor *m)
+ 	/* draw status first so it can be overdrawn by tags later */
+ 	if (m == selmon) { /* status is only drawn on selected monitor */
+ 		drw_setscheme(drw, scheme[SchemeNorm]);
+-		tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
+-		drw_text(drw, m->ww - tw, 0, tw, bh, 0, stext, 0);
++		tw = TEXTW(stext);
++		drw_text(drw, m->ww - tw, 0, tw, bh, lrpad / 2, stext, 0);
+ 	}
+ 
+ 	for (c = m->clients; c; c = c->next) {
+@@ -1548,8 +1548,8 @@ setup(void)
+ 	drw = drw_create(dpy, screen, root, sw, sh);
+ 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
+ 		die("no fonts could be loaded.");
+-	lrpad = drw->fonts->h;
+-	bh = drw->fonts->h + 2;
++	lrpad = drw->fonts->h + horizpadbar;
++	bh = drw->fonts->h + vertpadbar;
+ 	updategeom();
+ 	/* init atoms */
+ 	utf8string = XInternAtom(dpy, "UTF8_STRING", False);
+-- 
+2.19.1
+

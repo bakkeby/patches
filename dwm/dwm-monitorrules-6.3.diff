@@ -1,0 +1,95 @@
+From f2e1a6e15ba38b29d20f1fa8fa979f8f380e93ae Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 12:57:26 +0100
+Subject: [PATCH] Monitor rules patch
+
+This patch allows the user to define layout, mfact, nmaster, showbar,
+and topbar settings on a per monitor basis. An example use case could
+be to have a layout with a horizontal split for a secondary vertical
+monitor.
+---
+ config.def.h |  6 ++++++
+ dwm.c        | 36 ++++++++++++++++++++++++++++++++----
+ 2 files changed, 38 insertions(+), 4 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..7718adc 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -31,6 +31,12 @@ static const Rule rules[] = {
+ 	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
+ };
+ 
++static const MonitorRule monrules[] = {
++	/* monitor layout  mfact  nmaster  showbar  topbar */
++	{  1,      2,      -1,    -1,      -1,      -1     }, // use a different layout for the second monitor
++	{  -1,     0,      -1,    -1,      -1,      -1     }, // default
++};
++
+ /* layout(s) */
+ static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
+ static const int nmaster     = 1;    /* number of clients in master area */
+diff --git a/dwm.c b/dwm.c
+index a96f33c..31e5834 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -141,6 +141,15 @@ typedef struct {
+ 	int monitor;
+ } Rule;
+ 
++typedef struct {
++	int monitor;
++	int layout;
++	float mfact;
++	int nmaster;
++	int showbar;
++	int topbar;
++} MonitorRule;
++
+ /* function declarations */
+ static void applyrules(Client *c);
+ static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
+@@ -631,7 +640,9 @@ configurerequest(XEvent *e)
+ Monitor *
+ createmon(void)
+ {
+-	Monitor *m;
++	Monitor *m, *mon;
++	unsigned int mi, j;
++	const MonitorRule *mr;
+ 
+ 	m = ecalloc(1, sizeof(Monitor));
+ 	m->tagset[0] = m->tagset[1] = 1;
+@@ -639,9 +650,26 @@ createmon(void)
+ 	m->nmaster = nmaster;
+ 	m->showbar = showbar;
+ 	m->topbar = topbar;
+-	m->lt[0] = &layouts[0];
+-	m->lt[1] = &layouts[1 % LENGTH(layouts)];
+-	strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
++
++	for (mi = 0, mon = mons; mon; mon = mon->next, mi++);
++	for (j = 0; j < LENGTH(monrules); j++) {
++		mr = &monrules[j];
++		if ((mr->monitor == -1 || mr->monitor == mi)) {
++			m->lt[0] = &layouts[mr->layout];
++			m->lt[1] = &layouts[1 % LENGTH(layouts)];
++			strncpy(m->ltsymbol, layouts[mr->layout].symbol, sizeof m->ltsymbol);
++
++			if (mr->mfact > -1)
++				m->mfact = mr->mfact;
++			if (mr->nmaster > -1)
++				m->nmaster = mr->nmaster;
++			if (mr->showbar > -1)
++				m->showbar = mr->showbar;
++			if (mr->topbar > -1)
++				m->topbar = mr->topbar;
++			break;
++		}
++	}
+ 	return m;
+ }
+ 
+-- 
+2.19.1
+

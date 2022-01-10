@@ -1,0 +1,39 @@
+From bda52d9a5bc430489dde92c7584896aee8751338 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 14:01:03 +0100
+Subject: [PATCH] This is meant as an example patch (horrible hack) to use a
+ different font for the status compared to the rest of the bar.
+
+The gist of it is that we forcibly use the second, or third, font to
+draw the bar, leaving the primary (first) font to draw the rest.
+---
+ dwm.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/dwm.c b/dwm.c
+index a96f33c..87497af 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -701,15 +701,19 @@ drawbar(Monitor *m)
+ 	int boxw = drw->fonts->h / 6 + 2;
+ 	unsigned int i, occ = 0, urg = 0;
+ 	Client *c;
++	Fnt *cur;
+ 
+ 	if (!m->showbar)
+ 		return;
+ 
+ 	/* draw status first so it can be overdrawn by tags later */
+ 	if (m == selmon) { /* status is only drawn on selected monitor */
++		cur = drw->fonts; // remember which was the first font
++		drw->fonts = drw->fonts->next; // skip to the second font, add more of these to get to third, fourth etc.
+ 		drw_setscheme(drw, scheme[SchemeNorm]);
+ 		tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
+ 		drw_text(drw, m->ww - tw, 0, tw, bh, 0, stext, 0);
++		drw->fonts = cur; // set the normal font back to the first font
+ 	}
+ 
+ 	for (c = m->clients; c; c = c->next) {
+-- 
+2.19.1
+

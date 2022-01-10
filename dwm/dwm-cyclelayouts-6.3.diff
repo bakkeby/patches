@@ -1,0 +1,95 @@
+From 48d8560319e18a0325007a1f765f0589fb2dbfc8 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:26:41 +0100
+Subject: [PATCH] cyclelayout, function to cycle through available layouts.
+
+MOD-CTRL-, and MOD-CTRL-.
+cycle backwards and forwards through available layouts.
+Probably only useful if you have a lot of additional layouts.
+The NULL, NULL layout should always be the last layout in your list,
+in order to guarantee consistent behavior.
+
+Refer to https://dwm.suckless.org/patches/cyclelayouts/
+---
+ config.def.h |  3 +++
+ dwm.1        |  6 ++++++
+ dwm.c        | 18 ++++++++++++++++++
+ 3 files changed, 27 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..938fd60 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -42,6 +42,7 @@ static const Layout layouts[] = {
+ 	{ "[]=",      tile },    /* first entry is default */
+ 	{ "><>",      NULL },    /* no layout function means floating behavior */
+ 	{ "[M]",      monocle },
++	{ NULL,       NULL },
+ };
+ 
+ /* key definitions */
+@@ -85,6 +86,8 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+ 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
+ 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
++	{ MODKEY|ControlMask,           XK_comma,  cyclelayout,    {.i = -1 } },
++	{ MODKEY|ControlMask,           XK_period, cyclelayout,    {.i = +1 } },
+ 	TAGKEYS(                        XK_1,                      0)
+ 	TAGKEYS(                        XK_2,                      1)
+ 	TAGKEYS(                        XK_3,                      2)
+diff --git a/dwm.1 b/dwm.1
+index ddc8321..829047b 100644
+--- a/dwm.1
++++ b/dwm.1
+@@ -92,6 +92,12 @@ Sets monocle layout.
+ .B Mod1\-space
+ Toggles between current and previous layout.
+ .TP
++.B Mod1\-Control\-,
++Cycles backwards in layout list.
++.TP
++.B Mod1\-Control\-.
++Cycles forwards in layout list.
++.TP
+ .B Mod1\-j
+ Focus next window.
+ .TP
+diff --git a/dwm.c b/dwm.c
+index a96f33c..2d98c2b 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -157,6 +157,7 @@ static void configure(Client *c);
+ static void configurenotify(XEvent *e);
+ static void configurerequest(XEvent *e);
+ static Monitor *createmon(void);
++static void cyclelayout(const Arg *arg);
+ static void destroynotify(XEvent *e);
+ static void detach(Client *c);
+ static void detachstack(Client *c);
+@@ -645,6 +646,23 @@ createmon(void)
+ 	return m;
+ }
+ 
++void
++cyclelayout(const Arg *arg) {
++	Layout *l;
++	for(l = (Layout *)layouts; l != selmon->lt[selmon->sellt]; l++);
++	if(arg->i > 0) {
++		if(l->symbol && (l + 1)->symbol)
++			setlayout(&((Arg) { .v = (l + 1) }));
++		else
++			setlayout(&((Arg) { .v = layouts }));
++	} else {
++		if(l != layouts && (l - 1)->symbol)
++			setlayout(&((Arg) { .v = (l - 1) }));
++		else
++			setlayout(&((Arg) { .v = &layouts[LENGTH(layouts) - 2] }));
++	}
++}
++
+ void
+ destroynotify(XEvent *e)
+ {
+-- 
+2.19.1
+

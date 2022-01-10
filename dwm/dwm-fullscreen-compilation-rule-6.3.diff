@@ -1,0 +1,50 @@
+From a3575ad7318c5da7f83ce08afc1e84acf63cdc1b Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:50:49 +0100
+Subject: [PATCH 2/2] Adding fake fullscreen client rule
+
+---
+ config.def.h | 6 +++---
+ dwm.c        | 2 ++
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 5f28f2c..dd98367 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -26,9 +26,9 @@ static const Rule rules[] = {
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class      instance    title       tags mask     isfloating   isfakefullscreen  monitor */
++	{ "Gimp",     NULL,       NULL,       0,            1,           0,                -1 },
++	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           0,                -1 },
+ };
+ 
+ /* layout(s) */
+diff --git a/dwm.c b/dwm.c
+index dbea07a..b0251d6 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -139,6 +139,7 @@ typedef struct {
+ 	const char *title;
+ 	unsigned int tags;
+ 	int isfloating;
++	int isfakefullscreen;
+ 	int monitor;
+ } Rule;
+ 
+@@ -304,6 +305,7 @@ applyrules(Client *c)
+ 		{
+ 			c->isfloating = r->isfloating;
+ 			c->tags |= r->tags;
++			c->fakefullscreen = r->isfakefullscreen;
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+ 			if (m)
+ 				c->mon = m;
+-- 
+2.19.1
+

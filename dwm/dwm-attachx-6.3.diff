@@ -1,0 +1,137 @@
+From 8481cf0e5f3879a19c69385917f4775f529f1ff4 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:12:29 +0100
+Subject: [PATCH] Adding attachx patch (combined attach 
+ above/below/bottom/aside/master patch)
+
+This includes the following attach modes:
+
+0 - master (default behaviour): new windows become the new master
+1 - attachabove: new window is placed above selected client
+2 - attachaside: new window is placed on top of the stack
+3 - attachbelow: new window is placed below selected client
+4 - attachbottom: new window is placed at the bottom of the stack
+
+Refer to:
+   https://dwm.suckless.org/patches/attachabove/
+   https://dwm.suckless.org/patches/attachaside/
+   https://dwm.suckless.org/patches/attachbelow/
+   https://dwm.suckless.org/patches/attachbottom/
+---
+ config.def.h |  1 +
+ dwm.c        | 59 +++++++++++++++++++++++++++++++++++++++++++++++++---
+ 2 files changed, 57 insertions(+), 3 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..774c5f0 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,6 +5,7 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static const int attachmode         = 0;        /* 0 master (default), 1 = above, 2 = aside, 3 = below, 4 = bottom */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";
+diff --git a/dwm.c b/dwm.c
+index a96f33c..10fbeef 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -49,7 +49,8 @@
+ #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
+ #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
+                                * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
+-#define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
++#define ISVISIBLEONTAG(C, T)    ((C->tags & T))
++#define ISVISIBLE(C)            ISVISIBLEONTAG(C, C->mon->tagset[C->mon->seltags])
+ #define LENGTH(X)               (sizeof X / sizeof X[0])
+ #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
+ #define WIDTH(X)                ((X)->w + 2 * (X)->bw)
+@@ -148,6 +149,7 @@ static void arrange(Monitor *m);
+ static void arrangemon(Monitor *m);
+ static void attach(Client *c);
+ static void attachstack(Client *c);
++static void attachx(Client *c);
+ static void buttonpress(XEvent *e);
+ static void checkotherwm(void);
+ static void cleanup(void);
+@@ -400,6 +402,57 @@ arrangemon(Monitor *m)
+ 		m->lt[m->sellt]->arrange(m);
+ }
+ 
++void
++attachx(Client *c)
++{
++	Client *at;
++	unsigned int n;
++
++	switch (attachmode) {
++		case 1: // above
++			if (c->mon->sel == NULL || c->mon->sel == c->mon->clients || c->mon->sel->isfloating)
++				break;
++
++			for (at = c->mon->clients; at->next != c->mon->sel; at = at->next);
++			c->next = at->next;
++			at->next = c;
++			return;
++
++		case 2: // aside
++			for (at = c->mon->clients, n = 0; at; at = at->next)
++				if (!at->isfloating && ISVISIBLEONTAG(at, c->tags))
++					if (++n >= c->mon->nmaster)
++						break;
++
++			if (!at || !c->mon->nmaster)
++				break;
++
++			c->next = at->next;
++			at->next = c;
++			return;
++
++		case 3: // below
++			if (c->mon->sel == NULL || c->mon->sel->isfloating)
++				break;
++
++			c->next = c->mon->sel->next;
++			c->mon->sel->next = c;
++			return;
++
++		case 4: // bottom
++			for (at = c->mon->clients; at && at->next; at = at->next);
++			if (!at)
++				break;
++
++			at->next = c;
++			c->next = NULL;
++			return;
++	}
++
++	/* master (default) */
++	attach(c);
++}
++
+ void
+ attach(Client *c)
+ {
+@@ -1066,7 +1119,7 @@ manage(Window w, XWindowAttributes *wa)
+ 		c->isfloating = c->oldstate = trans != None || c->isfixed;
+ 	if (c->isfloating)
+ 		XRaiseWindow(dpy, c->win);
+-	attach(c);
++	attachx(c);
+ 	attachstack(c);
+ 	XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
+ 		(unsigned char *) &(c->win), 1);
+@@ -1421,7 +1474,7 @@ sendmon(Client *c, Monitor *m)
+ 	detachstack(c);
+ 	c->mon = m;
+ 	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+-	attach(c);
++	attachx(c);
+ 	attachstack(c);
+ 	focus(NULL);
+ 	arrange(NULL);
+-- 
+2.19.1
+

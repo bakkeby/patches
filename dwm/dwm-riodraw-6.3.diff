@@ -1,0 +1,451 @@
+From bd42e1d726234a591e0f08f4de2360fb5c051d6d Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 13:32:43 +0100
+Subject: [PATCH] Adding rio-like draw-to-resize windows.
+
+This was backported from instantWM and depends on an external tool
+slop to be installed.
+
+Contributed by jzbor.
+---
+ config.def.h |   8 ++
+ config.mk    |   6 +-
+ dwm.c        | 240 +++++++++++++++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 248 insertions(+), 6 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..bbbc6ca 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,6 +5,12 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static const char slopspawnstyle[]  = "-t 0 -c 0.92,0.85,0.69,0.3 -o"; /* do NOT define -f (format) here */
++static const char slopresizestyle[] = "-t 0 -c 0.92,0.85,0.69,0.3"; /* do NOT define -f (format) here */
++static const int riodraw_borders    = 0;        /* 0 or 1, indicates whether the area drawn using slop includes the window borders */
++static const int riodraw_matchpid   = 1;        /* 0 or 1, indicates whether to match the PID of the client that was spawned with riospawn */
++static const int riodraw_spawnasync = 0;        /* 0 means that the application is only spawned after a successful selection while
++                                                 * 1 means that the application is being initialised in the background while the selection is made */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";
+@@ -64,6 +70,8 @@ static Key keys[] = {
+ 	/* modifier                     key        function        argument */
+ 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
+ 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
++	{ MODKEY|ControlMask,           XK_Return, riospawn,       {.v = termcmd } },
++	{ MODKEY,                       XK_s,      rioresize,      {0} },
+ 	{ MODKEY,                       XK_b,      togglebar,      {0} },
+ 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
+ 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
+diff --git a/config.mk b/config.mk
+index b6eb7e0..ee5c46e 100644
+--- a/config.mk
++++ b/config.mk
+@@ -19,10 +19,14 @@ FREETYPELIBS = -lfontconfig -lXft
+ FREETYPEINC = /usr/include/freetype2
+ # OpenBSD (uncomment)
+ #FREETYPEINC = ${X11INC}/freetype2
++#KVMLIB = -lkvm
++
++# This is needed for the swallow patch
++XCBLIBS = -lX11-xcb -lxcb -lxcb-res
+ 
+ # includes and libs
+ INCS = -I${X11INC} -I${FREETYPEINC}
+-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS}
++LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${XCBLIBS} ${KVMLIB}
+ 
+ # flags
+ CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
+diff --git a/dwm.c b/dwm.c
+index a96f33c..95cfcb5 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -40,6 +40,12 @@
+ #include <X11/extensions/Xinerama.h>
+ #endif /* XINERAMA */
+ #include <X11/Xft/Xft.h>
++#include <X11/Xlib-xcb.h>
++#include <xcb/res.h>
++#ifdef __OpenBSD__
++#include <sys/sysctl.h>
++#include <kvm.h>
++#endif /* __OpenBSD */
+ 
+ #include "drw.h"
+ #include "util.h"
+@@ -48,7 +54,7 @@
+ #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
+ #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
+ #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
+-                               * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
++							   * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
+ #define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
+ #define LENGTH(X)               (sizeof X / sizeof X[0])
+ #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
+@@ -61,11 +67,11 @@
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+-       NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+-       NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
++	   NetWMFullscreen, NetActiveWindow, NetWMWindowType,
++	   NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
+ enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
+ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+-       ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
++	   ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
+ 
+ typedef union {
+ 	int i;
+@@ -93,6 +99,7 @@ struct Client {
+ 	int bw, oldbw;
+ 	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
++	pid_t pid;
+ 	Client *next;
+ 	Client *snext;
+ 	Monitor *mon;
+@@ -170,12 +177,14 @@ static void focusin(XEvent *e);
+ static void focusmon(const Arg *arg);
+ static void focusstack(const Arg *arg);
+ static Atom getatomprop(Client *c, Atom prop);
++static pid_t getparentprocess(pid_t p);
+ static int getrootptr(int *x, int *y);
+ static long getstate(Window w);
+ static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
+ static void grabbuttons(Client *c, int focused);
+ static void grabkeys(void);
+ static void incnmaster(const Arg *arg);
++static int isdescprocess(pid_t p, pid_t c);
+ static void keypress(XEvent *e);
+ static void killclient(const Arg *arg);
+ static void manage(Window w, XWindowAttributes *wa);
+@@ -193,6 +202,10 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
+ static void resizeclient(Client *c, int x, int y, int w, int h);
+ static void resizemouse(const Arg *arg);
+ static void restack(Monitor *m);
++static int riodraw(Client *c, const char slopstyle[]);
++static void rioposition(Client *c, int x, int y, int w, int h);
++static void rioresize(const Arg *arg);
++static void riospawn(const Arg *arg);
+ static void run(void);
+ static void scan(void);
+ static int sendevent(Client *c, Atom proto);
+@@ -207,6 +220,7 @@ static void seturgent(Client *c, int urg);
+ static void showhide(Client *c);
+ static void sigchld(int unused);
+ static void spawn(const Arg *arg);
++static pid_t spawncmd(const Arg *arg);
+ static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
+ static void tile(Monitor *);
+@@ -228,6 +242,7 @@ static void updatetitle(Client *c);
+ static void updatewindowtype(Client *c);
+ static void updatewmhints(Client *c);
+ static void view(const Arg *arg);
++static pid_t winpid(Window w);
+ static Client *wintoclient(Window w);
+ static Monitor *wintomon(Window w);
+ static int xerror(Display *dpy, XErrorEvent *ee);
+@@ -244,6 +259,8 @@ static int bh, blw = 0;      /* bar geometry */
+ static int lrpad;            /* sum of left and right padding for text */
+ static int (*xerrorxlib)(Display *, XErrorEvent *);
+ static unsigned int numlockmask = 0;
++static int riodimensions[4] = { -1, -1, -1, -1 };
++static pid_t riopid = 0;
+ static void (*handler[LASTEvent]) (XEvent *) = {
+ 	[ButtonPress] = buttonpress,
+ 	[ClientMessage] = clientmessage,
+@@ -268,6 +285,7 @@ static Display *dpy;
+ static Drw *drw;
+ static Monitor *mons, *selmon;
+ static Window root, wmcheckwin;
++static xcb_connection_t *xcon;
+ 
+ /* configuration, allows nested code to access above variables */
+ #include "config.h"
+@@ -875,6 +893,39 @@ getatomprop(Client *c, Atom prop)
+ 	return atom;
+ }
+ 
++pid_t
++getparentprocess(pid_t p)
++{
++	unsigned int v = 0;
++
++#ifdef __linux__
++	FILE *f;
++	char buf[256];
++	snprintf(buf, sizeof(buf) - 1, "/proc/%u/stat", (unsigned)p);
++
++	if (!(f = fopen(buf, "r")))
++		return 0;
++
++	fscanf(f, "%*u %*s %*c %u", &v);
++	fclose(f);
++#endif /* __linux__*/
++
++#ifdef __OpenBSD__
++	int n;
++	kvm_t *kd;
++	struct kinfo_proc *kp;
++
++	kd = kvm_openfiles(NULL, NULL, NULL, KVM_NO_FILES, NULL);
++	if (!kd)
++		return 0;
++
++	kp = kvm_getprocs(kd, KERN_PROC_PID, p, sizeof(*kp), &n);
++	v = kp->p_ppid;
++#endif /* __OpenBSD__ */
++
++	return (pid_t)v;
++}
++
+ int
+ getrootptr(int *x, int *y)
+ {
+@@ -974,6 +1025,15 @@ incnmaster(const Arg *arg)
+ 	arrange(selmon);
+ }
+ 
++int
++isdescprocess(pid_t p, pid_t c)
++{
++	while (p != c && c != 0)
++		c = getparentprocess(c);
++
++	return (int)c;
++}
++
+ #ifdef XINERAMA
+ static int
+ isuniquegeom(XineramaScreenInfo *unique, size_t n, XineramaScreenInfo *info)
+@@ -1027,6 +1087,7 @@ manage(Window w, XWindowAttributes *wa)
+ 
+ 	c = ecalloc(1, sizeof(Client));
+ 	c->win = w;
++	c->pid = winpid(w);
+ 	/* geometry */
+ 	c->x = c->oldx = wa->x;
+ 	c->y = c->oldy = wa->y;
+@@ -1075,6 +1136,15 @@ manage(Window w, XWindowAttributes *wa)
+ 	if (c->mon == selmon)
+ 		unfocus(selmon->sel, 0);
+ 	c->mon->sel = c;
++
++	if (riopid && (!riodraw_matchpid || isdescprocess(riopid, c->pid))) {
++		if (riodimensions[3] != -1)
++			rioposition(c, riodimensions[0], riodimensions[1], riodimensions[2], riodimensions[3]);
++		else {
++			killclient(&((Arg) { .v = c }));
++			return;
++		}
++	}
+ 	arrange(c->mon);
+ 	XMapWindow(dpy, c->win);
+ 	focus(NULL);
+@@ -1373,6 +1443,104 @@ restack(Monitor *m)
+ 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+ }
+ 
++int
++riodraw(Client *c, const char slopstyle[])
++{
++	int i;
++	char str[100] = {0};
++	char strout[100] = {0};
++	char tmpstring[30] = {0};
++	char slopcmd[100] = "slop -f x%xx%yx%wx%hx ";
++	int firstchar = 0;
++	int counter = 0;
++
++	strcat(slopcmd, slopstyle);
++	FILE *fp = popen(slopcmd, "r");
++
++	while (fgets(str, 100, fp) != NULL)
++		strcat(strout, str);
++
++	pclose(fp);
++
++	if (strlen(strout) < 6)
++		return 0;
++
++	for (i = 0; i < strlen(strout); i++){
++		if (!firstchar) {
++			if (strout[i] == 'x')
++				firstchar = 1;
++			continue;
++		}
++
++		if (strout[i] != 'x')
++			tmpstring[strlen(tmpstring)] = strout[i];
++		else {
++			riodimensions[counter] = atoi(tmpstring);
++			counter++;
++			memset(tmpstring,0,strlen(tmpstring));
++		}
++	}
++
++	if (riodimensions[0] <= -40 || riodimensions[1] <= -40 || riodimensions[2] <= 50 || riodimensions[3] <= 50) {
++		riodimensions[3] = -1;
++		return 0;
++	}
++
++	if (c) {
++		rioposition(c, riodimensions[0], riodimensions[1], riodimensions[2], riodimensions[3]);
++		return 0;
++	}
++
++	return 1;
++}
++
++void
++rioposition(Client *c, int x, int y, int w, int h)
++{
++	Monitor *m;
++	if ((m = recttomon(x, y, w, h)) && m != c->mon) {
++		detach(c);
++		detachstack(c);
++		arrange(c->mon);
++		c->mon = m;
++		c->tags = m->tagset[m->seltags];
++		attach(c);
++		attachstack(c);
++		selmon = m;
++		focus(c);
++	}
++
++	c->isfloating = 1;
++	if (riodraw_borders)
++		resizeclient(c, x, y, w - (c->bw * 2), h - (c->bw * 2));
++	else
++		resizeclient(c, x - c->bw, y - c->bw, w, h);
++	arrange(c->mon);
++
++	riodimensions[3] = -1;
++	riopid = 0;
++}
++
++/* drag out an area using slop and resize the selected window to it */
++void
++rioresize(const Arg *arg)
++{
++	Client *c = (arg && arg->v ? (Client*)arg->v : selmon->sel);
++	if (c)
++		riodraw(c, slopresizestyle);
++}
++
++/* spawn a new window and drag out an area using slop to position it */
++void
++riospawn(const Arg *arg)
++{
++	if (riodraw_spawnasync) {
++		riopid = spawncmd(arg);
++		riodraw(NULL, slopspawnstyle);
++	} else if (riodraw(NULL, slopspawnstyle))
++		riopid = spawncmd(arg);
++}
++
+ void
+ run(void)
+ {
+@@ -1643,9 +1811,16 @@ sigchld(int unused)
+ void
+ spawn(const Arg *arg)
+ {
++	spawncmd(arg);
++}
++
++pid_t
++spawncmd(const Arg *arg)
++{
++	pid_t pid;
+ 	if (arg->v == dmenucmd)
+ 		dmenumon[0] = '0' + selmon->num;
+-	if (fork() == 0) {
++	if ((pid = fork()) == 0) {
+ 		if (dpy)
+ 			close(ConnectionNumber(dpy));
+ 		setsid();
+@@ -1654,6 +1829,7 @@ spawn(const Arg *arg)
+ 		perror(" failed");
+ 		exit(EXIT_SUCCESS);
+ 	}
++	return pid;
+ }
+ 
+ void
+@@ -2050,6 +2226,58 @@ view(const Arg *arg)
+ 	arrange(selmon);
+ }
+ 
++pid_t
++winpid(Window w)
++{
++	pid_t result = 0;
++
++#ifdef __linux__
++	xcb_res_client_id_spec_t spec = {0};
++	spec.client = w;
++	spec.mask = XCB_RES_CLIENT_ID_MASK_LOCAL_CLIENT_PID;
++
++	xcb_generic_error_t *e = NULL;
++	xcb_res_query_client_ids_cookie_t c = xcb_res_query_client_ids(xcon, 1, &spec);
++	xcb_res_query_client_ids_reply_t *r = xcb_res_query_client_ids_reply(xcon, c, &e);
++
++	if (!r)
++		return (pid_t)0;
++
++	xcb_res_client_id_value_iterator_t i = xcb_res_query_client_ids_ids_iterator(r);
++	for (; i.rem; xcb_res_client_id_value_next(&i)) {
++		spec = i.data->spec;
++		if (spec.mask & XCB_RES_CLIENT_ID_MASK_LOCAL_CLIENT_PID) {
++			uint32_t *t = xcb_res_client_id_value_value(i.data);
++			result = *t;
++			break;
++		}
++	}
++
++	free(r);
++
++	if (result == (pid_t)-1)
++		result = 0;
++
++#endif /* __linux__ */
++
++#ifdef __OpenBSD__
++		Atom type;
++		int format;
++		unsigned long len, bytes;
++		unsigned char *prop;
++		pid_t ret;
++
++		if (XGetWindowProperty(dpy, w, XInternAtom(dpy, "_NET_WM_PID", 0), 0, 1, False, AnyPropertyType, &type, &format, &len, &bytes, &prop) != Success || !prop)
++			return 0;
++
++		ret = *(pid_t*)prop;
++		XFree(prop);
++		result = ret;
++
++#endif /* __OpenBSD__ */
++	return result;
++}
++
+ Client *
+ wintoclient(Window w)
+ {
+@@ -2141,6 +2369,8 @@ main(int argc, char *argv[])
+ 		fputs("warning: no locale support\n", stderr);
+ 	if (!(dpy = XOpenDisplay(NULL)))
+ 		die("dwm: cannot open display");
++	if (!(xcon = XGetXCBConnection(dpy)))
++		die("dwm: cannot get xcb connection\n");
+ 	checkotherwm();
+ 	setup();
+ #ifdef __OpenBSD__
+-- 
+2.19.1
+

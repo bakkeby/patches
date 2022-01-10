@@ -1,0 +1,238 @@
+From 9a855a7a11ec8982bae1b8d5e052c4ff8b572733 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:54:40 +0100
+Subject: [PATCH 1/2] keypressrelease patch
+
+---
+ config.def.h | 58 ++++++++++++++++++++++++++--------------------------
+ dwm.c        |  3 +++
+ 2 files changed, 32 insertions(+), 29 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..fbced7e 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -47,10 +47,10 @@ static const Layout layouts[] = {
+ /* key definitions */
+ #define MODKEY Mod1Mask
+ #define TAGKEYS(KEY,TAG) \
+-	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
+-	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
+-	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
+-	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
++	{ KeyPress,   MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
++	{ KeyPress,   MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
++	{ KeyPress,   MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
++	{ KeyPress,   MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
+ 
+ /* helper for spawning shell commands in the pre dwm-5.0 fashion */
+ #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+@@ -61,30 +61,30 @@ static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont,
+ static const char *termcmd[]  = { "st", NULL };
+ 
+ static Key keys[] = {
+-	/* modifier                     key        function        argument */
+-	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
+-	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+-	{ MODKEY,                       XK_b,      togglebar,      {0} },
+-	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
+-	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
+-	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
+-	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
+-	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+-	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
+-	{ MODKEY,                       XK_Return, zoom,           {0} },
+-	{ MODKEY,                       XK_Tab,    view,           {0} },
+-	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
+-	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
+-	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
+-	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
+-	{ MODKEY,                       XK_space,  setlayout,      {0} },
+-	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
+-	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
+-	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
+-	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
+-	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+-	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
+-	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
++	/* type       modifier                      key        function        argument */
++	{ KeyPress,   MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
++	{ KeyPress,   MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
++	{ KeyPress,   MODKEY,                       XK_b,      togglebar,      {0} },
++	{ KeyPress,   MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
++	{ KeyPress,   MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
++	{ KeyPress,   MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
++	{ KeyPress,   MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
++	{ KeyPress,   MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
++	{ KeyPress,   MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
++	{ KeyPress,   MODKEY,                       XK_Return, zoom,           {0} },
++	{ KeyPress,   MODKEY,                       XK_Tab,    view,           {0} },
++	{ KeyPress,   MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
++	{ KeyPress,   MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
++	{ KeyPress,   MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
++	{ KeyPress,   MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
++	{ KeyPress,   MODKEY,                       XK_space,  setlayout,      {0} },
++	{ KeyPress,   MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
++	{ KeyPress,   MODKEY,                       XK_0,      view,           {.ui = ~0 } },
++	{ KeyPress,   MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
++	{ KeyPress,   MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
++	{ KeyPress,   MODKEY,                       XK_period, focusmon,       {.i = +1 } },
++	{ KeyPress,   MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
++	{ KeyPress,   MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
+ 	TAGKEYS(                        XK_1,                      0)
+ 	TAGKEYS(                        XK_2,                      1)
+ 	TAGKEYS(                        XK_3,                      2)
+@@ -94,7 +94,7 @@ static Key keys[] = {
+ 	TAGKEYS(                        XK_7,                      6)
+ 	TAGKEYS(                        XK_8,                      7)
+ 	TAGKEYS(                        XK_9,                      8)
+-	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
++	{ KeyPress,   MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+ };
+ 
+ /* button definitions */
+diff --git a/dwm.c b/dwm.c
+index a96f33c..5cf093a 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -100,6 +100,7 @@ struct Client {
+ };
+ 
+ typedef struct {
++	int type;
+ 	unsigned int mod;
+ 	KeySym keysym;
+ 	void (*func)(const Arg *);
+@@ -254,6 +255,7 @@ static void (*handler[LASTEvent]) (XEvent *) = {
+ 	[Expose] = expose,
+ 	[FocusIn] = focusin,
+ 	[KeyPress] = keypress,
++	[KeyRelease] = keypress,
+ 	[MappingNotify] = mappingnotify,
+ 	[MapRequest] = maprequest,
+ 	[MotionNotify] = motionnotify,
+@@ -997,6 +999,7 @@ keypress(XEvent *e)
+ 	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
+ 	for (i = 0; i < LENGTH(keys); i++)
+ 		if (keysym == keys[i].keysym
++		&& ev->type == keys[i].type
+ 		&& CLEANMASK(keys[i].mod) == CLEANMASK(ev->state)
+ 		&& keys[i].func)
+ 			keys[i].func(&(keys[i].arg));
+-- 
+2.19.1
+
+
+From 0fd8c7aceab8886bf904f4a567e163040356c6aa Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:55:09 +0100
+Subject: [PATCH 2/2] Holdbar patch on top of keypressrelease
+
+---
+ config.def.h |  5 +++--
+ dwm.c        | 24 ++++++++++++++++++++++--
+ 2 files changed, 25 insertions(+), 4 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index fbced7e..267f8e9 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -3,7 +3,6 @@
+ /* appearance */
+ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+-static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+@@ -45,7 +44,7 @@ static const Layout layouts[] = {
+ };
+ 
+ /* key definitions */
+-#define MODKEY Mod1Mask
++#define MODKEY Mod4Mask
+ #define TAGKEYS(KEY,TAG) \
+ 	{ KeyPress,   MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
+ 	{ KeyPress,   MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
+@@ -62,6 +61,8 @@ static const char *termcmd[]  = { "st", NULL };
+ 
+ static Key keys[] = {
+ 	/* type       modifier                      key        function        argument */
++	{ KeyPress,   0,                            XK_Super_L,showbar,        {0} },
++	{ KeyRelease, MODKEY,                       XK_Super_L,hidebar,        {0} },
+ 	{ KeyPress,   MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
+ 	{ KeyPress,   MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+ 	{ KeyPress,   MODKEY,                       XK_b,      togglebar,      {0} },
+diff --git a/dwm.c b/dwm.c
+index 5cf093a..f7c2050 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -176,6 +176,7 @@ static long getstate(Window w);
+ static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
+ static void grabbuttons(Client *c, int focused);
+ static void grabkeys(void);
++static void hidebar(const Arg *arg);
+ static void incnmaster(const Arg *arg);
+ static void keypress(XEvent *e);
+ static void killclient(const Arg *arg);
+@@ -207,6 +208,7 @@ static void setup(void);
+ static void seturgent(Client *c, int urg);
+ static void showhide(Client *c);
+ static void sigchld(int unused);
++static void showbar(const Arg *arg);
+ static void spawn(const Arg *arg);
+ static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
+@@ -639,7 +641,7 @@ createmon(void)
+ 	m->tagset[0] = m->tagset[1] = 1;
+ 	m->mfact = mfact;
+ 	m->nmaster = nmaster;
+-	m->showbar = showbar;
++	m->showbar = 0;
+ 	m->topbar = topbar;
+ 	m->lt[0] = &layouts[0];
+ 	m->lt[1] = &layouts[1 % LENGTH(layouts)];
+@@ -969,6 +971,15 @@ grabkeys(void)
+ 	}
+ }
+ 
++void
++hidebar(const Arg *arg)
++{
++	if (selmon->showbar == 2) {
++		selmon->showbar = 1;
++		togglebar(arg);
++	}
++}
++
+ void
+ incnmaster(const Arg *arg)
+ {
+@@ -1643,6 +1654,15 @@ sigchld(int unused)
+ 	while (0 < waitpid(-1, NULL, WNOHANG));
+ }
+ 
++void
++showbar(const Arg *arg)
++{
++	if (!selmon->showbar) {
++		togglebar(arg);
++		selmon->showbar = 2;
++	}
++}
++
+ void
+ spawn(const Arg *arg)
+ {
+@@ -1708,7 +1728,7 @@ tile(Monitor *m)
+ void
+ togglebar(const Arg *arg)
+ {
+-	selmon->showbar = !selmon->showbar;
++	selmon->showbar = (selmon->showbar == 2 ? 1 : !selmon->showbar);
+ 	updatebarpos(selmon);
+ 	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
+ 	arrange(selmon);
+-- 
+2.19.1
+

@@ -1,0 +1,32 @@
+From 7c7f76b5981d64c8309c3c9d91a6de881076c137 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:50:15 +0100
+Subject: [PATCH 2/2] Adding fake fullscreen compatible noborder patch
+
+---
+ dwm.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/dwm.c b/dwm.c
+index dbea07a..4990319 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1307,6 +1307,15 @@ resizeclient(Client *c, int x, int y, int w, int h)
+ 	c->oldw = c->w; c->w = wc.width = w;
+ 	c->oldh = c->h; c->h = wc.height = h;
+ 	wc.border_width = c->bw;
++	if (((nexttiled(c->mon->clients) == c && !nexttiled(c->next))
++		|| &monocle == c->mon->lt[c->mon->sellt]->arrange)
++		&& (c->fakefullscreen == 1 || !c->isfullscreen)
++		&& !c->isfloating
++		&& c->mon->lt[c->mon->sellt]->arrange) {
++		c->w = wc.width += c->bw * 2;
++		c->h = wc.height += c->bw * 2;
++		wc.border_width = 0;
++	}
+ 	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
+ 	configure(c);
+ 	XSync(dpy, False);
+-- 
+2.19.1
+

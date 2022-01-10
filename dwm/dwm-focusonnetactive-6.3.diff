@@ -1,6 +1,6 @@
-From fd2e8fbc859d688521e50d98d5c47d1f98657afb Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 7 Apr 2020 12:33:04 +0200
+From 43b77da0e9125c66ac7585d79d2f0784cc38e86e Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:44:58 +0100
 Subject: [PATCH] Activate a window in response to _NET_ACTIVE_WINDOW
 
 By default, dwm response to client requests to _NET_ACTIVE_WINDOW client
@@ -26,10 +26,10 @@ https://dwm.suckless.org/patches/focusonnetactive/
  1 file changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/dwm.c b/dwm.c
-index 4465af1..4ca8891 100644
+index a96f33c..44d55b1 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -514,6 +514,7 @@ clientmessage(XEvent *e)
+@@ -515,6 +515,7 @@ clientmessage(XEvent *e)
  {
  	XClientMessageEvent *cme = &e->xclient;
  	Client *c = wintoclient(cme->window);
@@ -37,7 +37,7 @@ index 4465af1..4ca8891 100644
  
  	if (!c)
  		return;
-@@ -523,8 +524,15 @@ clientmessage(XEvent *e)
+@@ -524,8 +525,15 @@ clientmessage(XEvent *e)
  			setfullscreen(c, (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
  				|| (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
  	} else if (cme->message_type == netatom[NetActiveWindow]) {

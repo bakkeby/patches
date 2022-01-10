@@ -1,0 +1,74 @@
+From 56373b668df6166b3a15b97257d8d449164c6446 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 14:02:41 +0100
+Subject: [PATCH] Warp: warps the mouse cursor to the center of the currently
+ focused window or screen when the mouse cursor is (a) on a different screen
+ or (b) on top of a different window.
+
+If you are using barmodules then you may want to have a look at the warp function here:
+https://github.com/bakkeby/dwm-flexipatch/blob/master/patch/warp.c
+---
+ dwm.c | 26 ++++++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/dwm.c b/dwm.c
+index a96f33c..7febf7e 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -228,6 +228,7 @@ static void updatetitle(Client *c);
+ static void updatewindowtype(Client *c);
+ static void updatewmhints(Client *c);
+ static void view(const Arg *arg);
++static void warp(const Client *c);
+ static Client *wintoclient(Window w);
+ static Monitor *wintomon(Window w);
+ static int xerror(Display *dpy, XErrorEvent *ee);
+@@ -831,6 +832,7 @@ focusmon(const Arg *arg)
+ 	unfocus(selmon->sel, 0);
+ 	selmon = m;
+ 	focus(NULL);
++	warp(selmon->sel);
+ }
+ 
+ void
+@@ -1371,6 +1373,8 @@ restack(Monitor *m)
+ 	}
+ 	XSync(dpy, False);
+ 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
++	if (m == selmon && (m->tagset[m->seltags] & m->sel->tags) && m->lt[m->sellt]->arrange != &monocle)
++		warp(m->sel);
+ }
+ 
+ void
+@@ -2050,6 +2054,28 @@ view(const Arg *arg)
+ 	arrange(selmon);
+ }
+ 
++void
++warp(const Client *c)
++{
++	int x, y;
++
++	if (!c) {
++		XWarpPointer(dpy, None, root, 0, 0, 0, 0, selmon->wx + selmon->ww / 2, selmon->wy + selmon->wh / 2);
++		return;
++	}
++
++	if (!getrootptr(&x, &y) ||
++		(x > c->x - c->bw &&
++		 y > c->y - c->bw &&
++		 x < c->x + c->w + c->bw*2 &&
++		 y < c->y + c->h + c->bw*2) ||
++		(y > c->mon->by && y < c->mon->by + bh) ||
++		(c->mon->topbar && !y))
++		return;
++
++	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w / 2, c->h / 2);
++}
++
+ Client *
+ wintoclient(Window w)
+ {
+-- 
+2.19.1
+

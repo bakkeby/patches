@@ -1,0 +1,459 @@
+From 69ba99292c4eac2ffa2eb1f1962f55ce463b35db Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 14:10:28 +0100
+Subject: [PATCH 2/2] Adding status2d + statuscmd + dwmblocks + extrastatus
+ module
+
+---
+ config.def.h          |  11 ++-
+ dwm.c                 |  23 +++++-
+ patch/bar_dwmblocks.c |  31 ++++++++
+ patch/bar_dwmblocks.h |   2 +
+ patch/bar_status2d.c  | 171 ++++++++++++++++++++++++++++++++++++++++++
+ patch/bar_status2d.h  |   6 ++
+ patch/bar_statuscmd.c |  49 ++++++++++++
+ patch/bar_statuscmd.h |   4 +
+ patch/include.c       |   7 +-
+ patch/include.h       |   7 +-
+ 10 files changed, 301 insertions(+), 10 deletions(-)
+ create mode 100644 patch/bar_dwmblocks.c
+ create mode 100644 patch/bar_dwmblocks.h
+ create mode 100644 patch/bar_status2d.c
+ create mode 100644 patch/bar_status2d.h
+ create mode 100644 patch/bar_statuscmd.c
+ create mode 100644 patch/bar_statuscmd.h
+
+diff --git a/config.def.h b/config.def.h
+index f870c41..af2aa90 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,6 +5,7 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static const char statussep         = ';';      /* separator between status bars */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";
+@@ -47,8 +48,10 @@ static const BarRule barrules[] = {
+ 	/* monitor  bar    alignment         widthfunc              drawfunc              clickfunc           name */
+ 	{ -1,       0,     BAR_ALIGN_LEFT,   width_tags,            draw_tags,            click_tags,         "tags" },
+ 	{ -1,       0,     BAR_ALIGN_LEFT,   width_ltsymbol,        draw_ltsymbol,        click_ltsymbol,     "layout" },
+-	{ 'A',      0,     BAR_ALIGN_RIGHT,  width_status,          draw_status,          click_status,       "status" },
++	{ 'A',      0,     BAR_ALIGN_RIGHT,  width_status2d,        draw_status2d,        click_statuscmd,    "status2d" },
+ 	{ -1,       0,     BAR_ALIGN_NONE,   width_wintitle,        draw_wintitle,        click_wintitle,     "wintitle" },
++	{  0,       1,     BAR_ALIGN_CENTER, width_status2d_es,     draw_status2d_es,     click_statuscmd_es, "status2d_es" },
++
+ };
+ 
+ /* layout(s) */
+@@ -124,7 +127,11 @@ static Button buttons[] = {
+ 	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
+ 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
+ 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
+-	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
++	{ ClkStatusText,        0,              Button1,        sigdwmblocks,   {.i = 1 } },
++	{ ClkStatusText,        0,              Button2,        sigdwmblocks,   {.i = 2 } },
++	{ ClkStatusText,        0,              Button3,        sigdwmblocks,   {.i = 3 } },
++	{ ClkStatusText,        0,              Button4,        sigdwmblocks,   {.i = 4 } },
++	{ ClkStatusText,        0,              Button5,        sigdwmblocks,   {.i = 5 } },
+ 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
+ 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
+ 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
+diff --git a/dwm.c b/dwm.c
+index 86763d8..9fd8b67 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -290,7 +290,10 @@ static void zoom(const Arg *arg);
+ #include "patch/include.h"
+ /* variables */
+ static const char broken[] = "broken";
+-static char stext[256];
++static char stext[1024];
++static char rawstext[1024];
++static char estext[1024];
++static char rawestext[1024];
+ static int screen;
+ static int sw, sh;           /* X display screen geometry width, height */
+ static int bh;               /* bar geometry */
+@@ -558,7 +561,7 @@ cleanup(void)
+ 		cleanupmon(mons);
+ 	for (i = 0; i < CurLast; i++)
+ 		drw_cur_free(drw, cursor[i]);
+-	for (i = 0; i < LENGTH(colors); i++)
++	for (i = 0; i < LENGTH(colors) + 1; i++)
+ 		free(scheme[i]);
+ 	XDestroyWindow(dpy, wmcheckwin);
+ 	drw_free(drw);
+@@ -1727,7 +1730,8 @@ setup(void)
+ 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
+ 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
+ 	/* init appearance */
+-	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
++	scheme = ecalloc(LENGTH(colors) + 1, sizeof(Clr *));
++	scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], 3);
+ 	for (i = 0; i < LENGTH(colors); i++)
+ 		scheme[i] = drw_scm_create(drw, colors[i], 3);
+ 	/* init bars */
+@@ -2185,8 +2189,19 @@ void
+ updatestatus(void)
+ {
+ 	Monitor *m;
+-	if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
++	if (!gettextprop(root, XA_WM_NAME, rawstext, sizeof(rawstext))) {
+ 		strcpy(stext, "dwm-"VERSION);
++		estext[0] = '\0';
++	} else {
++		char *e = strchr(rawstext, statussep);
++		if (e) {
++			*e = '\0'; e++;
++			strncpy(rawestext, e, sizeof(estext) - 1);
++			copyvalidchars(estext, rawestext);
++		} else
++			estext[0] = '\0';
++		copyvalidchars(stext, rawstext);
++	}
+ 	for (m = mons; m; m = m->next)
+ 		drawbar(m);
+ }
+diff --git a/patch/bar_dwmblocks.c b/patch/bar_dwmblocks.c
+new file mode 100644
+index 0000000..442b0bc
+--- /dev/null
++++ b/patch/bar_dwmblocks.c
+@@ -0,0 +1,31 @@
++static int dwmblockssig;
++pid_t dwmblockspid = 0;
++
++int
++getdwmblockspid()
++{
++	char buf[16];
++	FILE *fp = popen("pidof -s dwmblocks", "r");
++	if (fgets(buf, sizeof(buf), fp));
++	pid_t pid = strtoul(buf, NULL, 10);
++	pclose(fp);
++	dwmblockspid = pid;
++	return pid != 0 ? 0 : -1;
++}
++
++void
++sigdwmblocks(const Arg *arg)
++{
++	union sigval sv;
++	sv.sival_int = (dwmblockssig << 8) | arg->i;
++	if (!dwmblockspid)
++		if (getdwmblockspid() == -1)
++			return;
++
++	if (sigqueue(dwmblockspid, SIGUSR1, sv) == -1) {
++		if (errno == ESRCH) {
++			if (!getdwmblockspid())
++				sigqueue(dwmblockspid, SIGUSR1, sv);
++		}
++	}
++}
+\ No newline at end of file
+diff --git a/patch/bar_dwmblocks.h b/patch/bar_dwmblocks.h
+new file mode 100644
+index 0000000..f08f1d5
+--- /dev/null
++++ b/patch/bar_dwmblocks.h
+@@ -0,0 +1,2 @@
++static int getdwmblockspid();
++static void sigdwmblocks(const Arg *arg);
+\ No newline at end of file
+diff --git a/patch/bar_status2d.c b/patch/bar_status2d.c
+new file mode 100644
+index 0000000..6111a51
+--- /dev/null
++++ b/patch/bar_status2d.c
+@@ -0,0 +1,171 @@
++int
++width_status2d(Bar *bar, BarWidthArg *a)
++{
++	return status2dtextlength(rawstext) + lrpad;
++}
++
++int
++width_status2d_es(Bar *bar, BarWidthArg *a)
++{
++	return status2dtextlength(rawestext);
++}
++
++int
++draw_status2d(Bar *bar, BarDrawArg *a)
++{
++	return drawstatusbar(a->x, rawstext);
++}
++
++int
++draw_status2d_es(Bar *bar, BarDrawArg *a)
++{
++	return drawstatusbar(a->x, rawestext);
++}
++
++int
++drawstatusbar(int x, char* stext)
++{
++	int i, w, len;
++	short isCode = 0;
++	char *text;
++	char *p;
++
++	len = strlen(stext);
++	if (!(text = (char*) malloc(sizeof(char)*(len + 1))))
++		die("malloc");
++	p = text;
++	copyvalidchars(text, stext);
++	text[len] = '\0';
++
++	x += lrpad / 2;
++	drw_setscheme(drw, scheme[LENGTH(colors)]);
++	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
++	drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
++
++	/* process status text */
++	i = -1;
++	while (text[++i]) {
++		if (text[i] == '^' && !isCode) {
++			isCode = 1;
++
++			text[i] = '\0';
++			w = TEXTW(text) - lrpad;
++			drw_text(drw, x, 0, w, bh, 0, text, 0);
++
++			x += w;
++
++			/* process code */
++			while (text[++i] != '^') {
++				if (text[i] == 'c') {
++					char buf[8];
++					if (i + 7 > len - 1) {
++						i += 7;
++						len = 0;
++						break;
++					}
++					memcpy(buf, (char*)text+i+1, 7);
++					buf[7] = '\0';
++					#if BAR_ALPHA_PATCH && BAR_STATUS2D_NO_ALPHA_PATCH
++					drw_clr_create(drw, &drw->scheme[ColFg], buf, 0xff);
++					#elif BAR_ALPHA_PATCH
++					drw_clr_create(drw, &drw->scheme[ColFg], buf, alphas[SchemeNorm][ColFg]);
++					#else
++					drw_clr_create(drw, &drw->scheme[ColFg], buf);
++					#endif // BAR_ALPHA_PATCH
++					i += 7;
++				} else if (text[i] == 'b') {
++					char buf[8];
++					if (i + 7 > len - 1) {
++						i += 7;
++						len = 0;
++						break;
++					}
++					memcpy(buf, (char*)text+i+1, 7);
++					buf[7] = '\0';
++					#if BAR_ALPHA_PATCH && BAR_STATUS2D_NO_ALPHA_PATCH
++					drw_clr_create(drw, &drw->scheme[ColBg], buf, 0xff);
++					#elif BAR_ALPHA_PATCH
++					drw_clr_create(drw, &drw->scheme[ColBg], buf, alphas[SchemeNorm][ColBg]);
++					#else
++					drw_clr_create(drw, &drw->scheme[ColBg], buf);
++					#endif // BAR_ALPHA_PATCH
++					i += 7;
++				} else if (text[i] == 'd') {
++					drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
++					drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
++				} else if (text[i] == 'r') {
++					int rx = atoi(text + ++i);
++					while (text[++i] != ',');
++					int ry = atoi(text + ++i);
++					while (text[++i] != ',');
++					int rw = atoi(text + ++i);
++					while (text[++i] != ',');
++					int rh = atoi(text + ++i);
++
++					if (ry < 0)
++						ry = 0;
++					if (rx < 0)
++						rx = 0;
++
++					drw_rect(drw, rx + x, ry, rw, rh, 1, 0);
++				} else if (text[i] == 'f') {
++					x += atoi(text + ++i);
++				}
++			}
++
++			text = text + i + 1;
++			len -= i + 1;
++			i=-1;
++			isCode = 0;
++		}
++	}
++	if (!isCode && len) {
++		w = TEXTW(text) - lrpad;
++		drw_text(drw, x, 0, w, bh, 0, text, 0);
++		x += w;
++	}
++	free(p);
++
++	drw_setscheme(drw, scheme[SchemeNorm]);
++
++	return x;
++}
++
++int
++status2dtextlength(char* stext)
++{
++	int i, w, len;
++	short isCode = 0;
++	char *text;
++	char *p;
++
++	len = strlen(stext) + 1;
++	if (!(text = (char*) malloc(sizeof(char)*len)))
++		die("malloc");
++	p = text;
++	copyvalidchars(text, stext);
++
++	/* compute width of the status text */
++	w = 0;
++	i = -1;
++	while (text[++i]) {
++		if (text[i] == '^') {
++			if (!isCode) {
++				isCode = 1;
++				text[i] = '\0';
++				w += TEXTW(text) - lrpad;
++				text[i] = '^';
++				if (text[++i] == 'f')
++					w += atoi(text + ++i);
++			} else {
++				isCode = 0;
++				text = text + i + 1;
++				i = -1;
++			}
++		}
++	}
++	if (!isCode)
++		w += TEXTW(text) - lrpad;
++	free(p);
++	return w;
++}
+\ No newline at end of file
+diff --git a/patch/bar_status2d.h b/patch/bar_status2d.h
+new file mode 100644
+index 0000000..0830025
+--- /dev/null
++++ b/patch/bar_status2d.h
+@@ -0,0 +1,6 @@
++static int width_status2d(Bar *bar, BarWidthArg *a);
++static int width_status2d_es(Bar *bar, BarWidthArg *a);
++static int draw_status2d(Bar *bar, BarDrawArg *a);
++static int draw_status2d_es(Bar *bar, BarDrawArg *a);
++static int drawstatusbar(int x, char *text);
++static int status2dtextlength(char *stext);
+\ No newline at end of file
+diff --git a/patch/bar_statuscmd.c b/patch/bar_statuscmd.c
+new file mode 100644
+index 0000000..28ce120
+--- /dev/null
++++ b/patch/bar_statuscmd.c
+@@ -0,0 +1,49 @@
++int
++click_statuscmd(Bar *bar, Arg *arg, BarClickArg *a)
++{
++	return click_statuscmd_text(arg, a->rel_x, rawstext);
++}
++
++int
++click_statuscmd_es(Bar *bar, Arg *arg, BarClickArg *a)
++{
++	return click_statuscmd_text(arg, a->rel_x, rawestext);
++}
++
++int
++click_statuscmd_text(Arg *arg, int rel_x, char *text)
++{
++	int i = -1;
++	int x = 0;
++	char ch;
++	dwmblockssig = -1;
++	while (text[++i]) {
++		if ((unsigned char)text[i] < ' ') {
++			ch = text[i];
++			text[i] = '\0';
++			x += status2dtextlength(text);
++			text[i] = ch;
++			text += i+1;
++			i = -1;
++			if (x >= rel_x && dwmblockssig != -1)
++				break;
++			dwmblockssig = ch;
++		}
++	}
++	if (dwmblockssig == -1)
++		dwmblockssig = 0;
++	return ClkStatusText;
++}
++
++void
++copyvalidchars(char *text, char *rawtext)
++{
++	int i = -1, j = 0;
++
++	while (rawtext[++i]) {
++		if ((unsigned char)rawtext[i] >= ' ') {
++			text[j++] = rawtext[i];
++		}
++	}
++	text[j] = '\0';
++}
+diff --git a/patch/bar_statuscmd.h b/patch/bar_statuscmd.h
+new file mode 100644
+index 0000000..d6d428e
+--- /dev/null
++++ b/patch/bar_statuscmd.h
+@@ -0,0 +1,4 @@
++static int click_statuscmd(Bar *bar, Arg *arg, BarClickArg *a);
++static int click_statuscmd_es(Bar *bar, Arg *arg, BarClickArg *a);
++static int click_statuscmd_text(Arg *arg, int rel_x, char *text);
++static void copyvalidchars(char *text, char *rawtext);
+\ No newline at end of file
+diff --git a/patch/include.c b/patch/include.c
+index d422f56..84bbd19 100644
+--- a/patch/include.c
++++ b/patch/include.c
+@@ -1,5 +1,8 @@
+ /* Bar functionality */
+ #include "bar_ltsymbol.c"
+-#include "bar_status.c"
++//#include "bar_status.c"
+ #include "bar_tags.c"
+-#include "bar_wintitle.c"
+\ No newline at end of file
++#include "bar_wintitle.c"
++#include "bar_status2d.c"
++#include "bar_dwmblocks.c"
++#include "bar_statuscmd.c"
+\ No newline at end of file
+diff --git a/patch/include.h b/patch/include.h
+index 5f9a3fe..78f7520 100644
+--- a/patch/include.h
++++ b/patch/include.h
+@@ -1,5 +1,8 @@
+ /* Bar functionality */
+ #include "bar_ltsymbol.h"
+-#include "bar_status.h"
++//#include "bar_status.h"
+ #include "bar_tags.h"
+-#include "bar_wintitle.h"
+\ No newline at end of file
++#include "bar_wintitle.h"
++#include "bar_status2d.h"
++#include "bar_dwmblocks.h"
++#include "bar_statuscmd.h"
+\ No newline at end of file
+-- 
+2.19.1
+

@@ -1,0 +1,37 @@
+From 7467e0d7dfc55e63dd3415ffd798297a91eb8e06 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 13:51:13 +0100
+Subject: [PATCH] tagmonfixfs: Allow moving a fullscreen window to another 
+ monitor
+
+---
+ dwm.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index a96f33c..d340599 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1669,9 +1669,17 @@ tag(const Arg *arg)
+ void
+ tagmon(const Arg *arg)
+ {
+-	if (!selmon->sel || !mons->next)
++	Client *c = selmon->sel;
++	if (!c || !mons->next)
+ 		return;
+-	sendmon(selmon->sel, dirtomon(arg->i));
++	if (c->isfullscreen) {
++		c->isfullscreen = 0;
++		sendmon(c, dirtomon(arg->i));
++		c->isfullscreen = 1;
++		resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
++		XRaiseWindow(dpy, c->win);
++	} else
++		sendmon(c, dirtomon(arg->i));
+ }
+ 
+ void
+-- 
+2.19.1
+

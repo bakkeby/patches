@@ -1,0 +1,86 @@
+From ad9512714214ea2cfb54babd8fc72de81a094c4b Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 13:38:05 +0100
+Subject: [PATCH] This variant of the shiftview patch adds left and right
+ circular shift through tags, but skips tags where there are no clients.
+
+---
+ config.def.h |  2 ++
+ dwm.c        | 41 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 43 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..ad7cabe 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -73,6 +73,8 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
+ 	{ MODKEY,                       XK_Return, zoom,           {0} },
+ 	{ MODKEY,                       XK_Tab,    view,           {0} },
++	{ MODKEY|ShiftMask,             XK_Tab,       shiftviewclients, { .i = +1 } },
++	{ MODKEY|ShiftMask,             XK_backslash, shiftviewclients, { .i = -1 } },
+ 	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
+ 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
+ 	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
+diff --git a/dwm.c b/dwm.c
+index a96f33c..0f8fd34 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -204,6 +204,7 @@ static void setlayout(const Arg *arg);
+ static void setmfact(const Arg *arg);
+ static void setup(void);
+ static void seturgent(Client *c, int urg);
++static void shiftviewclients(const Arg *arg);
+ static void showhide(Client *c);
+ static void sigchld(int unused);
+ static void spawn(const Arg *arg);
+@@ -1614,6 +1615,46 @@ seturgent(Client *c, int urg)
+ 	XFree(wmh);
+ }
+ 
++void
++shiftviewclients(const Arg *arg)
++{
++	Arg shifted;
++	Client *c;
++	unsigned int tagmask = 0;
++
++	for (c = selmon->clients; c; c = c->next)
++		#if SCRATCHPADS_PATCH
++		if (!(c->tags & SPTAGMASK))
++			tagmask = tagmask | c->tags;
++		#else
++		tagmask = tagmask | c->tags;
++		#endif // SCRATCHPADS_PATCH
++
++	#if SCRATCHPADS_PATCH
++	shifted.ui = selmon->tagset[selmon->seltags] & ~SPTAGMASK;
++	#else
++	shifted.ui = selmon->tagset[selmon->seltags];
++	#endif // SCRATCHPADS_PATCH
++	if (arg->i > 0) // left circular shift
++		do {
++			shifted.ui = (shifted.ui << arg->i)
++			   | (shifted.ui >> (LENGTH(tags) - arg->i));
++			#if SCRATCHPADS_PATCH
++			shifted.ui &= ~SPTAGMASK;
++			#endif // SCRATCHPADS_PATCH
++		} while (tagmask && !(shifted.ui & tagmask));
++	else // right circular shift
++		do {
++			shifted.ui = (shifted.ui >> (- arg->i)
++			   | shifted.ui << (LENGTH(tags) + arg->i));
++			#if SCRATCHPADS_PATCH
++			shifted.ui &= ~SPTAGMASK;
++			#endif // SCRATCHPADS_PATCH
++		} while (tagmask && !(shifted.ui & tagmask));
++
++	view(&shifted);
++}
++
+ void
+ showhide(Client *c)
+ {
+-- 
+2.19.1
+

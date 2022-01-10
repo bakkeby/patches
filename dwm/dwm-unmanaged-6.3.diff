@@ -1,0 +1,106 @@
+From f99462eb1afd038023d3f25a25616a0560fb895b Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 14:00:06 +0100
+Subject: [PATCH] Unmanaged patch for dwm
+
+This patch adds a new rule option allowing the user to specify windows that
+are not supposed to be managed by the window manager.
+
+This may include external bars, conky, widgets or desktop icons.
+
+If a window is unmanaged then its size and position is controlled by the
+window application itself, or you can control these using external tools.
+
+As such you will not be able to resize or move a window within dwm like
+normal managed windows are.
+
+The patch adds a new rule option "unmanaged" that is intentionally placed
+at the end of the rules options. This is because as long as the field is
+at the very end you do not actually need to specify a value (it will
+default to 0) which means that existing rules can be left as-is.
+
+    /* class      instance    title       tags mask     isfloating   monitor  unmanaged */
+    { "Gimp",     NULL,       NULL,       0,            1,           -1,      0 },
+    { "Firefox",  NULL,       NULL,       1 << 8,       0,           -1,      0 },
+
+Whether unmanaged windows should stay on top of other windows or not depends
+very much on the program. It may be desirable to place a bar on top of other
+windows whereas an application that provides desktop icons is naturally best
+placed below all other windows.
+
+As such the value of the unmanged rule plays a part:
+   * 0 - the window is managed by the window manager
+   * 1 - the window will be placed above all other windows
+   * 2 - the window will be placed below all other windows
+   * 3 - the window is left as-is (neither lowered nor raised)
+---
+ config.def.h |  6 +++---
+ dwm.c        | 14 ++++++++++++++
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..2eb65f8 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -26,9 +26,9 @@ static const Rule rules[] = {
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class      instance    title       tags mask     isfloating   monitor  unmanaged */
++	{ "Gimp",     NULL,       NULL,       0,            1,           -1,      0 },
++	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1,      0 },
+ };
+ 
+ /* layout(s) */
+diff --git a/dwm.c b/dwm.c
+index a96f33c..c99a81c 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -139,6 +139,7 @@ typedef struct {
+ 	unsigned int tags;
+ 	int isfloating;
+ 	int monitor;
++	int unmanaged;
+ } Rule;
+ 
+ /* function declarations */
+@@ -241,6 +242,7 @@ static char stext[256];
+ static int screen;
+ static int sw, sh;           /* X display screen geometry width, height */
+ static int bh, blw = 0;      /* bar geometry */
++static int unmanaged = 0;    /* whether the window manager should manage the new window or not */
+ static int lrpad;            /* sum of left and right padding for text */
+ static int (*xerrorxlib)(Display *, XErrorEvent *);
+ static unsigned int numlockmask = 0;
+@@ -300,6 +302,7 @@ applyrules(Client *c)
+ 		{
+ 			c->isfloating = r->isfloating;
+ 			c->tags |= r->tags;
++			unmanaged = r->unmanaged;
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+ 			if (m)
+ 				c->mon = m;
+@@ -1043,6 +1046,17 @@ manage(Window w, XWindowAttributes *wa)
+ 		applyrules(c);
+ 	}
+ 
++	if (unmanaged) {
++		XMapWindow(dpy, c->win);
++		if (unmanaged == 1)
++			XRaiseWindow(dpy, c->win);
++		else if (unmanaged == 2)
++			XLowerWindow(dpy, c->win);
++		free(c);
++		unmanaged = 0;
++		return;
++	}
++
+ 	if (c->x + WIDTH(c) > c->mon->mx + c->mon->mw)
+ 		c->x = c->mon->mx + c->mon->mw - WIDTH(c);
+ 	if (c->y + HEIGHT(c) > c->mon->my + c->mon->mh)
+-- 
+2.19.1
+

@@ -1,0 +1,40 @@
+From aa3796065846a03a81c10c9ea5cbcee85ab9e41e Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 13:37:27 +0100
+Subject: [PATCH] Adding sendmon_keepfocus patch
+
+---
+ dwm.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index a96f33c..f46e77e 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1416,15 +1416,21 @@ sendmon(Client *c, Monitor *m)
+ {
+ 	if (c->mon == m)
+ 		return;
++	int hadfocus = (c == selmon->sel);
+ 	unfocus(c, 1);
+ 	detach(c);
+ 	detachstack(c);
++	arrange(c->mon);
+ 	c->mon = m;
+ 	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+ 	attach(c);
+ 	attachstack(c);
+-	focus(NULL);
+-	arrange(NULL);
++	arrange(m);
++	if (hadfocus) {
++		focus(c);
++		restack(m);
++	} else
++		focus(NULL);
+ }
+ 
+ void
+-- 
+2.19.1
+

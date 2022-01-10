@@ -1,0 +1,107 @@
+From 0b662a1515f6d270c6fc6ac5102411a54a663f2d Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 13:52:25 +0100
+Subject: [PATCH] tagswapmon, swap all visible windows with those of one of the
+ adjacent monitors
+
+---
+ config.def.h |  2 ++
+ dwm.c        | 62 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 64 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..5e48109 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -85,6 +85,8 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+ 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
+ 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
++	{ MODKEY|Mod4Mask|ControlMask,  XK_comma,  tagswapmon,     {.i = +1 } },
++	{ MODKEY|Mod4Mask|ControlMask,  XK_period, tagswapmon,     {.i = -1 } },
+ 	TAGKEYS(                        XK_1,                      0)
+ 	TAGKEYS(                        XK_2,                      1)
+ 	TAGKEYS(                        XK_3,                      2)
+diff --git a/dwm.c b/dwm.c
+index a96f33c..5b9c480 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -210,6 +210,7 @@ static void spawn(const Arg *arg);
+ static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
+ static void tile(Monitor *);
++static void tagswapmon(const Arg *arg);
+ static void togglebar(const Arg *arg);
+ static void togglefloating(const Arg *arg);
+ static void toggletag(const Arg *arg);
+@@ -1674,6 +1675,67 @@ tagmon(const Arg *arg)
+ 	sendmon(selmon->sel, dirtomon(arg->i));
+ }
+ 
++void
++tagswapmon(const Arg *arg)
++{
++	Monitor *m;
++	Client *c, *sc = NULL, *mc = NULL, *next;
++
++	if (!mons->next)
++		return;
++
++	m = dirtomon(arg->i);
++
++	for (c = selmon->clients; c; c = next) {
++		next = c->next;
++		if (!ISVISIBLE(c))
++			continue;
++		unfocus(c, 1);
++		detach(c);
++		detachstack(c);
++		c->next = sc;
++		sc = c;
++	}
++
++	for (c = m->clients; c; c = next) {
++		next = c->next;
++		if (!ISVISIBLE(c))
++			continue;
++		unfocus(c, 1);
++		detach(c);
++		detachstack(c);
++		c->next = mc;
++		mc = c;
++	}
++
++	for (c = sc; c; c = next) {
++		next = c->next;
++		c->mon = m;
++		c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
++		attach(c);
++		attachstack(c);
++		if (c->isfullscreen) {
++			resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
++			XRaiseWindow(dpy, c->win);
++		}
++	}
++
++	for (c = mc; c; c = next) {
++		next = c->next;
++		c->mon = selmon;
++		c->tags = selmon->tagset[selmon->seltags]; /* assign tags of target monitor */
++		attach(c);
++		attachstack(c);
++		if (c->isfullscreen) {
++			resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
++			XRaiseWindow(dpy, c->win);
++		}
++	}
++
++	focus(NULL);
++	arrange(NULL);
++}
++
+ void
+ tile(Monitor *m)
+ {
+-- 
+2.19.1
+

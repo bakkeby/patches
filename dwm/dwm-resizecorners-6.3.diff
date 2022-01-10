@@ -1,0 +1,89 @@
+From c605528712e408504cac41cbd5566e0e2cfdbc76 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 13:31:21 +0100
+Subject: [PATCH] Resize a floating window from any corner
+
+By default, windows only from the bottom right corner.
+With this patch the mouse is warped to the nearest corner and you
+resize from there.
+
+Refer to https://dwm.suckless.org/patches/resizecorners/
+
+Authors:
+   dusty - dusty@teknik.io
+   Klemens Nanni kl3@posteo.org (6.1 version)
+---
+ dwm.c | 27 ++++++++++++++++++++++++---
+ 1 file changed, 24 insertions(+), 3 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index a96f33c..67cfb1b 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1295,9 +1295,14 @@ void
+ resizemouse(const Arg *arg)
+ {
+ 	int ocx, ocy, nw, nh;
++	int ocx2, ocy2, nx, ny;
+ 	Client *c;
+ 	Monitor *m;
+ 	XEvent ev;
++	int horizcorner, vertcorner;
++	int di;
++	unsigned int dui;
++	Window dummy;
+ 	Time lasttime = 0;
+ 
+ 	if (!(c = selmon->sel))
+@@ -1307,10 +1312,19 @@ resizemouse(const Arg *arg)
+ 	restack(selmon);
+ 	ocx = c->x;
+ 	ocy = c->y;
++	ocx2 = c->x + c->w;
++	ocy2 = c->y + c->h;
+ 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+ 		None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
+ 		return;
+-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
++	if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &di, &di, &nx, &ny, &dui))
++	       return;
++	horizcorner = nx < c->w / 2;
++	vertcorner = ny < c->h / 2;
++	XWarpPointer (dpy, None, c->win, 0, 0, 0, 0,
++		      horizcorner ? (-c->bw) : (c->w + c->bw - 1),
++		      vertcorner ? (-c->bw) : (c->h + c->bw - 1));
++
+ 	do {
+ 		XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
+ 		switch(ev.type) {
+@@ -1326,6 +1340,11 @@ resizemouse(const Arg *arg)
+ 
+ 			nw = MAX(ev.xmotion.x - ocx - 2 * c->bw + 1, 1);
+ 			nh = MAX(ev.xmotion.y - ocy - 2 * c->bw + 1, 1);
++			nx = horizcorner ? ev.xmotion.x : c->x;
++			ny = vertcorner ? ev.xmotion.y : c->y;
++			nw = MAX(horizcorner ? (ocx2 - nx) : (ev.xmotion.x - ocx - 2 * c->bw + 1), 1);
++			nh = MAX(vertcorner ? (ocy2 - ny) : (ev.xmotion.y - ocy - 2 * c->bw + 1), 1);
++
+ 			if (c->mon->wx + nw >= selmon->wx && c->mon->wx + nw <= selmon->wx + selmon->ww
+ 			&& c->mon->wy + nh >= selmon->wy && c->mon->wy + nh <= selmon->wy + selmon->wh)
+ 			{
+@@ -1334,11 +1353,13 @@ resizemouse(const Arg *arg)
+ 					togglefloating(NULL);
+ 			}
+ 			if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
+-				resize(c, c->x, c->y, nw, nh, 1);
++				resize(c, nx, ny, nw, nh, 1);
+ 			break;
+ 		}
+ 	} while (ev.type != ButtonRelease);
+-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
++	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0,
++		      horizcorner ? (-c->bw) : (c->w + c->bw - 1),
++		      vertcorner ? (-c->bw) : (c->h + c->bw - 1));
+ 	XUngrabPointer(dpy, CurrentTime);
+ 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+ 	if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
+-- 
+2.19.1
+

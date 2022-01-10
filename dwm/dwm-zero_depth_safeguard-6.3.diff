@@ -1,0 +1,86 @@
+From 0ea022a0d39fcbfdaa421b34fedf486a00d34571 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 14:04:15 +0100
+Subject: [PATCH] Zero depth safeguard for dwm
+
+The colour depth attribute of an X window represents the number of bits
+that are used to represent the colour.
+
+A window that has a depth of 0 suggests that it does not support colours
+and is therefore not intended to be displayed.
+
+Mapping a window that has a depth of 0 will result in dwm crashing and
+this safeguard will avoid that.
+
+An example of this would be one of the hidden windows that the firefox
+browser manages.
+
+$ xdotool search firefox
+Defaulting to search window name, class, classname, and role
+77594627
+77594625
+77594681
+77594684
+
+Two of the windows listed above should have a depth of 0, this can be
+checked using xwininfo like this:
+
+$ xwininfo -id 77594625
+
+xwininfo: Window id: 0x4a00001 "Firefox"
+
+  Absolute upper-left X:  10
+  Absolute upper-left Y:  10
+  Relative upper-left X:  10
+  Relative upper-left Y:  10
+  Width: 10
+  Height: 10
+  Depth: 0
+  Visual: 0x506
+  Visual Class: TrueColor
+  Border width: 0
+  Class: InputOnly
+  Colormap: 0x0 (not installed)
+  Bit Gravity State: ForgetGravity
+  Window Gravity State: NorthWestGravity
+  Backing Store State: NotUseful
+  Save Under State: no
+  Map State: IsUnMapped
+  Override Redirect State: no
+  Corners:  +10+10  -6180+10  -6180-1900  +10-1900
+  -geometry 10x10+10+10
+
+The window can then be explicitly mapped using xdotool.
+
+$ xdotool windowmap 77594625
+
+Without the safeguard dwm should crash following the above command.
+
+It should be noted that these kind of windows are not intended to
+be explicitly mapped like this and they won't be under normal
+circumstances.
+
+If you are trying to write a script that uses tools like mapw or
+xdotool to map and unmap windows then you may want to add some
+checks to avoid that you don't include windows that have a depth
+of 0.
+---
+ dwm.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/dwm.c b/dwm.c
+index a96f33c..807fcb9 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1098,6 +1098,8 @@ maprequest(XEvent *e)
+ 
+ 	if (!XGetWindowAttributes(dpy, ev->window, &wa))
+ 		return;
++	if (!wa.depth)
++		return;
+ 	if (wa.override_redirect)
+ 		return;
+ 	if (!wintoclient(ev->window))
+-- 
+2.19.1
+

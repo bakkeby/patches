@@ -1,0 +1,157 @@
+From 01bd1d40399c4ee4b73216ab894d65bf29c01d93 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 14:08:23 +0100
+Subject: [PATCH 2/2] Adding fancybar module
+
+---
+ config.def.h         |  2 +-
+ patch/bar_fancybar.c | 84 ++++++++++++++++++++++++++++++++++++++++++++
+ patch/bar_fancybar.h |  3 ++
+ patch/include.c      |  3 +-
+ patch/include.h      |  3 +-
+ 5 files changed, 92 insertions(+), 3 deletions(-)
+ create mode 100644 patch/bar_fancybar.c
+ create mode 100644 patch/bar_fancybar.h
+
+diff --git a/config.def.h b/config.def.h
+index f870c41..59c1b42 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -48,7 +48,7 @@ static const BarRule barrules[] = {
+ 	{ -1,       0,     BAR_ALIGN_LEFT,   width_tags,            draw_tags,            click_tags,         "tags" },
+ 	{ -1,       0,     BAR_ALIGN_LEFT,   width_ltsymbol,        draw_ltsymbol,        click_ltsymbol,     "layout" },
+ 	{ 'A',      0,     BAR_ALIGN_RIGHT,  width_status,          draw_status,          click_status,       "status" },
+-	{ -1,       0,     BAR_ALIGN_NONE,   width_wintitle,        draw_wintitle,        click_wintitle,     "wintitle" },
++	{ -1,       0,     BAR_ALIGN_NONE,   width_fancybar,        draw_fancybar,        click_fancybar,     "fancybar" },
+ };
+ 
+ /* layout(s) */
+diff --git a/patch/bar_fancybar.c b/patch/bar_fancybar.c
+new file mode 100644
+index 0000000..810026d
+--- /dev/null
++++ b/patch/bar_fancybar.c
+@@ -0,0 +1,84 @@
++int
++width_fancybar(Bar *bar, BarWidthArg *a)
++{
++	return a->max_width;
++}
++
++int
++draw_fancybar(Bar *bar, BarDrawArg *a)
++{
++	int ftw, mw, ew = 0, n = 0;
++	unsigned int i;
++	Client *c;
++	Monitor *m = bar->mon;
++
++	int boxs = drw->fonts->h / 9;
++	int boxw = drw->fonts->h / 6 + 2;
++	#if BAR_TITLE_LEFT_PAD && BAR_TITLE_RIGHT_PAD
++	int x = a->x + lrpad / 2, w = a->w - lrpad;
++	#elif BAR_TITLE_LEFT_PAD
++	int x = a->x + lrpad / 2, w = a->w - lrpad / 2;
++	#elif BAR_TITLE_RIGHT_PAD
++	int x = a->x, w = a->w - lrpad / 2;
++	#else
++	int x = a->x, w = a->w;
++	#endif // BAR_TITLE_LEFT_PAD | BAR_TITLE_RIGHT_PAD
++
++	for (c = m->clients; c; c = c->next) {
++		if (ISVISIBLE(c))
++			n++;
++	}
++
++	if (n > 0) {
++		ftw = TEXTW(m->sel->name);
++		mw = (ftw >= w || n == 1) ? 0 : (w - ftw) / (n - 1);
++
++		i = 0;
++
++		for (c = m->clients; c; c = c->next) {
++			if (!ISVISIBLE(c) || c == m->sel)
++				continue;
++			ftw = TEXTW(c->name);
++			if (ftw < mw)
++				ew += (mw - ftw);
++			else
++				i++;
++		}
++
++		if (i > 0)
++			mw += ew / i;
++
++		for (c = m->clients; c; c = c->next) {
++			if (!ISVISIBLE(c))
++				continue;
++			ftw = MIN(m->sel == c ? w : mw, TEXTW(c->name));
++
++			#if BAR_VTCOLORS_PATCH
++			drw_setscheme(drw, scheme[m->sel == c ? SchemeTitleSel : SchemeTitleNorm]);
++			#elif BAR_TITLECOLOR_PATCH
++			drw_setscheme(drw, scheme[m->sel == c ? SchemeTitle : SchemeNorm]);
++			#else
++			drw_setscheme(drw, scheme[m->sel == c ? SchemeSel : SchemeNorm]);
++			#endif // BAR_VTCOLORS_PATCH / BAR_TITLECOLOR_PATCH
++			if (ftw > 0) /* trap special handling of 0 in drw_text */
++				#if BAR_PANGO_PATCH
++				drw_text(drw, x, 0, ftw, bh, lrpad / 2, c->name, 0, False);
++				#else
++				drw_text(drw, x, 0, ftw, bh, lrpad / 2, c->name, 0);
++				#endif // BAR_PANGO_PATCH
++			if (c->isfloating)
++				drw_rect(drw, x + boxs, boxs, boxw, boxw, c->isfixed, 0);
++			x += ftw;
++			w -= ftw;
++		}
++	}
++	return x + w;
++}
++
++int
++click_fancybar(Bar *bar, Arg *arg, BarClickArg *a)
++{
++	return ClkWinTitle;
++}
++
++
+diff --git a/patch/bar_fancybar.h b/patch/bar_fancybar.h
+new file mode 100644
+index 0000000..c90d189
+--- /dev/null
++++ b/patch/bar_fancybar.h
+@@ -0,0 +1,3 @@
++static int width_fancybar(Bar *bar, BarWidthArg *a);
++static int draw_fancybar(Bar *bar, BarDrawArg *a);
++static int click_fancybar(Bar *bar, Arg *arg, BarClickArg *a);
+\ No newline at end of file
+diff --git a/patch/include.c b/patch/include.c
+index d422f56..2ab4594 100644
+--- a/patch/include.c
++++ b/patch/include.c
+@@ -2,4 +2,5 @@
+ #include "bar_ltsymbol.c"
+ #include "bar_status.c"
+ #include "bar_tags.c"
+-#include "bar_wintitle.c"
+\ No newline at end of file
++//#include "bar_wintitle.c"
++#include "bar_fancybar.c"
+\ No newline at end of file
+diff --git a/patch/include.h b/patch/include.h
+index 5f9a3fe..4eab55d 100644
+--- a/patch/include.h
++++ b/patch/include.h
+@@ -2,4 +2,5 @@
+ #include "bar_ltsymbol.h"
+ #include "bar_status.h"
+ #include "bar_tags.h"
+-#include "bar_wintitle.h"
+\ No newline at end of file
++//#include "bar_wintitle.h"
++#include "bar_fancybar.h"
+\ No newline at end of file
+-- 
+2.19.1
+

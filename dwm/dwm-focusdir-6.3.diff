@@ -1,0 +1,114 @@
+From 45957f20d45e99469e7f296231769966b016d11a Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:38:04 +0100
+Subject: [PATCH] focusdir: focus on the next client by direction (up, down, 
+ left, right)
+
+---
+ config.def.h |  4 ++++
+ dwm.c        | 67 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 71 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..cd41574 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -67,6 +67,10 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_b,      togglebar,      {0} },
+ 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
+ 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
++	{ MODKEY,                       XK_Left,   focusdir,       {.i = 0 } }, // left
++	{ MODKEY,                       XK_Right,  focusdir,       {.i = 1 } }, // right
++	{ MODKEY,                       XK_Up,     focusdir,       {.i = 2 } }, // up
++	{ MODKEY,                       XK_Down,   focusdir,       {.i = 3 } }, // down
+ 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
+ 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
+ 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+diff --git a/dwm.c b/dwm.c
+index a96f33c..c3a868e 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -166,6 +166,7 @@ static void drawbars(void);
+ static void enternotify(XEvent *e);
+ static void expose(XEvent *e);
+ static void focus(Client *c);
++static void focusdir(const Arg *arg);
+ static void focusin(XEvent *e);
+ static void focusmon(const Arg *arg);
+ static void focusstack(const Arg *arg);
+@@ -809,6 +810,72 @@ focus(Client *c)
+ 	drawbars();
+ }
+ 
++void
++focusdir(const Arg *arg)
++{
++	Client *s = selmon->sel, *f = NULL, *c, *next;
++
++	if (!s)
++		return;
++
++	unsigned int score = -1;
++	unsigned int client_score;
++	int dist;
++	int dirweight = 20;
++	int isfloating = s->isfloating;
++
++	next = s->next;
++	if (!next)
++		next = s->mon->clients;
++	for (c = next; c != s; c = next) {
++
++		next = c->next;
++		if (!next)
++			next = s->mon->clients;
++
++		if (!ISVISIBLE(c) || c->isfloating != isfloating) // || HIDDEN(c)
++			continue;
++
++		switch (arg->i) {
++		case 0: // left
++			dist = s->x - c->x - c->w;
++			client_score =
++				dirweight * MIN(abs(dist), abs(dist + s->mon->ww)) +
++				abs(s->y - c->y);
++			break;
++		case 1: // right
++			dist = c->x - s->x - s->w;
++			client_score =
++				dirweight * MIN(abs(dist), abs(dist + s->mon->ww)) +
++				abs(c->y - s->y);
++			break;
++		case 2: // up
++			dist = s->y - c->y - c->h;
++			client_score =
++				dirweight * MIN(abs(dist), abs(dist + s->mon->wh)) +
++				abs(s->x - c->x);
++			break;
++		default:
++		case 3: // down
++			dist = c->y - s->y - s->h;
++			client_score =
++				dirweight * MIN(abs(dist), abs(dist + s->mon->wh)) +
++				abs(c->x - s->x);
++			break;
++		}
++
++		if (((arg->i == 0 || arg->i == 2) && client_score <= score) || client_score < score) {
++			score = client_score;
++			f = c;
++		}
++	}
++
++	if (f && f != s) {
++		focus(f);
++		restack(f->mon);
++	}
++}
++
+ /* there are some broken focus acquiring clients needing extra handling */
+ void
+ focusin(XEvent *e)
+-- 
+2.19.1
+

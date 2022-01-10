@@ -1,0 +1,180 @@
+From bef83ecfe66bb83a8420239f8c068cf60d2c3e0c Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 14:07:02 +0100
+Subject: [PATCH 2/2] Adding awesomebar barmodules patch.
+
+Note that this patch does not come with bound ClkWinTitle button click
+actions for extra behaviour when clicking on the window name in the bar.
+
+The original bartabgroups patch included hardcoded focus on click which
+has been replaced with a generic click for barmodules.
+
+The intention here is that this is combined with the wintitleactions
+patch that allow clients to be focused, zoomed and hidden - functionality
+that has been separated from the original awesomebar patch.
+
+In other words, all this patch does is showing all window titles in the
+title bar with an even split between them.
+---
+ config.def.h           |  2 +-
+ patch/bar_awesomebar.c | 94 ++++++++++++++++++++++++++++++++++++++++++
+ patch/bar_awesomebar.h |  3 ++
+ patch/include.c        |  3 +-
+ patch/include.h        |  3 +-
+ 5 files changed, 102 insertions(+), 3 deletions(-)
+ create mode 100644 patch/bar_awesomebar.c
+ create mode 100644 patch/bar_awesomebar.h
+
+diff --git a/config.def.h b/config.def.h
+index f870c41..74ad870 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -48,7 +48,7 @@ static const BarRule barrules[] = {
+ 	{ -1,       0,     BAR_ALIGN_LEFT,   width_tags,            draw_tags,            click_tags,         "tags" },
+ 	{ -1,       0,     BAR_ALIGN_LEFT,   width_ltsymbol,        draw_ltsymbol,        click_ltsymbol,     "layout" },
+ 	{ 'A',      0,     BAR_ALIGN_RIGHT,  width_status,          draw_status,          click_status,       "status" },
+-	{ -1,       0,     BAR_ALIGN_NONE,   width_wintitle,        draw_wintitle,        click_wintitle,     "wintitle" },
++	{ -1,       0,     BAR_ALIGN_NONE,   width_awesomebar,      draw_awesomebar,      click_awesomebar,   "awesomebar" },
+ };
+ 
+ /* layout(s) */
+diff --git a/patch/bar_awesomebar.c b/patch/bar_awesomebar.c
+new file mode 100644
+index 0000000..aa2e2e5
+--- /dev/null
++++ b/patch/bar_awesomebar.c
+@@ -0,0 +1,94 @@
++int
++width_awesomebar(Bar *bar, BarWidthArg *a)
++{
++	return a->max_width;
++}
++
++int
++draw_awesomebar(Bar *bar, BarDrawArg *a)
++{
++	int n = 0, scm, remainder = 0, tabw, pad;
++	unsigned int i;
++	#if BAR_TITLE_LEFT_PAD && BAR_TITLE_RIGHT_PAD
++	int x = a->x + lrpad / 2, w = a->w - lrpad;
++	#elif BAR_TITLE_LEFT_PAD
++	int x = a->x + lrpad / 2, w = a->w - lrpad / 2;
++	#elif BAR_TITLE_RIGHT_PAD
++	int x = a->x, w = a->w - lrpad / 2;
++	#else
++	int x = a->x, w = a->w;
++	#endif // BAR_TITLE_LEFT_PAD | BAR_TITLE_RIGHT_PAD
++
++	Client *c;
++	for (c = bar->mon->clients; c; c = c->next)
++		if (ISVISIBLE(c))
++			n++;
++
++	if (n > 0) {
++		remainder = w % n;
++		tabw = w / n;
++		for (i = 0, c = bar->mon->clients; c; c = c->next, i++) {
++			if (!ISVISIBLE(c))
++				continue;
++			if (bar->mon->sel == c)
++				#if BAR_VTCOLORS_PATCH
++				scm = SchemeTitleSel;
++				#elif BAR_TITLECOLOR_PATCH
++				scm = SchemeTitle;
++				#else
++				scm = SchemeSel;
++				#endif // BAR_VTCOLORS_PATCH / BAR_TITLECOLOR_PATCH
++			#ifdef HIDDEN
++			else if (HIDDEN(c))
++				scm = SchemeHid;
++			#endif
++			else
++				#if BAR_VTCOLORS_PATCH
++				scm = SchemeTitleNorm;
++				#else
++				scm = SchemeNorm;
++				#endif // BAR_VTCOLORS_PATCH
++
++			pad = lrpad / 2;
++			#if BAR_CENTEREDWINDOWNAME_PATCH
++			if (TEXTW(c->name) < tabw)
++				pad = (tabw - TEXTW(c->name) + lrpad) / 2;
++			#endif // BAR_CENTEREDWINDOWNAME_PATCH
++
++			drw_setscheme(drw, scheme[scm]);
++			#if BAR_PANGO_PATCH
++			drw_text(drw, x, 0, tabw + (i < remainder ? 1 : 0), bh, pad, c->name, 0, False);
++			#else
++			drw_text(drw, x, 0, tabw + (i < remainder ? 1 : 0), bh, pad, c->name, 0);
++			#endif // BAR_PANGO_PATCH
++			x += tabw + (i < remainder ? 1 : 0);
++		}
++	}
++	return a->x + a->w;
++}
++
++int
++click_awesomebar(Bar *bar, Arg *arg, BarClickArg *a)
++{
++	int x = 0, n = 0;
++	Client *c;
++
++	for (c = bar->mon->clients; c; c = c->next)
++		if (ISVISIBLE(c))
++			n++;
++
++	c = bar->mon->clients;
++
++	do {
++		if (!c || !ISVISIBLE(c))
++			continue;
++		else
++			x += (1.0 / (double)n) * a->rel_w;
++	} while (c && a->rel_x > x && (c = c->next));
++
++	if (c) {
++		arg->v = c;
++		return ClkWinTitle;
++	}
++	return -1;
++}
+\ No newline at end of file
+diff --git a/patch/bar_awesomebar.h b/patch/bar_awesomebar.h
+new file mode 100644
+index 0000000..3269954
+--- /dev/null
++++ b/patch/bar_awesomebar.h
+@@ -0,0 +1,3 @@
++static int width_awesomebar(Bar *bar, BarWidthArg *a);
++static int draw_awesomebar(Bar *bar, BarDrawArg *a);
++static int click_awesomebar(Bar *bar, Arg *arg, BarClickArg *a);
+\ No newline at end of file
+diff --git a/patch/include.c b/patch/include.c
+index d422f56..6ae83ed 100644
+--- a/patch/include.c
++++ b/patch/include.c
+@@ -2,4 +2,5 @@
+ #include "bar_ltsymbol.c"
+ #include "bar_status.c"
+ #include "bar_tags.c"
+-#include "bar_wintitle.c"
+\ No newline at end of file
++//#include "bar_wintitle.c"
++#include "bar_awesomebar.c"
+\ No newline at end of file
+diff --git a/patch/include.h b/patch/include.h
+index 5f9a3fe..de77a11 100644
+--- a/patch/include.h
++++ b/patch/include.h
+@@ -2,4 +2,5 @@
+ #include "bar_ltsymbol.h"
+ #include "bar_status.h"
+ #include "bar_tags.h"
+-#include "bar_wintitle.h"
+\ No newline at end of file
++//#include "bar_wintitle.h"
++#include "bar_awesomebar.h"
+\ No newline at end of file
+-- 
+2.19.1
+

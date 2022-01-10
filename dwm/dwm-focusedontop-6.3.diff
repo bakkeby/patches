@@ -1,0 +1,301 @@
+From 96b77618391c9feb45e91291fad274ca9dfeed11 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:43:28 +0100
+Subject: [PATCH] focusedontop: allow the currently focused client to  display
+ on top of floating windows, but not on top of transient windows or  dialog
+ boxes
+
+---
+ config.def.h | 14 +++++++--
+ dwm.c        | 83 ++++++++++++++++++++++++++++++++++++++--------------
+ 2 files changed, 72 insertions(+), 25 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..c964678 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,6 +5,7 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static const int focusedontop       = 1;        /* 1 means focused client is shown on top of floating windows */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";
+@@ -21,14 +22,21 @@ static const char *colors[][3]      = {
+ /* tagging */
+ static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+ 
++#define WTYPE "_NET_WM_WINDOW_TYPE_"
+ static const Rule rules[] = {
+ 	/* xprop(1):
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
++	 *	_NET_WM_WINDOW_TYPE(ATOM) = wintype
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class      role        instance  title  wintype,          tags mask  isfloating  alwaysontop monitor */
++	{ NULL,       NULL,       NULL,     NULL,  WTYPE "DIALOG",   0,         1,          1,          -1 },
++	{ NULL,       NULL,       NULL,     NULL,  WTYPE "UTILITY",  0,         1,          1,          -1 },
++	{ NULL,       NULL,       NULL,     NULL,  WTYPE "TOOLBAR",  0,         1,          1,          -1 },
++	{ NULL,       NULL,       NULL,     NULL,  WTYPE "SPLASH",   0,         1,          1,          -1 },
++	{ "Gimp",     NULL,       NULL,     NULL,  NULL,             0,         1,          0,          -1 },
++	{ "Firefox",  NULL,       NULL,     NULL,  NULL,             1 << 8,    0,          0,          -1 },
++	{ NULL,       "pop-up",   NULL,     NULL,  NULL,             0,         1,          1,          -1 },
+ };
+ 
+ /* layout(s) */
+diff --git a/dwm.c b/dwm.c
+index a96f33c..0f7b60e 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -60,10 +60,10 @@
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+-enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
++enum { NetSupported, NetWMName, NetWMState, NetWMStateAbove, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+-       NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
+-enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
++       NetClientList, NetLast }; /* EWMH atoms */
++enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMWindowRole, WMLast }; /* default atoms */
+ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
+ 
+@@ -93,6 +93,7 @@ struct Client {
+ 	int bw, oldbw;
+ 	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
++	int alwaysontop;
+ 	Client *next;
+ 	Client *snext;
+ 	Monitor *mon;
+@@ -134,10 +135,13 @@ struct Monitor {
+ 
+ typedef struct {
+ 	const char *class;
++	const char *role;
+ 	const char *instance;
+ 	const char *title;
++	const char *wintype;
+ 	unsigned int tags;
+ 	int isfloating;
++	int alwaysontop;
+ 	int monitor;
+ } Rule;
+ 
+@@ -225,7 +229,6 @@ static void updatenumlockmask(void);
+ static void updatesizehints(Client *c);
+ static void updatestatus(void);
+ static void updatetitle(Client *c);
+-static void updatewindowtype(Client *c);
+ static void updatewmhints(Client *c);
+ static void view(const Arg *arg);
+ static Client *wintoclient(Window w);
+@@ -280,6 +283,8 @@ void
+ applyrules(Client *c)
+ {
+ 	const char *class, *instance;
++	char role[64];
++	Atom wintype;
+ 	unsigned int i;
+ 	const Rule *r;
+ 	Monitor *m;
+@@ -291,15 +296,20 @@ applyrules(Client *c)
+ 	XGetClassHint(dpy, c->win, &ch);
+ 	class    = ch.res_class ? ch.res_class : broken;
+ 	instance = ch.res_name  ? ch.res_name  : broken;
++	gettextprop(c->win, wmatom[WMWindowRole], role, sizeof(role));
++	wintype  = getatomprop(c, netatom[NetWMWindowType]);
+ 
+ 	for (i = 0; i < LENGTH(rules); i++) {
+ 		r = &rules[i];
+ 		if ((!r->title || strstr(c->name, r->title))
+ 		&& (!r->class || strstr(class, r->class))
+-		&& (!r->instance || strstr(instance, r->instance)))
++		&& (!r->role || strstr(role, r->role))
++		&& (!r->instance || strstr(instance, r->instance))
++		&& (!r->wintype || wintype == XInternAtom(dpy, r->wintype, False)))
+ 		{
+ 			c->isfloating = r->isfloating;
+ 			c->tags |= r->tags;
++			c->alwaysontop = r->alwaysontop;
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+ 			if (m)
+ 				c->mon = m;
+@@ -523,6 +533,9 @@ clientmessage(XEvent *e)
+ 		|| cme->data.l[2] == netatom[NetWMFullscreen])
+ 			setfullscreen(c, (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
+ 				|| (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
++		else if (cme->data.l[1] == netatom[NetWMStateAbove]
++			|| cme->data.l[2] == netatom[NetWMStateAbove])
++			c->alwaysontop = (cme->data.l[0] || cme->data.l[1]);
+ 	} else if (cme->message_type == netatom[NetActiveWindow]) {
+ 		if (c != selmon->sel && !c->isurgent)
+ 			seturgent(c, 1);
+@@ -760,6 +773,7 @@ enternotify(XEvent *e)
+ {
+ 	Client *c;
+ 	Monitor *m;
++	XEvent xev;
+ 	XCrossingEvent *ev = &e->xcrossing;
+ 
+ 	if ((ev->mode != NotifyNormal || ev->detail == NotifyInferior) && ev->window != root)
+@@ -772,6 +786,7 @@ enternotify(XEvent *e)
+ 	} else if (!c || c == selmon->sel)
+ 		return;
+ 	focus(c);
++	while (XCheckMaskEvent(dpy, EnterWindowMask, &xev));
+ }
+ 
+ void
+@@ -787,6 +802,8 @@ expose(XEvent *e)
+ void
+ focus(Client *c)
+ {
++	Client *f;
++	XWindowChanges wc;
+ 	if (!c || !ISVISIBLE(c))
+ 		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
+ 	if (selmon->sel && selmon->sel != c)
+@@ -801,6 +818,31 @@ focus(Client *c)
+ 		grabbuttons(c, 1);
+ 		XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
+ 		setfocus(c);
++		if (focusedontop && c->mon->lt[c->mon->sellt]->arrange) {
++
++			/* Move all visible tiled clients that are not marked as on top below the bar window */
++			wc.stack_mode = Below;
++			wc.sibling = c->mon->barwin;
++			for (f = c->mon->stack; f; f = f->snext)
++				if (f != c && !f->isfloating && ISVISIBLE(f) && !f->alwaysontop) {
++					XConfigureWindow(dpy, f->win, CWSibling|CWStackMode, &wc);
++					wc.sibling = f->win;
++				}
++
++			/* Move the currently focused client above the bar window */
++			wc.stack_mode = Above;
++			wc.sibling = c->mon->barwin;
++			XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
++
++			/* Move all visible floating windows that are not marked as on top below the current window */
++			wc.stack_mode = Below;
++			wc.sibling = c->win;
++			for (f = c->mon->stack; f; f = f->snext)
++				if (f != c && f->isfloating && ISVISIBLE(f) && !f->alwaysontop) {
++					XConfigureWindow(dpy, f->win, CWSibling|CWStackMode, &wc);
++					wc.sibling = f->win;
++				}
++		}
+ 	} else {
+ 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+ 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
+@@ -837,6 +879,7 @@ void
+ focusstack(const Arg *arg)
+ {
+ 	Client *c = NULL, *i;
++	XEvent xev;
+ 
+ 	if (!selmon->sel || (selmon->sel->isfullscreen && lockfullscreen))
+ 		return;
+@@ -855,8 +898,10 @@ focusstack(const Arg *arg)
+ 	}
+ 	if (c) {
+ 		focus(c);
+-		restack(selmon);
++		if (!focusedontop)
++			restack(selmon);
+ 	}
++	while (XCheckMaskEvent(dpy, EnterWindowMask, &xev));
+ }
+ 
+ Atom
+@@ -1024,6 +1069,7 @@ manage(Window w, XWindowAttributes *wa)
+ 	Client *c, *t = NULL;
+ 	Window trans = None;
+ 	XWindowChanges wc;
++	XEvent xev;
+ 
+ 	c = ecalloc(1, sizeof(Client));
+ 	c->win = w;
+@@ -1038,6 +1084,7 @@ manage(Window w, XWindowAttributes *wa)
+ 	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
+ 		c->mon = t->mon;
+ 		c->tags = t->tags;
++		c->alwaysontop = 1;
+ 	} else {
+ 		c->mon = selmon;
+ 		applyrules(c);
+@@ -1057,7 +1104,10 @@ manage(Window w, XWindowAttributes *wa)
+ 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
+ 	XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
+ 	configure(c); /* propagates border_width, if size doesn't change */
+-	updatewindowtype(c);
++	if (getatomprop(c, netatom[NetWMState]) == netatom[NetWMStateAbove])
++		c->alwaysontop = 1;
++	if (getatomprop(c, netatom[NetWMState]) == netatom[NetWMFullscreen])
++		setfullscreen(c, 1);
+ 	updatesizehints(c);
+ 	updatewmhints(c);
+ 	XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
+@@ -1077,7 +1127,9 @@ manage(Window w, XWindowAttributes *wa)
+ 	c->mon->sel = c;
+ 	arrange(c->mon);
+ 	XMapWindow(dpy, c->win);
++
+ 	focus(NULL);
++	while (XCheckMaskEvent(dpy, EnterWindowMask, &xev));
+ }
+ 
+ void
+@@ -1244,8 +1296,6 @@ propertynotify(XEvent *e)
+ 			if (c == c->mon->sel)
+ 				drawbar(c->mon);
+ 		}
+-		if (ev->atom == netatom[NetWMWindowType])
+-			updatewindowtype(c);
+ 	}
+ }
+ 
+@@ -1557,14 +1607,15 @@ setup(void)
+ 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
+ 	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
+ 	wmatom[WMTakeFocus] = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
++	wmatom[WMWindowRole] = XInternAtom(dpy, "WM_WINDOW_ROLE", False);
+ 	netatom[NetActiveWindow] = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
+ 	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
+ 	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
+ 	netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
++	netatom[NetWMStateAbove] = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
+ 	netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
+ 	netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+ 	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+-	netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+ 	netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
+ 	/* init cursors */
+ 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
+@@ -2007,18 +2058,6 @@ updatetitle(Client *c)
+ 		strcpy(c->name, broken);
+ }
+ 
+-void
+-updatewindowtype(Client *c)
+-{
+-	Atom state = getatomprop(c, netatom[NetWMState]);
+-	Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
+-
+-	if (state == netatom[NetWMFullscreen])
+-		setfullscreen(c, 1);
+-	if (wtype == netatom[NetWMWindowTypeDialog])
+-		c->isfloating = 1;
+-}
+-
+ void
+ updatewmhints(Client *c)
+ {
+-- 
+2.19.1
+

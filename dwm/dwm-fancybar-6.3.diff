@@ -1,0 +1,96 @@
+From 781cd03b7c3a0cf59701b9d6a928c1b81cd28cdd Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 10 Jan 2022 11:36:07 +0100
+Subject: [PATCH] fancybar, shows the titles of all visible windows in the 
+ status bar
+
+Inspired by the decorated tabbed layout of Xmonad this patch provides a status bar that shows
+the titles of all visible windows (as opposed to showing just the selected one). When the
+titles don't completely fit, they're cropped. The title of the selected window is inverted.
+
+Authors:
+   Mate Nagy
+   Jochen Sprickerhof
+
+Refer to https://dwm.suckless.org/patches/fancybar/
+---
+ dwm.c | 46 ++++++++++++++++++++++++++++++++++++----------
+ 1 file changed, 36 insertions(+), 10 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index a96f33c..b8c6449 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -696,10 +696,10 @@ dirtomon(int dir)
+ void
+ drawbar(Monitor *m)
+ {
+-	int x, w, tw = 0;
++	int x, w, tw = 0, tabw, mw, ew = 0;
+ 	int boxs = drw->fonts->h / 9;
+ 	int boxw = drw->fonts->h / 6 + 2;
+-	unsigned int i, occ = 0, urg = 0;
++	unsigned int i, occ = 0, urg = 0, n = 0;
+ 	Client *c;
+ 
+ 	if (!m->showbar)
+@@ -713,6 +713,8 @@ drawbar(Monitor *m)
+ 	}
+ 
+ 	for (c = m->clients; c; c = c->next) {
++		if (ISVISIBLE(c))
++			n++;
+ 		occ |= c->tags;
+ 		if (c->isurgent)
+ 			urg |= c->tags;
+@@ -733,15 +735,39 @@ drawbar(Monitor *m)
+ 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+ 
+ 	if ((w = m->ww - tw - x) > bh) {
+-		if (m->sel) {
+-			drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
+-			drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
+-			if (m->sel->isfloating)
+-				drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
+-		} else {
+-			drw_setscheme(drw, scheme[SchemeNorm]);
+-			drw_rect(drw, x, 0, w, bh, 1, 1);
++		if (n > 0) {
++			tabw = TEXTW(m->sel->name) + lrpad;
++			mw = (tabw >= w || n == 1) ? 0 : (w - tabw) / (n - 1);
++
++			i = 0;
++			for (c = m->clients; c; c = c->next) {
++				if (!ISVISIBLE(c) || c == m->sel)
++					continue;
++				tw = TEXTW(c->name);
++				if (tabw < mw)
++					ew += (mw - tabw);
++				else
++					i++;
++			}
++			if (i > 0)
++				mw += ew / i;
++
++			for (c = m->clients; c; c = c->next) {
++				if (!ISVISIBLE(c))
++					continue;
++				tabw = MIN(m->sel == c ? w : mw, TEXTW(c->name));
++
++				drw_setscheme(drw, scheme[m->sel == c ? SchemeSel : SchemeNorm]);
++				if (tabw > 0) /* trap special handling of 0 in drw_text */
++					drw_text(drw, x, 0, tabw, bh, lrpad / 2, c->name, 0);
++				if (c->isfloating)
++					drw_rect(drw, x + boxs, boxs, boxw, boxw, c->isfixed, 0);
++				x += tabw;
++				w -= tabw;
++			}
+ 		}
++		drw_setscheme(drw, scheme[SchemeNorm]);
++		drw_rect(drw, x, 0, w, bh, 1, 1);
+ 	}
+ 	drw_map(drw, m->barwin, 0, 0, m->ww, bh);
+ }
+-- 
+2.19.1
+
