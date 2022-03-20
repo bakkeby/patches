@@ -1,0 +1,59 @@
+From 0d3204f1f3f568e0e2e0d17423f7954db6ae3939 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Sun, 20 Mar 2022 15:26:13 +0100
+Subject: [PATCH] Adding barpadding patch for dmenu
+
+---
+ config.def.h | 3 +++
+ dmenu.c      | 7 ++++++-
+ 2 files changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/config.def.h b/config.def.h
+index 1edb647..4251c09 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -2,6 +2,9 @@
+ /* Default settings; can be overriden by command line. */
+ 
+ static int topbar = 1;                      /* -b  option; if 0, dmenu appears at bottom     */
++static const int vertpad = 10;              /* vertical padding of bar */
++static const int sidepad = 10;              /* horizontal padding of bar */
++
+ /* -fn option overrides fonts[0]; default X11 font or font set */
+ static const char *fonts[] = {
+ 	"monospace:size=10"
+diff --git a/dmenu.c b/dmenu.c
+index 65f25ce..2e1fb56 100644
+--- a/dmenu.c
++++ b/dmenu.c
+@@ -39,6 +39,8 @@ static char *embed;
+ static int bh, mw, mh;
+ static int inputw = 0, promptw;
+ static int lrpad; /* sum of left and right padding */
++static int vp;    /* vertical padding for bar */
++static int sp;    /* side padding for bar */
+ static size_t cursor;
+ static struct item *items = NULL;
+ static struct item *matches, *matchend;
+@@ -659,7 +661,7 @@ setup(void)
+ 	swa.override_redirect = True;
+ 	swa.background_pixel = scheme[SchemeNorm][ColBg].pixel;
+ 	swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
+-	win = XCreateWindow(dpy, parentwin, x, y, mw, mh, 0,
++	win = XCreateWindow(dpy, parentwin, x + sp, y + vp, mw - 2 * sp, mh, 0,
+ 	                    CopyFromParent, CopyFromParent, CopyFromParent,
+ 	                    CWOverrideRedirect | CWBackPixel | CWEventMask, &swa);
+ 	XSetClassHint(dpy, win, &ch);
+@@ -752,6 +754,9 @@ main(int argc, char *argv[])
+ 		die("no fonts could be loaded.");
+ 	lrpad = drw->fonts->h;
+ 
++	sp = sidepad;
++	vp = (topbar == 1) ? vertpad : - vertpad;
++
+ #ifdef __OpenBSD__
+ 	if (pledge("stdio rpath", NULL) == -1)
+ 		die("pledge");
+-- 
+2.35.1
+
