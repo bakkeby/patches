@@ -1,0 +1,50 @@
+From 1bfc8bcd65c877a06170ad469e52674de52a813a Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Tue, 26 Apr 2022 10:17:35 +0200
+Subject: [PATCH] monocle_count - prints "[M] [2/3]" layout symbol
+
+---
+ dwm.c | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index a96f33c..a0df27f 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -700,6 +700,7 @@ drawbar(Monitor *m)
+ 	int boxs = drw->fonts->h / 9;
+ 	int boxw = drw->fonts->h / 6 + 2;
+ 	unsigned int i, occ = 0, urg = 0;
++	unsigned int a = 0, s = 0;
+ 	Client *c;
+ 
+ 	if (!m->showbar)
+@@ -728,6 +729,16 @@ drawbar(Monitor *m)
+ 				urg & 1 << i);
+ 		x += w;
+ 	}
++
++	if (m->lt[m->sellt]->arrange == monocle) {
++		for (c = nexttiled(m->clients), a = 0, s = 0; c; c = nexttiled(c->next), a++)
++			if (c == m->stack)
++				s = a;
++		if (!s && a)
++			s = a;
++		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[M] [%d/%d]", s, a);
++	}
++
+ 	w = blw = TEXTW(m->ltsymbol);
+ 	drw_setscheme(drw, scheme[SchemeNorm]);
+ 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+@@ -1113,8 +1124,6 @@ monocle(Monitor *m)
+ 	for (c = m->clients; c; c = c->next)
+ 		if (ISVISIBLE(c))
+ 			n++;
+-	if (n > 0) /* override layout symbol */
+-		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
+ 	for (c = nexttiled(m->clients); c; c = nexttiled(c->next))
+ 		resize(c, m->wx, m->wy, m->ww - 2 * c->bw, m->wh - 2 * c->bw, 0);
+ }
+-- 
+2.19.1
+
