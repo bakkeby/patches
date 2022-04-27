@@ -1,4 +1,4 @@
-From 1bfc8bcd65c877a06170ad469e52674de52a813a Mon Sep 17 00:00:00 2001
+From 8af423e333611d3a7eac5e09b78b004422945f19 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Tue, 26 Apr 2022 10:17:35 +0200
 Subject: [PATCH] monocle_count - prints "[M] [2/3]" layout symbol
@@ -8,7 +8,7 @@ Subject: [PATCH] monocle_count - prints "[M] [2/3]" layout symbol
  1 file changed, 11 insertions(+), 2 deletions(-)
 
 diff --git a/dwm.c b/dwm.c
-index a96f33c..a0df27f 100644
+index a96f33c..a3094d9 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -700,6 +700,7 @@ drawbar(Monitor *m)
@@ -27,9 +27,9 @@ index a96f33c..a0df27f 100644
 +	if (m->lt[m->sellt]->arrange == monocle) {
 +		for (c = nexttiled(m->clients), a = 0, s = 0; c; c = nexttiled(c->next), a++)
 +			if (c == m->stack)
-+				s = a;
++				s = a + 1;
 +		if (!s && a)
-+			s = a;
++			s = 1;
 +		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[M] [%d/%d]", s, a);
 +	}
 +
