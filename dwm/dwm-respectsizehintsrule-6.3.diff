@@ -1,0 +1,67 @@
+From 670216cee61a7e8063779db5369338e0ca09860b Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Tue, 3 May 2022 09:15:31 +0200
+Subject: [PATCH] Adding respect size hints rule example patch
+
+---
+ config.def.h | 6 +++---
+ dwm.c        | 5 ++++-
+ 2 files changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..cef998a 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -26,9 +26,9 @@ static const Rule rules[] = {
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class      instance    title       tags mask     respectsizehints    isfloating   monitor */
++	{ "Gimp",     NULL,       NULL,       0,            1,                  1,           -1 },
++	{ "Firefox",  NULL,       NULL,       1 << 8,       0,                  0,           -1 },
+ };
+ 
+ /* layout(s) */
+diff --git a/dwm.c b/dwm.c
+index a96f33c..4af54b4 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -91,6 +91,7 @@ struct Client {
+ 	int oldx, oldy, oldw, oldh;
+ 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
+ 	int bw, oldbw;
++	int respectsizehints;
+ 	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+ 	Client *next;
+@@ -137,6 +138,7 @@ typedef struct {
+ 	const char *instance;
+ 	const char *title;
+ 	unsigned int tags;
++	int respectsizehints;
+ 	int isfloating;
+ 	int monitor;
+ } Rule;
+@@ -298,6 +300,7 @@ applyrules(Client *c)
+ 		&& (!r->class || strstr(class, r->class))
+ 		&& (!r->instance || strstr(instance, r->instance)))
+ 		{
++			c->respectsizehints = r->respectsizehints;
+ 			c->isfloating = r->isfloating;
+ 			c->tags |= r->tags;
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+@@ -344,7 +347,7 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
+ 		*h = bh;
+ 	if (*w < bh)
+ 		*w = bh;
+-	if (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
++	if (resizehints || c->respectsizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
+ 		/* see last two sentences in ICCCM 4.1.2.3 */
+ 		baseismin = c->basew == c->minw && c->baseh == c->minh;
+ 		if (!baseismin) { /* temporarily remove base dimensions */
+-- 
+2.19.1
+
