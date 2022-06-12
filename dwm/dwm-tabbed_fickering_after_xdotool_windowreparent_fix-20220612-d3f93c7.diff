@@ -1,0 +1,91 @@
+From cc6b3cc8f093183bf774585a051e51863d122284 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Sun, 12 Jun 2022 12:05:47 +0200
+Subject: [PATCH] Stop listening for events for unmanaged windows
+
+This is in particular to avoid flickering in dwm (and high CPU usage)
+when hovering the mouse over a tabbed window that was previously
+managed by dwm.
+
+Consider the following two scenarios:
+
+1)
+
+We start tabbed (window 0xc000003), tabbed is managed by the
+window manager.
+We start st being embedded into tabbed.
+
+$ st -w 0xc000003
+
+What happens here is that:
+   - tabbed gets a MapRequest for the st window
+   - tabbed reparents the st window
+   - tabbed will receive X events for the window
+
+The window manager will have no awareness of the st window and the
+X server will not send X events to the window manager relating to
+the st window.
+
+There is no flickering or any other issues relating to focus.
+
+2)
+
+We start tabbed (window 0xc000003), tabbed is managed by the
+window manager.
+We start st as normal (window 0xd400005).
+
+What happens here is that:
+   - the window manager gets a MapRequest for the st window
+   - dwm manages the st window as a normal client
+   - dwm will receive X events for the window
+
+Now we use xdotool to trigger a reparenting of the st window into
+tabbed.
+
+$ xdotool windowreparent 0xd400005 0xc000003
+
+What happens here is that:
+   - tabbed gets a MapRequest for the st window
+   - tabbed reparents the st window
+   - the window manager gets an UnmapNotify
+   - the window manager no longer manages the st window
+   - both the window manager and tabbed will receive X events
+     for the st window
+
+In dwm move the mouse cursor over the tabbed window.
+
+What happens now is that:
+   - dwm will receive a FocusIn event for the tabbed window
+   - dwm will set input focus for the tabbed window
+   - tabbed will receive a FocusIn event for the main window
+   - tabbed will give focus to the window on the currently selected
+     tab
+   - which again triggers a FocusIn event which dwm receives
+   - dwm determines that the window that the FocusIn event is for
+     (0xd400005) is not the currently selected client (tabbed)
+   - dwm sets input focus for the tabbed window
+   - this causes an infinite loop as long as the mouse cursor hovers
+     the tabbed window, resulting in flickering and high CPU usage
+
+The fix here is to tell the X server that we are no longer interested
+in receiving events for this window when the window manager stops
+managing the window.
+---
+ dwm.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/dwm.c b/dwm.c
+index 5646a5c..0bdd36c 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1780,6 +1780,7 @@ unmanage(Client *c, int destroyed)
+ 		wc.border_width = c->oldbw;
+ 		XGrabServer(dpy); /* avoid race conditions */
+ 		XSetErrorHandler(xerrordummy);
++		XSelectInput(dpy, c->win, NoEventMask);
+ 		XConfigureWindow(dpy, c->win, CWBorderWidth, &wc); /* restore border */
+ 		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
+ 		setclientstate(c, WithdrawnState);
+-- 
+2.36.1
+
