@@ -1,4 +1,4 @@
-From 17ec7643b997f8a7e77aecc36e93185c2b815544 Mon Sep 17 00:00:00 2001
+From 3960c9bbf1dc1918ba3bdfe00c4bec2689730b6a Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Mon, 10 Jan 2022 14:02:07 +0100
 Subject: [PATCH] vanitygaps - adds gaps to layouts
@@ -154,7 +154,7 @@ index a96f33c..7a0119d 100644
  {
 diff --git a/vanitygaps.c b/vanitygaps.c
 new file mode 100644
-index 0000000..3f31593
+index 0000000..640a158
 --- /dev/null
 +++ b/vanitygaps.c
 @@ -0,0 +1,809 @@
@@ -304,7 +304,7 @@ index 0000000..3f31593
 +{
 +	unsigned int n, oe, ie;
 +	#if PERTAG_PATCH
-+	oe = ie = selmon->pertag->enablegaps[selmon->pertag->curtag];
++	oe = ie = m->pertag->enablegaps[m->pertag->curtag];
 +	#else
 +	oe = ie = enablegaps;
 +	#endif // PERTAG_PATCH

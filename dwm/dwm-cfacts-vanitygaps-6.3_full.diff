@@ -118,7 +118,7 @@ index a96f33c..bcb155d 100644
 2.19.1
 
 
-From 3786a63796c661a8a66b4a10aa45dcf77cdf68ac Mon Sep 17 00:00:00 2001
+From 5ab2e0de5244432354fc1cbb68c58a831b40ae5c Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Mon, 10 Jan 2022 11:26:11 +0100
 Subject: [PATCH 2/2] vanitygaps - adds gaps to layouts
@@ -282,7 +282,7 @@ index bcb155d..36582e1 100644
  {
 diff --git a/vanitygaps.c b/vanitygaps.c
 new file mode 100644
-index 0000000..1a816b6
+index 0000000..9b66d53
 --- /dev/null
 +++ b/vanitygaps.c
 @@ -0,0 +1,822 @@
@@ -432,7 +432,7 @@ index 0000000..1a816b6
 +{
 +	unsigned int n, oe, ie;
 +	#if PERTAG_PATCH
-+	oe = ie = selmon->pertag->enablegaps[selmon->pertag->curtag];
++	oe = ie = m->pertag->enablegaps[m->pertag->curtag];
 +	#else
 +	oe = ie = enablegaps;
 +	#endif // PERTAG_PATCH
