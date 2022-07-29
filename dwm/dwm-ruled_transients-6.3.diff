@@ -1,0 +1,145 @@
+From a1b6d5f5f83570e1234fa4cb09bea0818674b192 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Fri, 29 Jul 2022 21:52:14 +0200
+Subject: [PATCH] This patch allows for client rules to apply for transient
+ windows like they do for normal windows.
+
+A new "transient" rule filter has been added that indicates whether
+the rule applies to:
+   - transient windows
+   - normal windows or
+   - both
+
+If no client rule applies for a transient window then it will fall
+back to the default behaviour of:
+   - becoming floating and
+   - inheriting the tags and monitor of the parent window
+
+Note that dialog windows for example are also made floating by default.
+
+Should there be interest in managing window types via client rules then
+refer to this proposed patch:
+https://lists.suckless.org/hackers/att-17456/dwm-ewmhwindows-master-f04cac6.diff
+---
+ config.def.h | 10 +++++++---
+ dwm.c        | 36 +++++++++++++++++++++++++-----------
+ 2 files changed, 32 insertions(+), 14 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..69327a5 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -25,10 +25,14 @@ static const Rule rules[] = {
+ 	/* xprop(1):
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
++	 *  WM_TRANSIENT_FOR(WINDOW) = transient
++	 *     - value of 0 means that the rule does not apply for transient windows (default)
++	 *     - value of 1 means that the rule does apply for transient windows only
++	 *     - value of -1 means that the rule applies to both normal and transient windows
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class      instance    title       transient     tags mask     isfloating   monitor */
++	{ "Gimp",     NULL,       NULL,       0,            0,            1,           -1 },
++	{ "Firefox",  NULL,       NULL,       0,            1 << 8,       0,           -1 },
+ };
+ 
+ /* layout(s) */
+diff --git a/dwm.c b/dwm.c
+index a96f33c..86eae43 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -136,6 +136,7 @@ typedef struct {
+ 	const char *class;
+ 	const char *instance;
+ 	const char *title;
++	const int transient; /* whether the rule applies to transient windows or not */
+ 	unsigned int tags;
+ 	int isfloating;
+ 	int monitor;
+@@ -283,7 +284,15 @@ applyrules(Client *c)
+ 	unsigned int i;
+ 	const Rule *r;
+ 	Monitor *m;
++	Client *t = NULL;
++	Window trans = None;
+ 	XClassHint ch = { NULL, NULL };
++	int ruled = 0, transient = 0;
++
++	if (XGetTransientForHint(dpy, c->win, &trans)) {
++		t = wintoclient(trans);
++		transient = 1;
++	}
+ 
+ 	/* rule matching */
+ 	c->isfloating = 0;
+@@ -296,8 +305,10 @@ applyrules(Client *c)
+ 		r = &rules[i];
+ 		if ((!r->title || strstr(c->name, r->title))
+ 		&& (!r->class || strstr(class, r->class))
+-		&& (!r->instance || strstr(instance, r->instance)))
++		&& (!r->instance || strstr(instance, r->instance))
++		&& (r->transient == -1 || (r->transient == transient)))
+ 		{
++			ruled = 1;
+ 			c->isfloating = r->isfloating;
+ 			c->tags |= r->tags;
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+@@ -309,6 +320,15 @@ applyrules(Client *c)
+ 		XFree(ch.res_class);
+ 	if (ch.res_name)
+ 		XFree(ch.res_name);
++
++	/* default behaviour; if we have a transient window that is not subject to client rules
++	 * then the window is floating and inherits the tags and monitor from the parent window. */
++	if (!ruled && t) {
++		c->mon = t->mon;
++		c->tags = t->tags;
++		c->isfloating = 1;
++	}
++
+ 	c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
+ }
+ 
+@@ -1021,8 +1041,7 @@ killclient(const Arg *arg)
+ void
+ manage(Window w, XWindowAttributes *wa)
+ {
+-	Client *c, *t = NULL;
+-	Window trans = None;
++	Client *c;
+ 	XWindowChanges wc;
+ 
+ 	c = ecalloc(1, sizeof(Client));
+@@ -1033,15 +1052,10 @@ manage(Window w, XWindowAttributes *wa)
+ 	c->w = c->oldw = wa->width;
+ 	c->h = c->oldh = wa->height;
+ 	c->oldbw = wa->border_width;
++	c->mon = selmon;
+ 
+ 	updatetitle(c);
+-	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
+-		c->mon = t->mon;
+-		c->tags = t->tags;
+-	} else {
+-		c->mon = selmon;
+-		applyrules(c);
+-	}
++	applyrules(c);
+ 
+ 	if (c->x + WIDTH(c) > c->mon->mx + c->mon->mw)
+ 		c->x = c->mon->mx + c->mon->mw - WIDTH(c);
+@@ -1063,7 +1077,7 @@ manage(Window w, XWindowAttributes *wa)
+ 	XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
+ 	grabbuttons(c, 0);
+ 	if (!c->isfloating)
+-		c->isfloating = c->oldstate = trans != None || c->isfixed;
++		c->isfloating = c->oldstate = c->isfixed;
+ 	if (c->isfloating)
+ 		XRaiseWindow(dpy, c->win);
+ 	attach(c);
+-- 
+2.19.1
+
