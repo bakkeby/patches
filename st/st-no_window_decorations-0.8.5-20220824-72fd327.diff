@@ -1,0 +1,37 @@
+From abd444fde0fc6c6d4c297a55110e7eeb64a2661d Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 24 Aug 2022 11:10:59 +0200
+Subject: [PATCH] Adding no window decorations patch
+
+This patch sets the _MOTIF_WM_HINTS property on the st window which
+will allow the window to be drawn without window decorations if the
+window manager supports it.
+
+In GNOME and KDE this should allow the window to be drawn without a
+title bar at the top.
+
+In dwm if the decoration hints patch is applied then the st window
+should start without a window border.
+---
+ x.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/x.c b/x.c
+index 2a3bd38..37d893f 100644
+--- a/x.c
++++ b/x.c
+@@ -1220,6 +1220,11 @@ xinit(int cols, int rows)
+ 	xw.netwmiconname = XInternAtom(xw.dpy, "_NET_WM_ICON_NAME", False);
+ 	XSetWMProtocols(xw.dpy, xw.win, &xw.wmdeletewin, 1);
+ 
++	Atom motifwmhints = XInternAtom(xw.dpy, "_MOTIF_WM_HINTS", False);
++	unsigned int data[] = { 0x2, 0x0, 0x0, 0x0, 0x0 };
++	XChangeProperty(xw.dpy, xw.win, motifwmhints, motifwmhints, 16,
++				PropModeReplace, (unsigned char *)data, 5);
++
+ 	xw.netwmpid = XInternAtom(xw.dpy, "_NET_WM_PID", False);
+ 	XChangeProperty(xw.dpy, xw.win, xw.netwmpid, XA_CARDINAL, 32,
+ 			PropModeReplace, (uchar *)&thispid, 1);
+-- 
+2.37.2
+
