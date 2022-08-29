@@ -1,0 +1,200 @@
+From 78448cc7ba78cb1e24ddfbb7e233f229893a4007 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 29 Aug 2022 11:20:27 +0200
+Subject: [PATCH] Adding focusborder patch
+
+---
+ config.def.h |  1 +
+ dwm.c        | 57 +++++++++++++++++++++++++++++++++++++++++++---------
+ 2 files changed, 48 insertions(+), 10 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..17d326b 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,6 +5,7 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static const unsigned int fh        = 5;        /* focus window height */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";
+diff --git a/dwm.c b/dwm.c
+index a96f33c..5f93b7e 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -267,7 +267,7 @@ static Clr **scheme;
+ static Display *dpy;
+ static Drw *drw;
+ static Monitor *mons, *selmon;
+-static Window root, wmcheckwin;
++static Window root, wmcheckwin, focuswin;
+ 
+ /* configuration, allows nested code to access above variables */
+ #include "config.h"
+@@ -487,6 +487,7 @@ cleanup(void)
+ 		drw_cur_free(drw, cursor[i]);
+ 	for (i = 0; i < LENGTH(colors); i++)
+ 		free(scheme[i]);
++	XDestroyWindow(dpy, focuswin);
+ 	XDestroyWindow(dpy, wmcheckwin);
+ 	drw_free(drw);
+ 	XSync(dpy, False);
+@@ -787,6 +788,8 @@ expose(XEvent *e)
+ void
+ focus(Client *c)
+ {
++	XWindowChanges wc;
++
+ 	if (!c || !ISVISIBLE(c))
+ 		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
+ 	if (selmon->sel && selmon->sel != c)
+@@ -800,10 +803,16 @@ focus(Client *c)
+ 		attachstack(c);
+ 		grabbuttons(c, 1);
+ 		XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
++		XMoveResizeWindow(dpy, focuswin, c->x, c->y, c->w + 2 * c->bw, fh);
++		XMoveResizeWindow(dpy, c->win, c->x, c->y + fh, c->w, c->h - fh);
++		wc.stack_mode = Above;
++		wc.sibling = c->win;
++		XConfigureWindow(dpy, focuswin, CWSibling|CWStackMode, &wc);
+ 		setfocus(c);
+ 	} else {
+ 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+ 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
++		XMoveWindow(dpy, focuswin, 0, -fh);
+ 	}
+ 	selmon->sel = c;
+ 	drawbars();
+@@ -1150,8 +1159,8 @@ movemouse(const Arg *arg)
+ 	if (c->isfullscreen) /* no support moving fullscreen windows by mouse */
+ 		return;
+ 	restack(selmon);
+-	ocx = c->x;
+-	ocy = c->y;
++	nx = ocx = c->x;
++	ny = ocy = c->y;
+ 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+ 		None, cursor[CurMove]->cursor, CurrentTime) != GrabSuccess)
+ 		return;
+@@ -1183,16 +1192,23 @@ movemouse(const Arg *arg)
+ 			if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
+ 			&& (abs(nx - c->x) > snap || abs(ny - c->y) > snap))
+ 				togglefloating(NULL);
+-			if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
+-				resize(c, nx, ny, c->w, c->h, 1);
++			if (!selmon->lt[selmon->sellt]->arrange || c->isfloating) {
++				XMoveWindow(dpy, focuswin, nx, ny);
++				XMoveWindow(dpy, c->win, nx, ny + fh);
++			}
+ 			break;
+ 		}
+ 	} while (ev.type != ButtonRelease);
++
+ 	XUngrabPointer(dpy, CurrentTime);
++	resize(c, nx, ny, c->w, c->h, 1);
++
+ 	if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
+ 		sendmon(c, m);
+ 		selmon = m;
+ 		focus(NULL);
++	} else {
++		focus(c);
+ 	}
+ }
+ 
+@@ -1306,7 +1322,9 @@ resizemouse(const Arg *arg)
+ 		return;
+ 	restack(selmon);
+ 	ocx = c->x;
+-	ocy = c->y;
++	ocy = c->y + fh;
++	nh = c->h;
++	nw = c->w;
+ 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+ 		None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
+ 		return;
+@@ -1333,18 +1351,25 @@ resizemouse(const Arg *arg)
+ 				&& (abs(nw - c->w) > snap || abs(nh - c->h) > snap))
+ 					togglefloating(NULL);
+ 			}
+-			if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
+-				resize(c, c->x, c->y, nw, nh, 1);
++			if (!selmon->lt[selmon->sellt]->arrange || c->isfloating) {
++				XMoveResizeWindow(dpy, focuswin, c->x, c->y, nw + 2 * c->bw, fh);
++				XMoveResizeWindow(dpy, c->win, c->x, c->y + fh, nw, nh - fh);
++			}
+ 			break;
+ 		}
+ 	} while (ev.type != ButtonRelease);
++
+ 	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
+ 	XUngrabPointer(dpy, CurrentTime);
++	resize(c, c->x, c->y, nw, nh, 1);
++
+ 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+ 	if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
+ 		sendmon(c, m);
+ 		selmon = m;
+ 		focus(NULL);
++	} else {
++		focus(c);
+ 	}
+ }
+ 
+@@ -1358,8 +1383,10 @@ restack(Monitor *m)
+ 	drawbar(m);
+ 	if (!m->sel)
+ 		return;
+-	if (m->sel->isfloating || !m->lt[m->sellt]->arrange)
++	if (m->sel->isfloating || !m->lt[m->sellt]->arrange) {
+ 		XRaiseWindow(dpy, m->sel->win);
++		XRaiseWindow(dpy, focuswin);
++	}
+ 	if (m->lt[m->sellt]->arrange) {
+ 		wc.stack_mode = Below;
+ 		wc.sibling = m->barwin;
+@@ -1534,7 +1561,7 @@ void
+ setup(void)
+ {
+ 	int i;
+-	XSetWindowAttributes wa;
++	XSetWindowAttributes wa, fwa;
+ 	Atom utf8string;
+ 
+ 	/* clean up any zombies immediately */
+@@ -1585,6 +1612,14 @@ setup(void)
+ 		PropModeReplace, (unsigned char *) "dwm", 3);
+ 	XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32,
+ 		PropModeReplace, (unsigned char *) &wmcheckwin, 1);
++	/* focus window */
++	fwa.override_redirect = 1;
++	fwa.background_pixel = scheme[SchemeSel][ColBorder].pixel;
++	focuswin = XCreateWindow(dpy, root, -1, -1, 1, 1, 0, DefaultDepth(dpy, screen),
++		InputOutput, DefaultVisual(dpy, screen),
++		CWOverrideRedirect|CWBackPixel, &fwa
++	);
++	XMapWindow(dpy, focuswin);
+ 	/* EWMH support per view */
+ 	XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32,
+ 		PropModeReplace, (unsigned char *) netatom, NetLast);
+@@ -1723,6 +1758,7 @@ togglefloating(const Arg *arg)
+ 		resize(selmon->sel, selmon->sel->x, selmon->sel->y,
+ 			selmon->sel->w, selmon->sel->h, 0);
+ 	arrange(selmon);
++	focus(NULL);
+ }
+ 
+ void
+@@ -1759,6 +1795,7 @@ unfocus(Client *c, int setfocus)
+ 		return;
+ 	grabbuttons(c, 0);
+ 	XSetWindowBorder(dpy, c->win, scheme[SchemeNorm][ColBorder].pixel);
++	XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
+ 	if (setfocus) {
+ 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+ 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
+-- 
+2.19.1
+
