@@ -1,0 +1,106 @@
+From d79b32be172c976d0da99c641ea1b1bfbb0c0f9b Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Sun, 4 Dec 2022 22:14:28 +0100
+Subject: [PATCH] Use WithdrawnState rather than moving window to a negative
+ position
+
+This incurs a performance penalty as tested with the following script
+that switches between workspace 7 and 8 repeatedly.
+
+for I in $(seq 1000); do
+	duskc --ignore-reply run_command viewwsbyname 7
+	duskc --ignore-reply run_command viewwsbyname 8
+done
+
+Workspaces 7 and 8 having 12 and 7 windows respectively. In total
+2000 workspace switches are performed.
+
+Prior to this change we got a runtime of 42.6 seconds.
+
+$ time ./time_ws_change.sh
+./time_ws_change.sh  3.21s user 3.35s system 15% cpu 42.569 total
+
+Afterwards it ran for nearly two minutes.
+
+$ time ./time_ws_change.sh
+./time_ws_change.sh  3.24s user 3.96s system 6% cpu 1:55.00 total
+
+This suggests that using XMoveWindow when hiding and revealing windows
+as part of workspace switches allows for ~47 workspace switches per
+second (or one workspace switch taking 0.0212845 seconds / 21.29 ms).
+
+Whereas using the WithdrawnState gives 17.4 workspace switches per
+second (or 0.0575 seconds / 57.5 ms).
+
+The difference will likely be more perceivable on slower hardware.
+---
+ dusk.c | 25 +++++++++++++++++++------
+ 1 file changed, 19 insertions(+), 6 deletions(-)
+
+diff --git a/dusk.c b/dusk.c
+index 51b4fdc..ab1a213 100644
+--- a/dusk.c
++++ b/dusk.c
+@@ -1983,7 +1983,22 @@ grabkeys(void)
+ void
+ hide(Client *c)
+ {
+-	XMoveWindow(dpy, c->win, c->x, HEIGHT(c) * -2);
++	static XWindowAttributes ra, ca;
++
++	if (!c->win)
++		return;
++
++	XGrabServer(dpy);
++	XGetWindowAttributes(dpy, root, &ra);
++	XGetWindowAttributes(dpy, c->win, &ca);
++	/* Prevent UnmapNotify events */
++	XSelectInput(dpy, root, ra.your_event_mask & ~SubstructureNotifyMask);
++	XSelectInput(dpy, c->win, ca.your_event_mask & ~StructureNotifyMask);
++	XUnmapWindow(dpy, c->win);
++	setclientstate(c, WithdrawnState);
++	XSelectInput(dpy, root, ra.your_event_mask);
++	XSelectInput(dpy, c->win, ca.your_event_mask);
++	XUngrabServer(dpy);
+ }
+ 
+ void
+@@ -2257,8 +2272,6 @@ manage(Window w, XWindowAttributes *wa)
+ 	XChangeProperty(dpy, root, netatom[NetClientListStacking], XA_WINDOW, 32, PropModePrepend,
+ 		(unsigned char *) &(c->win), 1);
+ 
+-	setclientstate(c, NormalState);
+-
+ 	if (focusclient) {
+ 		if (c->ws == selws)
+ 			unfocus(selws->sel, 0, c);
+@@ -2290,7 +2303,6 @@ manage(Window w, XWindowAttributes *wa)
+ 		show(c);
+ 	else
+ 		hide(c);
+-	XMapWindow(dpy, c->win);
+ 
+ 	if (focusclient)
+ 		focus(c);
+@@ -2755,7 +2767,7 @@ scan(void)
+ 			if (!XGetWindowAttributes(dpy, wins[i], &wa)
+ 			|| wa.override_redirect || XGetTransientForHint(dpy, wins[i], &d1))
+ 				continue;
+-			if (wa.map_state == IsViewable || getstate(wins[i]) == IconicState)
++			if (wa.map_state == IsViewable || getstate(wins[i]) == IconicState || getstate(wins[i]) == WithdrawnState)
+ 				manage(wins[i], &wa);
+ 			else if (gettextprop(wins[i], netatom[NetClientList], swin, sizeof swin))
+ 				manage(wins[i], &wa);
+@@ -3103,7 +3115,8 @@ seturgent(Client *c, int urg)
+ void
+ show(Client *c)
+ {
+-	XMoveWindow(dpy, c->win, c->x, c->y);
++	XMapWindow(dpy, c->win);
++	setclientstate(c, NormalState);
+ }
+ 
+ void
+-- 
+2.38.1
+
