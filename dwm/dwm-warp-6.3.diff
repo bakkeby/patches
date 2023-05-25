@@ -1,4 +1,4 @@
-From 56373b668df6166b3a15b97257d8d449164c6446 Mon Sep 17 00:00:00 2001
+From c369a3f4457091fd107634b169e3ad87e6172cab Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Mon, 10 Jan 2022 14:02:41 +0100
 Subject: [PATCH] Warp: warps the mouse cursor to the center of the currently
@@ -12,7 +12,7 @@ https://github.com/bakkeby/dwm-flexipatch/blob/master/patch/warp.c
  1 file changed, 26 insertions(+)
 
 diff --git a/dwm.c b/dwm.c
-index a96f33c..7febf7e 100644
+index a96f33c..a20d778 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -228,6 +228,7 @@ static void updatetitle(Client *c);
@@ -31,15 +31,15 @@ index a96f33c..7febf7e 100644
  }
  
  void
-@@ -1371,6 +1373,8 @@ restack(Monitor *m)
+@@ -1369,6 +1371,8 @@ restack(Monitor *m)
+ 				wc.sibling = c->win;
+ 			}
  	}
- 	XSync(dpy, False);
- 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 +	if (m == selmon && (m->tagset[m->seltags] & m->sel->tags) && m->lt[m->sellt]->arrange != &monocle)
 +		warp(m->sel);
+ 	XSync(dpy, False);
+ 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
  }
- 
- void
 @@ -2050,6 +2054,28 @@ view(const Arg *arg)
  	arrange(selmon);
  }
