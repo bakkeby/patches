@@ -1,0 +1,101 @@
+From 8f671bd0f0e62888a2fe2ace36bb99f383c63667 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Thu, 25 May 2023 23:15:06 +0200
+Subject: [PATCH] restrictfocus: a variant of focusstack that is restricted to
+ the area (master, stack) the currently focused client is in
+
+---
+ config.def.h |  2 ++
+ dwm.c        | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 58 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index 061ad66..bc30c90 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -66,6 +66,8 @@ static const Key keys[] = {
+ 	{ MODKEY,                       XK_b,      togglebar,      {0} },
+ 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
+ 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
++	{ MODKEY|ShiftMask,             XK_j,      focusstackarea, {.i = +1 } },
++	{ MODKEY|ShiftMask,             XK_k,      focusstackarea, {.i = -1 } },
+ 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
+ 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
+ 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+diff --git a/dwm.c b/dwm.c
+index e5efb6a..bdfa777 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -169,6 +169,7 @@ static void focus(Client *c);
+ static void focusin(XEvent *e);
+ static void focusmon(const Arg *arg);
+ static void focusstack(const Arg *arg);
++static void focusstackarea(const Arg *arg);
+ static Atom getatomprop(Client *c, Atom prop);
+ static int getrootptr(int *x, int *y);
+ static long getstate(Window w);
+@@ -862,6 +863,61 @@ focusstack(const Arg *arg)
+ 	}
+ }
+ 
++void
++focusstackarea(const Arg *arg)
++{
++	Monitor *m = selmon;
++	Client *c, *n, *sel = NULL, *next = NULL, *prev = NULL, *first = NULL, *last = NULL;
++	int i = 0;
++
++	if (m->lt[m->sellt]->arrange == &monocle) {
++		focusstack(arg);
++		return;
++	}
++
++	if (!m->sel || (m->sel->isfullscreen && lockfullscreen))
++		return;
++
++	for (c = nexttiled(m->clients), i = 1; c; c = n, i++) {
++		n = nexttiled(c->next);
++
++		if (c == m->sel)
++			sel = c;
++
++		if (!first || i - 1 == m->nmaster) {
++			first = c;
++		}
++
++		last = c;
++
++		if (!sel)
++			prev = c;
++
++		if (sel && !next)
++			next = n;
++
++		if (sel && i == m->nmaster)
++			break;
++	}
++
++	if (arg->i > 0) {
++		if (sel == last)
++			c = first;
++		else
++			c = next;
++	} else {
++		if (sel == first)
++			c = last;
++		else
++			c = prev;
++	}
++
++	if (c) {
++		focus(c);
++		restack(selmon);
++	}
++}
++
+ Atom
+ getatomprop(Client *c, Atom prop)
+ {
+-- 
+2.19.1
+
