@@ -1,4 +1,4 @@
-From 8f671bd0f0e62888a2fe2ace36bb99f383c63667 Mon Sep 17 00:00:00 2001
+From 655bae350b3dee9565f413c21f7a951a4e3f71cb Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Thu, 25 May 2023 23:15:06 +0200
 Subject: [PATCH] restrictfocus: a variant of focusstack that is restricted to
@@ -6,8 +6,8 @@ Subject: [PATCH] restrictfocus: a variant of focusstack that is restricted to
 
 ---
  config.def.h |  2 ++
- dwm.c        | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 58 insertions(+)
+ dwm.c        | 55 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 57 insertions(+)
 
 diff --git a/config.def.h b/config.def.h
 index 061ad66..bc30c90 100644
@@ -23,7 +23,7 @@ index 061ad66..bc30c90 100644
  	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
  	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
 diff --git a/dwm.c b/dwm.c
-index e5efb6a..bdfa777 100644
+index e5efb6a..88cf993 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -169,6 +169,7 @@ static void focus(Client *c);
@@ -34,7 +34,7 @@ index e5efb6a..bdfa777 100644
  static Atom getatomprop(Client *c, Atom prop);
  static int getrootptr(int *x, int *y);
  static long getstate(Window w);
-@@ -862,6 +863,61 @@ focusstack(const Arg *arg)
+@@ -862,6 +863,60 @@ focusstack(const Arg *arg)
  	}
  }
  
@@ -89,7 +89,6 @@ index e5efb6a..bdfa777 100644
 +
 +	if (c) {
 +		focus(c);
-+		restack(selmon);
 +	}
 +}
 +
