@@ -1,4 +1,4 @@
-From 89d9a5046a6af6b80fd4804a71f8dc7496020a6e Mon Sep 17 00:00:00 2001
+From 1080661abe54eb51480a960949309d99f3d3f88d Mon Sep 17 00:00:00 2001
 From: bakkeby <bakkeby@gmail.com>
 Date: Wed, 12 May 2021 09:13:47 +0200
 Subject: [PATCH] Make st interpret cursor 0 as the default cursor.
@@ -31,10 +31,10 @@ it to be (underline, bar) in the vim configuration.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/x.c b/x.c
-index 7186040..0e4b4ee 100644
+index aa09997..f569bb1 100644
 --- a/x.c
 +++ b/x.c
-@@ -1708,7 +1708,7 @@ xsetcursor(int cursor)
+@@ -1739,7 +1739,7 @@ xsetcursor(int cursor)
  {
  	if (!BETWEEN(cursor, 0, 7)) /* 7: st extension */
  		return 1;
@@ -44,5 +44,5 @@ index 7186040..0e4b4ee 100644
  }
  
 -- 
-2.34.1
+2.41.0
 
