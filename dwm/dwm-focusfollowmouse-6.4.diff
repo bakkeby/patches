@@ -1,0 +1,134 @@
+From 99df82c57af398e415fb2458e8fdb0677577846f Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Fri, 23 Jun 2023 23:29:38 +0200
+Subject: [PATCH] focusfollowmouse: give precedence to the mouse cursor when
+ deciding next focus
+
+By default dwm will revert focus back to the visible client that last had focus
+when moving windows into and out of view.
+
+This can happen when the user:
+   - changes tags
+   - toggles tags into or out of view
+   - moves the selected window to another monitor
+   - moves the selected window to another tag
+   - a window closes
+
+With this patch the expectation is that the window that remains under the mouse
+cursor will be the next one to receive focus.
+---
+ dwm.c | 27 ++++++++++++++++++++-------
+ 1 file changed, 20 insertions(+), 7 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index e5efb6a..8a9a6d8 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -170,6 +170,7 @@ static void focusin(XEvent *e);
+ static void focusmon(const Arg *arg);
+ static void focusstack(const Arg *arg);
+ static Atom getatomprop(Client *c, Atom prop);
++static Client *getpointerclient(void);
+ static int getrootptr(int *x, int *y);
+ static long getstate(Window w);
+ static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
+@@ -573,8 +574,8 @@ configurenotify(XEvent *e)
+ 						resizeclient(c, m->mx, m->my, m->mw, m->mh);
+ 				XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, bh);
+ 			}
+-			focus(NULL);
+ 			arrange(NULL);
++			focus(NULL);
+ 		}
+ 	}
+ }
+@@ -790,6 +791,8 @@ expose(XEvent *e)
+ void
+ focus(Client *c)
+ {
++	if (!c || !ISVISIBLE(c))
++		c = getpointerclient();
+ 	if (!c || !ISVISIBLE(c))
+ 		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
+ 	if (selmon->sel && selmon->sel != c)
+@@ -878,6 +881,16 @@ getatomprop(Client *c, Atom prop)
+ 	return atom;
+ }
+ 
++Client *
++getpointerclient(void)
++{
++	Window dummy, win;
++	int di;
++	unsigned int dui;
++	XQueryPointer(dpy, root, &dummy, &win, &di, &di, &di, &di, &dui);
++	return wintoclient(win);
++}
++
+ int
+ getrootptr(int *x, int *y)
+ {
+@@ -1420,8 +1433,8 @@ sendmon(Client *c, Monitor *m)
+ 	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+ 	attach(c);
+ 	attachstack(c);
+-	focus(NULL);
+ 	arrange(NULL);
++	focus(NULL);
+ }
+ 
+ void
+@@ -1653,8 +1666,8 @@ tag(const Arg *arg)
+ {
+ 	if (selmon->sel && arg->ui & TAGMASK) {
+ 		selmon->sel->tags = arg->ui & TAGMASK;
+-		focus(NULL);
+ 		arrange(selmon);
++		focus(NULL);
+ 	}
+ }
+ 
+@@ -1727,8 +1740,8 @@ toggletag(const Arg *arg)
+ 	newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
+ 	if (newtags) {
+ 		selmon->sel->tags = newtags;
+-		focus(NULL);
+ 		arrange(selmon);
++		focus(NULL);
+ 	}
+ }
+ 
+@@ -1739,8 +1752,8 @@ toggleview(const Arg *arg)
+ 
+ 	if (newtagset) {
+ 		selmon->tagset[selmon->seltags] = newtagset;
+-		focus(NULL);
+ 		arrange(selmon);
++		focus(NULL);
+ 	}
+ }
+ 
+@@ -1778,9 +1791,9 @@ unmanage(Client *c, int destroyed)
+ 		XUngrabServer(dpy);
+ 	}
+ 	free(c);
+-	focus(NULL);
+ 	updateclientlist();
+ 	arrange(m);
++	focus(NULL);
+ }
+ 
+ void
+@@ -2040,8 +2053,8 @@ view(const Arg *arg)
+ 	selmon->seltags ^= 1; /* toggle sel tagset */
+ 	if (arg->ui & TAGMASK)
+ 		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
+-	focus(NULL);
+ 	arrange(selmon);
++	focus(NULL);
+ }
+ 
+ Client *
+-- 
+2.19.1
+
