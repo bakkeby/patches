@@ -1,13 +1,13 @@
-From ba1a3b540431e5df71f038c6ce845b2815b69178 Mon Sep 17 00:00:00 2001
+From bc7c08714e547d8782da0aae16d8b3bbe1d4d1af Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Sat, 22 Jul 2023 22:14:04 +0200
 Subject: [PATCH] focusedontop: allow the currently focused client to display
  on top of floating windows, but not on top of transient windows
 
 ---
- config.def.h |  7 +++---
- dwm.c        | 63 +++++++++++++++++++++++++++++++++++++++++++++++++---
- 2 files changed, 64 insertions(+), 6 deletions(-)
+ config.def.h |  7 ++---
+ dwm.c        | 74 +++++++++++++++++++++++++++++++++++++++++++++++++---
+ 2 files changed, 75 insertions(+), 6 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 061ad66..c7ce58d 100644
@@ -35,7 +35,7 @@ index 061ad66..c7ce58d 100644
  
  /* layout(s) */
 diff --git a/dwm.c b/dwm.c
-index e5efb6a..6cc9265 100644
+index e5efb6a..cf2e55b 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -135,7 +135,7 @@ index e5efb6a..6cc9265 100644
  }
  
  void
-@@ -1252,6 +1263,46 @@ quit(const Arg *arg)
+@@ -1252,6 +1263,57 @@ quit(const Arg *arg)
  	running = 0;
  }
  
@@ -145,6 +145,7 @@ index e5efb6a..6cc9265 100644
 +	Client *s, *top = NULL;
 +	Monitor *m;
 +	XWindowChanges wc;
++	int raised = 0;
 +
 +	/* If the raised client is on the sticky workspace, then refer to the previously
 +	 * selected workspace when for searching other clients. */
@@ -152,9 +153,18 @@ index e5efb6a..6cc9265 100644
 +	wc.stack_mode = Above;
 +	wc.sibling = m->barwin ? m->barwin : wmcheckwin;
 +
++	/* If the raised client is always on top, then it should be raised first. */
++	if (c->alwaysontop && c->isfloating) {
++		top = c;
++		XRaiseWindow(dpy, c->win);
++		wc.stack_mode = Below;
++		wc.sibling = c->win;
++		raised = 1;
++	}
++
 +	/* Check if there are floating always on top clients that need to be on top. */
 +	for (s = m->stack; s; s = s->snext) {
-+		if (!s->isfloating || !s->alwaysontop)
++		if (s == c || !s->isfloating || !s->alwaysontop)
 +			continue;
 +
 +		if (!top) {
@@ -169,20 +179,21 @@ index e5efb6a..6cc9265 100644
 +		wc.sibling = s->win;
 +	}
 +
-+	/* If the given client c is not handled by the above for loop */
-+	if (c && (!c->isfloating || !c->alwaysontop)) {
-+		if (!top) {
-+			XRaiseWindow(dpy, c->win);
-+		} else {
-+			XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
-+		}
++	if (raised)
++		return;
++
++	if (top) {
++		XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
++		return;
 +	}
++
++	XRaiseWindow(dpy, c->win);
 +}
 +
  Monitor *
  recttomon(int x, int y, int w, int h)
  {
-@@ -1349,14 +1400,16 @@ void
+@@ -1349,14 +1411,16 @@ void
  restack(Monitor *m)
  {
  	Client *c;
@@ -201,7 +212,7 @@ index e5efb6a..6cc9265 100644
  	if (m->lt[m->sellt]->arrange) {
  		wc.stack_mode = Below;
  		wc.sibling = m->barwin;
-@@ -1366,6 +1419,10 @@ restack(Monitor *m)
+@@ -1366,6 +1430,10 @@ restack(Monitor *m)
  				wc.sibling = c->win;
  			}
  	}
