@@ -1,0 +1,78 @@
+From f1c11a763cb6943839c4e66c419bd84bd1b32459 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Thu, 21 Sep 2023 11:01:56 +0200
+Subject: [PATCH 2/2] Adding cursorwarp patch on top of banish
+
+---
+ dwm.c | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/dwm.c b/dwm.c
+index bb7760b..1a8e311 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -238,6 +238,7 @@ static void updatetitle(Client *c);
+ static void updatewindowtype(Client *c);
+ static void updatewmhints(Client *c);
+ static void view(const Arg *arg);
++static void warp(Client *c);
+ static Client *wintoclient(Window w);
+ static Monitor *wintomon(Window w);
+ static int xerror(Display *dpy, XErrorEvent *ee);
+@@ -867,6 +868,8 @@ focusmon(const Arg *arg)
+ 	unfocus(selmon->sel, 0);
+ 	selmon = m;
+ 	focus(NULL);
++	if (m->sel)
++		warp(m->sel)
+ }
+ 
+ void
+@@ -892,6 +895,7 @@ focusstack(const Arg *arg)
+ 	if (c) {
+ 		focus(c);
+ 		restack(selmon);
++		warp(c)
+ 	}
+ }
+ 
+@@ -1159,6 +1163,8 @@ manage(Window w, XWindowAttributes *wa)
+ 	c->mon->sel = c;
+ 	arrange(c->mon);
+ 	XMapWindow(dpy, c->win);
++	if (c && c->mon == selmon && ISVISIBLE(c))
++		warp(c);
+ 	focus(NULL);
+ }
+ 
+@@ -1919,6 +1925,8 @@ unmanage(Client *c, int destroyed)
+ 	focus(NULL);
+ 	updateclientlist();
+ 	arrange(m);
++	if (m->sel && m == selmon)
++		warp(m->sel);
+ }
+ 
+ void
+@@ -2182,6 +2190,18 @@ view(const Arg *arg)
+ 	arrange(selmon);
+ }
+ 
++void
++warp(Client *c)
++{
++	if (cursor_hidden) {
++		mouse_x = c->x + c->w/2;
++		mouse_y = c->y + c->h/2;
++		return;
++	}
++
++	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w/2, c->h/2);
++}
++
+ Client *
+ wintoclient(Window w)
+ {
+-- 
+2.19.1
+
