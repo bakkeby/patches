@@ -1,0 +1,484 @@
+From 7d9d6df932f76cd4d7bd74eabe7d847d01768fb8 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Tue, 10 Oct 2023 22:53:16 +0200
+Subject: [PATCH] Adding mark patch
+
+---
+ config.def.h |  10 ++
+ dwm.c        | 285 +++++++++++++++++++++++++++++++++++++++++++--------
+ 2 files changed, 254 insertions(+), 41 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 061ad66..c7dc54c 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -12,10 +12,12 @@ static const char col_gray2[]       = "#444444";
+ static const char col_gray3[]       = "#bbbbbb";
+ static const char col_gray4[]       = "#eeeeee";
+ static const char col_cyan[]        = "#005577";
++static const char col_yellow[]      = "#ecB820";
+ static const char *colors[][3]      = {
+ 	/*               fg         bg         border   */
+ 	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
+ 	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
++	[SchemeMarked] = { col_cyan, col_yellow, col_yellow },
+ };
+ 
+ /* tagging */
+@@ -84,6 +86,11 @@ static const Key keys[] = {
+ 	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+ 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
+ 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
++	{ MODKEY,                       XK_a,      markall,        {0} }, // marks all clients on the selected tag
++	{ MODKEY|ControlMask,           XK_a,      markall,        {1} }, // marks all floating clients on the selected tag
++	{ MODKEY|Mod4Mask,              XK_a,      markall,        {2} }, // marks all hidden clients on the selected tag
++	{ MODKEY|ShiftMask,             XK_a,      unmarkall,      {0} }, // unmarks all clients
++	{ MODKEY,                       XK_z,      togglemark,     {0} }, // marks or unmarks the selected client for group action
+ 	TAGKEYS(                        XK_1,                      0)
+ 	TAGKEYS(                        XK_2,                      1)
+ 	TAGKEYS(                        XK_3,                      2)
+@@ -105,6 +112,9 @@ static const Button buttons[] = {
+ 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
+ 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+ 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
++	{ ClkClientWin,         MODKEY|ControlMask,             Button1,        markmouse,      {1} }, // marks clients under the mouse cursor for group action
++	{ ClkClientWin,         MODKEY|ControlMask|ShiftMask,   Button1,        markmouse,      {0} }, // unmarks clients under the mouse cursor for group action
++	{ ClkClientWin,         MODKEY|ControlMask,             Button3,        markmouse,      {2} }, // toggles marking of clients under the mouse cursor for group action
+ 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
+ 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
+ 	{ ClkTagBar,            0,              Button1,        view,           {0} },
+diff --git a/dwm.c b/dwm.c
+index e5efb6a..601ca27 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -56,10 +56,13 @@
+ #define HEIGHT(X)               ((X)->h + 2 * (X)->bw)
+ #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
+ #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
++#define CLIENT                  (arg && arg->v ? (Client*)arg->v : selmon->sel)
++#define ISMARKED(C)             (C && (C)->marked)
++#define HIDDEN(C)               ((getstate(C->win) == IconicState))
+ 
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+-enum { SchemeNorm, SchemeSel }; /* color schemes */
++enum { SchemeNorm, SchemeSel, SchemeMarked }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
+@@ -91,6 +94,7 @@ struct Client {
+ 	int oldx, oldy, oldw, oldh;
+ 	int basew, baseh, incw, inch, maxw, maxh, minw, minh, hintsvalid;
+ 	int bw, oldbw;
++	int marked;
+ 	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+ 	Client *next;
+@@ -170,6 +174,7 @@ static void focusin(XEvent *e);
+ static void focusmon(const Arg *arg);
+ static void focusstack(const Arg *arg);
+ static Atom getatomprop(Client *c, Atom prop);
++static Client *getpointerclient(void);
+ static int getrootptr(int *x, int *y);
+ static long getstate(Window w);
+ static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
+@@ -181,9 +186,14 @@ static void killclient(const Arg *arg);
+ static void manage(Window w, XWindowAttributes *wa);
+ static void mappingnotify(XEvent *e);
+ static void maprequest(XEvent *e);
++// static void mark(const Arg *arg);
++static void markall(const Arg *arg);
++static void markclient(Client *c);
++static void markmouse(const Arg *arg);
+ static void monocle(Monitor *m);
+ static void motionnotify(XEvent *e);
+ static void movemouse(const Arg *arg);
++static Client *nextmarked(Client *prev, Client *def);
+ static Client *nexttiled(Client *c);
+ static void pop(Client *c);
+ static void propertynotify(XEvent *e);
+@@ -212,11 +222,15 @@ static void tagmon(const Arg *arg);
+ static void tile(Monitor *m);
+ static void togglebar(const Arg *arg);
+ static void togglefloating(const Arg *arg);
++static void togglemark(const Arg *arg);
+ static void toggletag(const Arg *arg);
+ static void toggleview(const Arg *arg);
+ static void unfocus(Client *c, int setfocus);
+ static void unmanage(Client *c, int destroyed);
+ static void unmapnotify(XEvent *e);
++// static void unmark(const Arg *arg);
++static void unmarkall(const Arg *arg);
++static void unmarkclient(Client *c);
+ static void updatebarpos(Monitor *m);
+ static void updatebars(void);
+ static void updateclientlist(void);
+@@ -242,6 +256,9 @@ static int screen;
+ static int sw, sh;           /* X display screen geometry width, height */
+ static int bh;               /* bar height */
+ static int lrpad;            /* sum of left and right padding for text */
++static int num_marked = 0;    /* keeps track of how many clients are marked */
++static int keepmarks = 0;     /* not used by default, placeholder for combo compatibility */
++static int ignore_marked = 1; /* used to avoid marked clients when key functions are used internally */
+ static int (*xerrorxlib)(Display *, XErrorEvent *);
+ static unsigned int numlockmask = 0;
+ static void (*handler[LASTEvent]) (XEvent *) = {
+@@ -802,7 +819,7 @@ focus(Client *c)
+ 		detachstack(c);
+ 		attachstack(c);
+ 		grabbuttons(c, 1);
+-		XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
++		XSetWindowBorder(dpy, c->win, scheme[ISMARKED(c) ? SchemeMarked : SchemeSel][ColBorder].pixel);
+ 		setfocus(c);
+ 	} else {
+ 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+@@ -878,6 +895,17 @@ getatomprop(Client *c, Atom prop)
+ 	return atom;
+ }
+ 
++Client *
++getpointerclient(void)
++{
++	Window dummy, win;
++	int di;
++	unsigned int dui;
++
++	XQueryPointer(dpy, root, &dummy, &win, &di, &di, &di, &di, &dui);
++	return wintoclient(win);
++}
++
+ int
+ getrootptr(int *x, int *y)
+ {
+@@ -996,26 +1024,32 @@ keypress(XEvent *e)
+ 
+ 	ev = &e->xkey;
+ 	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
++	ignore_marked = 0;
+ 	for (i = 0; i < LENGTH(keys); i++)
+ 		if (keysym == keys[i].keysym
+ 		&& CLEANMASK(keys[i].mod) == CLEANMASK(ev->state)
+ 		&& keys[i].func)
+ 			keys[i].func(&(keys[i].arg));
++	ignore_marked = 1;
+ }
+ 
+ void
+ killclient(const Arg *arg)
+ {
+-	if (!selmon->sel)
+-		return;
+-	if (!sendevent(selmon->sel, wmatom[WMDelete])) {
+-		XGrabServer(dpy);
+-		XSetErrorHandler(xerrordummy);
+-		XSetCloseDownMode(dpy, DestroyAll);
+-		XKillClient(dpy, selmon->sel->win);
+-		XSync(dpy, False);
+-		XSetErrorHandler(xerror);
+-		XUngrabServer(dpy);
++	Client *c = CLIENT, *next;
++
++	for (c = nextmarked(NULL, c); c; c = nextmarked(next, NULL)) {
++		next = c->next;
++
++		if (!sendevent(c, wmatom[WMDelete])) {
++			XGrabServer(dpy);
++			XSetErrorHandler(xerrordummy);
++			XSetCloseDownMode(dpy, DestroyAll);
++			XKillClient(dpy, c->win);
++			XSync(dpy, False);
++			XSetErrorHandler(xerror);
++			XUngrabServer(dpy);
++		}
+ 	}
+ }
+ 
+@@ -1101,6 +1135,90 @@ maprequest(XEvent *e)
+ 		manage(ev->window, &wa);
+ }
+ 
++/* Placeholder for IPC command bindings */
++//void
++//mark(const Arg *arg)
++//{
++//	Client *c = CLIENT;
++//	if (!c || ISMARKED(c))
++//		return;
++//	markclient(c);
++//	drawbar(c->mon);
++//}
++
++void
++markall(const Arg *arg)
++{
++	Client *c;
++	for (c = selmon->clients; c; c = c->next) {
++		if (ISMARKED(c) || !ISVISIBLE(c))
++			continue;
++
++		if ((arg->i == 2 && !HIDDEN(c)) || (arg->i != 2 && HIDDEN(c)))
++			continue;
++
++		if (arg->i == 1 && !c->isfloating)
++			continue;
++
++		markclient(c);
++	}
++	drawbar(selmon);
++}
++
++void
++markclient(Client *c)
++{
++	if (!ISMARKED(c)) {
++		c->marked = 1;
++		++num_marked;
++		XSetWindowBorder(dpy, c->win, scheme[SchemeMarked][ColBorder].pixel);
++	}
++}
++
++void
++markmouse(const Arg *arg)
++{
++	Client *r = selmon->sel;
++	Client *prevr = r;
++	Monitor *m;
++	XEvent ev;
++	Time lasttime = 0;
++	int mark = arg->i;
++
++	if (r && mark != ISMARKED(r))
++		togglemark(&((Arg) { .v = r }));
++
++	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
++		None, cursor[CurMove]->cursor, CurrentTime) != GrabSuccess)
++		return;
++
++	do {
++		XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
++		switch (ev.type) {
++		case ConfigureRequest:
++		case Expose:
++		case MapRequest:
++			handler[ev.type](&ev);
++			break;
++		case MotionNotify:
++			if ((ev.xmotion.time - lasttime) <= (1000 / 60))
++				continue;
++			lasttime = ev.xmotion.time;
++
++			if ((m = recttomon(ev.xmotion.x, ev.xmotion.y, 1, 1)) && m != selmon)
++				selmon = m;
++
++			r = getpointerclient();
++			if (r != prevr && r && mark != ISMARKED(r))
++				togglemark(&((Arg) { .v = r }));
++
++			prevr = r;
++			break;
++		}
++	} while (ev.type != ButtonRelease);
++	XUngrabPointer(dpy, CurrentTime);
++}
++
+ void
+ monocle(Monitor *m)
+ {
+@@ -1193,6 +1311,23 @@ movemouse(const Arg *arg)
+ 	}
+ }
+ 
++Client *
++nextmarked(Client *prev, Client *def)
++{
++	if (!num_marked || ignore_marked)
++		return def;
++
++	Client *c = NULL;
++	Monitor *m;
++
++	for (m = (prev ? prev->mon : mons); m && !c; m = m->next)
++		for (c = (prev ? prev : m->clients); c && !ISMARKED(c); c = c->next, prev = NULL);
++
++	if (c && ISMARKED(c) && !keepmarks)
++		unmarkclient(c);
++	return c;
++}
++
+ Client *
+ nexttiled(Client *c)
+ {
+@@ -1411,15 +1546,19 @@ scan(void)
+ void
+ sendmon(Client *c, Monitor *m)
+ {
+-	if (c->mon == m)
+-		return;
+-	unfocus(c, 1);
+-	detach(c);
+-	detachstack(c);
+-	c->mon = m;
+-	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+-	attach(c);
+-	attachstack(c);
++	Client *next;
++	for (c = nextmarked(NULL, c); c; c = nextmarked(next, NULL)) {
++		next = c->next;
++		if (c->mon == m)
++			return;
++		unfocus(c, 1);
++		detach(c);
++		detachstack(c);
++		c->mon = m;
++		c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
++		attach(c);
++		attachstack(c);
++	}
+ 	focus(NULL);
+ 	arrange(NULL);
+ }
+@@ -1651,11 +1790,17 @@ spawn(const Arg *arg)
+ void
+ tag(const Arg *arg)
+ {
+-	if (selmon->sel && arg->ui & TAGMASK) {
+-		selmon->sel->tags = arg->ui & TAGMASK;
+-		focus(NULL);
+-		arrange(selmon);
++	Monitor *m = selmon;
++	Client *c = m->sel;
++
++	if (!(arg->ui & TAGMASK))
++		return;
++
++	for (c = nextmarked(NULL, c); c; c = nextmarked(c->next, NULL)) {
++		c->tags = arg->ui & TAGMASK;
+ 	}
++	focus(NULL);
++	arrange(m);
+ }
+ 
+ void
+@@ -1706,30 +1851,59 @@ togglebar(const Arg *arg)
+ void
+ togglefloating(const Arg *arg)
+ {
+-	if (!selmon->sel)
+-		return;
+-	if (selmon->sel->isfullscreen) /* no support for fullscreen windows */
++	Client *c = CLIENT;
++	Monitor *m = NULL;
++	XWindowChanges wc;
++	wc.stack_mode = Above;
++
++	for (c = nextmarked(NULL, c); c; c = nextmarked(c->next, NULL)) {
++
++		if (c->isfullscreen) /* no support for fullscreen windows */
++			continue;
++		if (m && c->mon != m)
++			arrange(m);
++		c->isfloating = !c->isfloating || c->isfixed;
++		if (c->isfloating) {
++			resize(c, c->x, c->y, c->w, c->h, 0);
++			wc.sibling = c->mon->barwin;
++			XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
++		}
++		m = c->mon;
++	}
++	if (m) {
++		XSync(dpy, False);
++		arrange(m);
++	}
++}
++
++void
++togglemark(const Arg *arg)
++{
++	Client *c = CLIENT;
++	if (!c)
+ 		return;
+-	selmon->sel->isfloating = !selmon->sel->isfloating || selmon->sel->isfixed;
+-	if (selmon->sel->isfloating)
+-		resize(selmon->sel, selmon->sel->x, selmon->sel->y,
+-			selmon->sel->w, selmon->sel->h, 0);
+-	arrange(selmon);
++	if (ISMARKED(c))
++		unmarkclient(c);
++	else
++		markclient(c);
++	drawbar(c->mon);
+ }
+ 
+ void
+ toggletag(const Arg *arg)
+ {
++	Monitor *m = selmon;
++	Client *c = m->sel;
+ 	unsigned int newtags;
+ 
+-	if (!selmon->sel)
+-		return;
+-	newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
+-	if (newtags) {
+-		selmon->sel->tags = newtags;
+-		focus(NULL);
+-		arrange(selmon);
++	for (c = nextmarked(NULL, c); c; c = nextmarked(c->next, NULL)) {
++		newtags = c->tags ^ (arg->ui & TAGMASK);
++		if (newtags) {
++			c->tags = newtags;
++		}
+ 	}
++	focus(NULL);
++	arrange(m);
+ }
+ 
+ void
+@@ -1750,7 +1924,7 @@ unfocus(Client *c, int setfocus)
+ 	if (!c)
+ 		return;
+ 	grabbuttons(c, 0);
+-	XSetWindowBorder(dpy, c->win, scheme[SchemeNorm][ColBorder].pixel);
++	XSetWindowBorder(dpy, c->win, scheme[ISMARKED(c) ? SchemeMarked : SchemeNorm][ColBorder].pixel);
+ 	if (setfocus) {
+ 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+ 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
+@@ -1797,6 +1971,35 @@ unmapnotify(XEvent *e)
+ 	}
+ }
+ 
++/* Placeholder for IPC command bindings */
++//void
++//unmark(const Arg *arg)
++//{
++//	Client *c = CLIENT;
++//	if (!c)
++//		return;
++//	unmarkclient(c);
++//	drawbar(c->mon);
++//}
++
++void
++unmarkall(const Arg *arg)
++{
++	keepmarks = 0;
++	for (Client *c = nextmarked(NULL, NULL); c; c = nextmarked(c->next, NULL));
++	drawbars();
++}
++
++void
++unmarkclient(Client *c)
++{
++	if (ISMARKED(c)) {
++		c->marked = 0;
++		--num_marked;
++		XSetWindowBorder(dpy, c->win, scheme[c == selmon->sel ? SchemeSel : SchemeNorm][ColBorder].pixel);
++	}
++}
++
+ void
+ updatebars(void)
+ {
+-- 
+2.19.1
+
