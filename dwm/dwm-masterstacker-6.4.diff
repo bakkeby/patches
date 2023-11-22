@@ -1,14 +1,14 @@
-From 5254b2ecca39fb866fed50308acd4dc21d2b2d83 Mon Sep 17 00:00:00 2001
+From b21bc2db75d2dce254a6740fcca276eb7d815553 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Mon, 12 Jun 2023 11:48:51 +0200
 Subject: [PATCH] Master stacker patch
 
 ---
- config.def.h |  16 +++-
+ config.def.h |  16 ++-
  dwm.c        |   4 +
- stacker.c    | 259 +++++++++++++++++++++++++++++++++++++++++++++++++++
- stacker.h    |  34 +++++++
- 4 files changed, 311 insertions(+), 2 deletions(-)
+ stacker.c    | 269 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ stacker.h    |  35 +++++++
+ 4 files changed, 322 insertions(+), 2 deletions(-)
  create mode 100644 stacker.c
  create mode 100644 stacker.h
 
@@ -85,10 +85,10 @@ index e5efb6a..90e6ead 100644
  		for (t = c->mon->stack; t && !ISVISIBLE(t); t = t->snext);
 diff --git a/stacker.c b/stacker.c
 new file mode 100644
-index 0000000..3547cc0
+index 0000000..9019345
 --- /dev/null
 +++ b/stacker.c
-@@ -0,0 +1,259 @@
+@@ -0,0 +1,269 @@
 +void
 +attachabove(Client *c, Client *target)
 +{
@@ -181,6 +181,28 @@ index 0000000..3547cc0
 +}
 +
 +Client *
++inctiled(Client *c, int n)
++{
++	Client *f;
++
++	if (!c)
++		return NULL;
++
++	if (n > 0) {
++		f = nexttiled(c->next);
++		if (!f) {
++			f = nexttiled(c->mon->clients);
++		}
++	} else {
++		f = prevtiled(c);
++		if (!f) {
++			f = lasttiled(c->mon->clients);
++		}
++	}
++	return f;
++}
++
++Client *
 +prevtiled(Client *c)
 +{
 +	Client *p, *r;
@@ -240,7 +262,10 @@ index 0000000..3547cc0
 +	if (!m->clients)
 +		return;
 +
-+	stackposclient(arg, &c);
++	c = stackposclient(arg);
++
++	if (!c)
++		return;
 +
 +	if (c == m->sel) {
 +		if (arg->i != PREVSEL) {
@@ -267,7 +292,10 @@ index 0000000..3547cc0
 +		return;
 +	}
 +
-+	stackposclient(arg, &c);
++	c = stackposclient(arg);
++
++	if (!c)
++		return;
 +
 +	if (c == sel)
 +		return;
@@ -287,7 +315,10 @@ index 0000000..3547cc0
 +	if (!m->clients)
 +		return;
 +
-+	stackposclient(arg, &c);
++	c = stackposclient(arg);
++
++	if (!c)
++		return;
 +
 +	if (c == sel)
 +		return;
@@ -302,58 +333,37 @@ index 0000000..3547cc0
 +	arrange(m);
 +}
 +
-+void
-+stackposclient(const Arg *arg, Client **f)
++Client *
++stackposclient(const Arg *arg)
 +{
 +	Monitor *m = selmon;
 +
 +	if (!m->clients)
-+		return;
++		return NULL;
 +
-+	if (ISINC(arg)) {
-+		if (GETINC(arg) > 0) {
-+			*f = nexttiled(m->sel->next);
-+			if (!*f) {
-+				*f = nexttiled(m->clients);
-+			}
-+		} else {
-+			*f = prevtiled(m->sel);
-+			if (!*f) {
-+				*f = lasttiled(m->clients);
-+			}
-+		}
-+		return;
-+	}
++	if (ISINC(arg))
++		return inctiled(m->sel, GETINC(arg));
 +
-+	if (ISMASTER(arg)) {
-+		*f = nthmaster(m->clients, GETMASTER(arg), 1);
-+		return;
-+	}
++	if (ISMASTER(arg))
++		return nthmaster(m->clients, GETMASTER(arg), 1);
 +
-+	if (ISSTACK(arg)) {
-+		*f = nthstack(m->clients, GETSTACK(arg), 1);
-+		return;
-+	}
++	if (ISSTACK(arg))
++		return nthstack(m->clients, GETSTACK(arg), 1);
 +
-+	if (ISLAST(arg)) {
-+		*f = lasttiled(m->clients);
-+		return;
-+	}
++	if (ISLAST(arg))
++		return lasttiled(m->clients);
 +
-+	if (ISPREVSEL(arg)) {
-+		*f = prevsel();
-+		return;
-+	}
++	if (ISPREVSEL(arg))
++		return prevsel();
 +
-+	*f = nthtiled(m->clients, arg->i, 1);
-+	return;
++	return nthtiled(m->clients, arg->i, 1);
 +}
 diff --git a/stacker.h b/stacker.h
 new file mode 100644
-index 0000000..cb97261
+index 0000000..0099db0
 --- /dev/null
 +++ b/stacker.h
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,35 @@
 +#define INC(X)                  ((X) + 2000)
 +#define MASTER(X)               ((X) + 4000)
 +#define STACK(X)                ((X) + 5000)
@@ -380,6 +390,7 @@ index 0000000..cb97261
 +static Client *nthmaster(Client *c, int n, int reduce);
 +static Client *nthstack(Client *c, int n, int reduce);
 +static Client *nthtiled(Client *c, int n, int reduce);
++static Client *inctiled(Client *c, int n);
 +static Client *prevtiled(Client *c);
 +static Client *prevsel(void);
 +static void swap(Client *a, Client *b);
@@ -387,7 +398,7 @@ index 0000000..cb97261
 +static void stackfocus(const Arg *arg);
 +static void stackpush(const Arg *arg);
 +static void stackswap(const Arg *arg);
-+static void stackposclient(const Arg *arg, Client **f);
++static Client *stackposclient(const Arg *arg);
 -- 
 2.19.1
 
