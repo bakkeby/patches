@@ -27,7 +27,7 @@ index ab1edb6..77c40a8 100644
  }
  
 +void
-+incnmaster(const Arg *arg)
++setnmaster(const Arg *arg)
 +{
 +	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag] = MAX(arg->i, 0);
 +	arrange(selmon);
