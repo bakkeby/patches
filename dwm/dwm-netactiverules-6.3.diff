@@ -1,4 +1,4 @@
-From bbc5059faa2372e6d01ae4c5e5de9ec230a6c020 Mon Sep 17 00:00:00 2001
+From 1f3f7512a6afc8e1cc611d4a0d32b6d69d730c54 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Mon, 10 Jan 2022 13:00:24 +0100
 Subject: [PATCH] This is an example patch extending the focusonnetactive patch
@@ -18,8 +18,8 @@ This patch was created in relation to this reddit post:
 https://www.reddit.com/r/suckless/comments/gyrszt/dwm_and_steam_issue_with_steam_always_taking/
 ---
  config.def.h |  16 ++++++--
- dwm.c        | 104 ++++++++++++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 115 insertions(+), 5 deletions(-)
+ dwm.c        | 108 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 119 insertions(+), 5 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index a2ac963..33b0b42 100644
@@ -56,7 +56,7 @@ index a2ac963..33b0b42 100644
  
  /* layout(s) */
 diff --git a/dwm.c b/dwm.c
-index a96f33c..b1bc3f7 100644
+index a96f33c..9523a65 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -66,6 +66,18 @@ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
@@ -135,7 +135,7 @@ index a96f33c..b1bc3f7 100644
  
  	if (!c)
  		return;
-@@ -524,8 +558,74 @@ clientmessage(XEvent *e)
+@@ -524,8 +558,78 @@ clientmessage(XEvent *e)
  			setfullscreen(c, (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
  				|| (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
  	} else if (cme->message_type == netatom[NetActiveWindow]) {
@@ -168,10 +168,14 @@ index a96f33c..b1bc3f7 100644
 +			// Similar to the original focusonnetactive
 +			// logic, but shows the client's tag in
 +			// addition to your current tags.
++			if (ISVISIBLE(c)) {
++				focus(c);
++				break;
++			}
 +			for (i = 0; i < LENGTH(tags) && !((1 << i) & c->tags); i++);
 +			if (i < LENGTH(tags)) {
 +				selmon = c->mon;
-+				view(&((Arg) {.ui = c->mon->seltags | (1 << i)}));
++				view(&((Arg) {.ui = c->mon->tagset[c->mon->seltags] | (1 << i)}));
 +				focus(c);
 +				restack(selmon);
 +			}
