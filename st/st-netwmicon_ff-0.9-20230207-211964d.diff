@@ -1,0 +1,111 @@
+From 4533855cf473e366d1696e41259def228d369af6 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Tue, 12 Mar 2024 11:07:36 +0100
+Subject: [PATCH] Adding netwmicon patch (farbfeld variant)
+
+---
+ Makefile  |  3 +++
+ config.mk |  4 +++-
+ x.c       | 40 +++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 45 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 470ac86..96e27e3 100644
+--- a/Makefile
++++ b/Makefile
+@@ -49,9 +49,12 @@ install: st
+ 	chmod 644 $(DESTDIR)$(MANPREFIX)/man1/st.1
+ 	tic -sx st.info
+ 	@echo Please see the README file regarding the terminfo entry of st.
++	mkdir -p $(DESTDIR)$(ICONPREFIX)
++	[ -f $(ICONNAME) ] && cp -f $(ICONNAME) $(DESTDIR)$(ICONPREFIX) || :
+ 
+ uninstall:
+ 	rm -f $(DESTDIR)$(PREFIX)/bin/st
+ 	rm -f $(DESTDIR)$(MANPREFIX)/man1/st.1
++	rm -f $(DESTDIR)$(ICONPREFIX)/$(ICONNAME)
+ 
+ .PHONY: all options clean dist install uninstall
+diff --git a/config.mk b/config.mk
+index 1e306f8..0255878 100644
+--- a/config.mk
++++ b/config.mk
+@@ -6,6 +6,8 @@ VERSION = 0.9
+ # paths
+ PREFIX = /usr/local
+ MANPREFIX = $(PREFIX)/share/man
++ICONPREFIX = $(PREFIX)/share/pixmaps
++ICONNAME = st.ff
+ 
+ X11INC = /usr/X11R6/include
+ X11LIB = /usr/X11R6/lib
+@@ -21,7 +23,7 @@ LIBS = -L$(X11LIB) -lm -lrt -lX11 -lutil -lXft \
+        `$(PKG_CONFIG) --libs freetype2`
+ 
+ # flags
+-STCPPFLAGS = -DVERSION=\"$(VERSION)\" -D_XOPEN_SOURCE=600
++STCPPFLAGS = -DVERSION=\"$(VERSION)\" -DICON=\"$(ICONPREFIX)/$(ICONNAME)\" -D_XOPEN_SOURCE=600
+ STCFLAGS = $(INCS) $(STCPPFLAGS) $(CPPFLAGS) $(CFLAGS)
+ STLDFLAGS = $(LIBS) $(LDFLAGS)
+ 
+diff --git a/x.c b/x.c
+index aa09997..4940f28 100644
+--- a/x.c
++++ b/x.c
+@@ -93,7 +93,7 @@ typedef struct {
+ 	Window win;
+ 	Drawable buf;
+ 	GlyphFontSpec *specbuf; /* font spec buffer used for rendering */
+-	Atom xembed, wmdeletewin, netwmname, netwmiconname, netwmpid;
++	Atom xembed, wmdeletewin, netwmname, netwmicon, netwmiconname, netwmpid;
+ 	struct {
+ 		XIM xim;
+ 		XIC xic;
+@@ -1220,6 +1220,44 @@ xinit(int cols, int rows)
+ 	xw.netwmiconname = XInternAtom(xw.dpy, "_NET_WM_ICON_NAME", False);
+ 	XSetWMProtocols(xw.dpy, xw.win, &xw.wmdeletewin, 1);
+ 
++	/* use a farbfeld image to set _NET_WM_ICON */
++	FILE* file = fopen(ICON, "r");
++	if (file) {
++		unsigned char buf[16] = {0};
++
++		int hasdata = fread(buf,1,16,file);
++		if (memcmp(buf,"farbfeld",8)) {
++			fprintf(stderr,"netwmicon: file %s is not a farbfeld image\n", ICON);
++		} else {
++			/* declare icon-variable which will store the image in bgra-format */
++			const int width=(buf[8]<<24)|(buf[9]<<16)|(buf[10]<<8)|buf[11];
++			const int height=(buf[12]<<24)|(buf[13]<<16)|(buf[14]<<8)|buf[15];
++			const int icon_n = width * height + 2;
++			long icon_bgra[icon_n];
++			/* set width and height of the icon */
++			int i = 0;
++			icon_bgra[i++] = width;
++			icon_bgra[i++] = height;
++			/* rgba -> bgra */
++			for (int y = 0; y < height && hasdata; y++) {
++				for (int x = 0; x < width && hasdata; x++) {
++					unsigned char *pixel_bgra = (unsigned char *) &icon_bgra[i++];
++					hasdata = fread(buf,1,8,file);
++					pixel_bgra[0] = buf[4];
++					pixel_bgra[1] = buf[2];
++					pixel_bgra[2] = buf[0];
++					pixel_bgra[3] = buf[6];
++				}
++			}
++
++			/* set _NET_WM_ICON */
++			xw.netwmicon = XInternAtom(xw.dpy, "_NET_WM_ICON", False);
++			XChangeProperty(xw.dpy, xw.win, xw.netwmicon, XA_CARDINAL, 32,
++					PropModeReplace, (uchar *) icon_bgra, icon_n);
++		}
++		fclose(file);
++	}
++
+ 	xw.netwmpid = XInternAtom(xw.dpy, "_NET_WM_PID", False);
+ 	XChangeProperty(xw.dpy, xw.win, xw.netwmpid, XA_CARDINAL, 32,
+ 			PropModeReplace, (uchar *)&thispid, 1);
+-- 
+2.44.0
+
