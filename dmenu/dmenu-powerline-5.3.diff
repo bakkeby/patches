@@ -1,0 +1,258 @@
+From 21e39b90da3e62bdfd3e4ec59e9e72235fe8eaf3 Mon Sep 17 00:00:00 2001
+From: bakkeby <bakkeby@gmail.com>
+Date: Thu, 6 Jun 2024 21:00:10 +0200
+Subject: [PATCH] Adding powerline patch for dmenu
+
+---
+ config.def.h |  9 +++++++++
+ dmenu.1      | 10 ++++++++++
+ dmenu.c      | 45 +++++++++++++++++++++++++++++++++++++----
+ drw.c        | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ drw.h        |  2 ++
+ 5 files changed, 118 insertions(+), 4 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 1edb647..65475e4 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -21,3 +21,12 @@ static unsigned int lines      = 0;
+  * for example: " /?\"&[]"
+  */
+ static const char worddelimiters[] = " ";
++
++/* Powerline options, one of:
++ *    PwrlNone, PwrlRightArrow, PwrlLeftArrow, PwrlForwardSlash or PwrlBackslash */
++static int powerline = PwrlNone;
++/* By default the powerline separator will take up the full space between dmenu items.
++ * This option allows for the size to be reduced by a number of pixels, e.g. a value of 3
++ * will shave off three pixels on each side of the separator. This can be used to adjust
++ * the angle of a powerline slash or arrow. */
++static int powerline_size_reduction_pixels = 0;
+diff --git a/dmenu.1 b/dmenu.1
+index 323f93c..e156311 100644
+--- a/dmenu.1
++++ b/dmenu.1
+@@ -4,6 +4,10 @@ dmenu \- dynamic menu
+ .SH SYNOPSIS
+ .B dmenu
+ .RB [ \-bfiv ]
++.RB [ \-pwrl
++.IR int ]
++.RB [ \-pwrl_reduction
++.IR pixels ]
+ .RB [ \-l
+ .IR lines ]
+ .RB [ \-m
+@@ -50,6 +54,12 @@ dmenu matches menu items case insensitively.
+ .BI \-l " lines"
+ dmenu lists items vertically, with the given number of lines.
+ .TP
++.BI \-pwrl " int"
++specifies the powerline separator to use (values 0 through 4).
++.TP
++.BI \-pwrl_reduction " pixels"
++adjusts the angle and size of the powerline separator.
++.TP
+ .BI \-m " monitor"
+ dmenu is displayed on the monitor number supplied. Monitor numbers are starting
+ from 0.
+diff --git a/dmenu.c b/dmenu.c
+index 40f93e0..4399097 100644
+--- a/dmenu.c
++++ b/dmenu.c
+@@ -30,6 +30,8 @@ enum { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }; /* color schemes */
+ struct item {
+ 	char *text;
+ 	struct item *left, *right;
++	int scheme;
++	int x;
+ 	int out;
+ };
+ 
+@@ -133,12 +135,15 @@ static int
+ drawitem(struct item *item, int x, int y, int w)
+ {
+ 	if (item == sel)
+-		drw_setscheme(drw, scheme[SchemeSel]);
++		item->scheme = SchemeSel;
+ 	else if (item->out)
+-		drw_setscheme(drw, scheme[SchemeOut]);
++		item->scheme = SchemeOut;
+ 	else
+-		drw_setscheme(drw, scheme[SchemeNorm]);
++		item->scheme = SchemeNorm;
++
++	drw_setscheme(drw, scheme[item->scheme]);
+ 
++	item->x = x;
+ 	return drw_text(drw, x, y, w, bh, lrpad / 2, item->text, 0);
+ }
+ 
+@@ -147,7 +152,15 @@ drawmenu(void)
+ {
+ 	unsigned int curpos;
+ 	struct item *item;
++	struct item *prev = NULL;
+ 	int x = 0, y = 0, w;
++	int i;
++
++	struct item **buffer;
++	buffer = calloc(lines, sizeof(struct item *));
++	for (i = 0; i < lines; i++) {
++		buffer[i] = NULL;
++	}
+ 
+ 	drw_setscheme(drw, scheme[SchemeNorm]);
+ 	drw_rect(drw, 0, 0, mw, mh, 1, 1);
+@@ -180,8 +193,22 @@ drawmenu(void)
+ 			drw_text(drw, x, 0, w, bh, lrpad / 2, "<", 0);
+ 		}
+ 		x += w;
+-		for (item = curr; item != next; item = item->right)
++		for (item = curr; item != next; item = item->right) {
+ 			x = drawitem(item, x, 0, textw_clamp(item->text, mw - x - TEXTW(">")));
++			if (powerline && prev != NULL) {
++				drw_arrow(
++					drw,
++					item->x - lrpad / 2 + powerline_size_reduction_pixels,
++					0,
++					lrpad - 2 * powerline_size_reduction_pixels,
++					bh,
++					powerline,
++					scheme[prev->scheme][ColBg],
++					scheme[item->scheme][ColBg]
++				);
++			}
++			prev = item;
++		}
+ 		if (next) {
+ 			w = TEXTW(">");
+ 			drw_setscheme(drw, scheme[SchemeNorm]);
+@@ -189,6 +216,7 @@ drawmenu(void)
+ 		}
+ 	}
+ 	drw_map(drw, win, 0, 0, mw, mh);
++	free(buffer);
+ }
+ 
+ static void
+@@ -716,6 +744,8 @@ static void
+ usage(void)
+ {
+ 	die("usage: dmenu [-bfiv] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
++		"             [-pwrl int] (values 0 through 4, specifies powerline separator to use)\n"
++		"             [-pwrl_reduction pixels] (adjusts the angle and size of the powerline separator)\n"
+ 	    "             [-nb color] [-nf color] [-sb color] [-sf color] [-w windowid]");
+ }
+ 
+@@ -758,6 +788,10 @@ main(int argc, char *argv[])
+ 			colors[SchemeSel][ColFg] = argv[++i];
+ 		else if (!strcmp(argv[i], "-w"))   /* embedding window id */
+ 			embed = argv[++i];
++		else if (!strcmp(argv[i], "-pwrl"))  /* powerline separator between items */
++			powerline = atoi(argv[++i]);
++		else if (!strcmp(argv[i], "-pwrl_reduction"))  /* reduces separator angle and size */
++			powerline_size_reduction_pixels = atoi(argv[++i]);
+ 		else
+ 			usage();
+ 
+@@ -777,6 +811,9 @@ main(int argc, char *argv[])
+ 		die("no fonts could be loaded.");
+ 	lrpad = drw->fonts->h;
+ 
++	if (powerline < 0 || powerline >= PwrlLast || powerline_size_reduction_pixels >= lrpad / 2)
++		powerline = PwrlNone;
++
+ #ifdef __OpenBSD__
+ 	if (pledge("stdio rpath", NULL) == -1)
+ 		die("pledge");
+diff --git a/drw.c b/drw.c
+index 78a2b27..7da23e4 100644
+--- a/drw.c
++++ b/drw.c
+@@ -223,6 +223,62 @@ drw_setscheme(Drw *drw, Clr *scm)
+ 		drw->scheme = scm;
+ }
+ 
++void
++drw_arrow(Drw *drw, int x, int y, unsigned int w, unsigned int h, int style, Clr prev, Clr next)
++{
++	if (!drw || !drw->scheme)
++		return;
++
++	int direction = 1;
++	int hh = 0, w1 = 0, w2 = 0;
++
++	switch (style) {
++	case PwrlRightArrow:
++		hh = h / 2;
++		w1 = w;
++		break;
++	case PwrlLeftArrow:
++		hh = h / 2;
++		x += w;
++		w = -w;
++		w1 = w;
++		direction = 0;
++		break;
++	case PwrlForwardSlash:
++		hh = 0;
++		w1 = w;
++		break;
++	case PwrlBackslash:
++		w2 = w;
++		hh = h;
++		break;
++	}
++
++	if (direction) {
++		Clr tmp = next;
++		next = prev;
++		prev = tmp;
++	}
++
++	XPoint points[] = {
++		{ x      , y      },
++		{ x + w1 , y + hh },
++		{ x + w2 , y + h  },
++	};
++
++	XPoint bg[] = {
++		{ x     , y     },
++		{ x + w , y     },
++		{ x + w , y + h },
++		{ x     , y + h },
++	};
++
++	XSetForeground(drw->dpy, drw->gc, prev.pixel);
++	XFillPolygon(drw->dpy, drw->drawable, drw->gc, bg, 4, Convex, CoordModeOrigin);
++	XSetForeground(drw->dpy, drw->gc, next.pixel);
++	XFillPolygon(drw->dpy, drw->drawable, drw->gc, points, 3, Nonconvex, CoordModeOrigin);
++}
++
+ void
+ drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert)
+ {
+diff --git a/drw.h b/drw.h
+index fd7631b..efb8103 100644
+--- a/drw.h
++++ b/drw.h
+@@ -13,6 +13,7 @@ typedef struct Fnt {
+ } Fnt;
+ 
+ enum { ColFg, ColBg }; /* Clr scheme index */
++enum { PwrlNone, PwrlRightArrow, PwrlLeftArrow, PwrlForwardSlash, PwrlBackslash, PwrlLast };
+ typedef XftColor Clr;
+ 
+ typedef struct {
+@@ -51,6 +52,7 @@ void drw_setfontset(Drw *drw, Fnt *set);
+ void drw_setscheme(Drw *drw, Clr *scm);
+ 
+ /* Drawing functions */
++void drw_arrow(Drw *drw, int x, int y, unsigned int w, unsigned int h, int style, Clr prev, Clr next);
+ void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert);
+ int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert);
+ 
+-- 
+2.45.2
+
