@@ -1,4 +1,4 @@
-From 7c7f76b5981d64c8309c3c9d91a6de881076c137 Mon Sep 17 00:00:00 2001
+From 1d6a64f277ae11bfdea1d2af4dcbc4be43664e0b Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Mon, 10 Jan 2022 11:50:15 +0100
 Subject: [PATCH 2/2] Adding fake fullscreen compatible noborder patch
@@ -8,7 +8,7 @@ Subject: [PATCH 2/2] Adding fake fullscreen compatible noborder patch
  1 file changed, 9 insertions(+)
 
 diff --git a/dwm.c b/dwm.c
-index dbea07a..4990319 100644
+index 53f0bd4..972e8cd 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -1307,6 +1307,15 @@ resizeclient(Client *c, int x, int y, int w, int h)

@@ -1,4 +1,4 @@
-From 26143b40a079f2bded51a6e01dba8530bec8e486 Mon Sep 17 00:00:00 2001
+From 9738136a6fa4e731aad5d1127d9e256ebc724ba5 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Mon, 10 Jan 2022 11:47:56 +0100
 Subject: [PATCH] Compilation of fullscreen patches for dwm.
@@ -26,8 +26,8 @@ This incorporates, and expands on, the following patches:
    - losefullscreen
 ---
  config.def.h |   5 +-
- dwm.c        | 174 ++++++++++++++++++++++++++++++++++++++++++---------
- 2 files changed, 147 insertions(+), 32 deletions(-)
+ dwm.c        | 176 ++++++++++++++++++++++++++++++++++++++++++---------
+ 2 files changed, 148 insertions(+), 33 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index a2ac963..5f28f2c 100644
@@ -56,7 +56,7 @@ index a2ac963..5f28f2c 100644
  	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
  	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index a96f33c..dbea07a 100644
+index a96f33c..53f0bd4 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -327,11 +327,12 @@ index a96f33c..dbea07a 100644
 +	if (c->isfullscreen && c->fakefullscreen != 1) /* no support for fullscreen windows */
  		return;
 -	selmon->sel->isfloating = !selmon->sel->isfloating || selmon->sel->isfixed;
-+	c->isfloating = !c->isfloating || c->isfixed;
- 	if (selmon->sel->isfloating)
+-	if (selmon->sel->isfloating)
 -		resize(selmon->sel, selmon->sel->x, selmon->sel->y,
 -			selmon->sel->w, selmon->sel->h, 0);
 -	arrange(selmon);
++	c->isfloating = !c->isfloating || c->isfixed;
++	if (c->isfloating)
 +		resize(c, c->x, c->y, c->w, c->h, 0);
 +	arrange(c->mon);
 +}
