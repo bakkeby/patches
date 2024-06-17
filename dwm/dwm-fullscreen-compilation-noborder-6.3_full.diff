@@ -328,10 +328,11 @@ index a96f33c..dbea07a 100644
  		return;
 -	selmon->sel->isfloating = !selmon->sel->isfloating || selmon->sel->isfixed;
 +	c->isfloating = !c->isfloating || c->isfixed;
- 	if (selmon->sel->isfloating)
+-	if (selmon->sel->isfloating)
 -		resize(selmon->sel, selmon->sel->x, selmon->sel->y,
 -			selmon->sel->w, selmon->sel->h, 0);
 -	arrange(selmon);
++	if (c->isfloating)
 +		resize(c, c->x, c->y, c->w, c->h, 0);
 +	arrange(c->mon);
 +}
