@@ -1,6 +1,6 @@
-From 2433e0499e4607d39a3f511449f9466886055914 Mon Sep 17 00:00:00 2001
+From dc164866ceb8a8e76d6e84a26979052b581bea93 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:06:10 +0100
+Date: Mon, 24 Jun 2024 10:26:44 +0200
 Subject: [PATCH 1/2] Bar Modules - splits the bar functionality into
  individual  segments that can be re-arranged
 
@@ -893,22 +893,23 @@ index 0000000..5f9a3fe
 +#include "bar_wintitle.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 
 
-From a44a11168d6823a5b725242dfb5480b5be2f4b91 Mon Sep 17 00:00:00 2001
+From 7717eca68a2f135d64b5a4b9e4ac7cd243e123c3 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:11:51 +0100
+Date: Mon, 24 Jun 2024 10:38:30 +0200
 Subject: [PATCH 2/2] Adding systray module
 
 ---
  config.def.h        |   3 +
  dwm.c               | 131 ++++++++++++++++++++++++++----
+ patch/bar_status.c  |   2 -
  patch/bar_systray.c | 190 ++++++++++++++++++++++++++++++++++++++++++++
- patch/bar_systray.h |  40 ++++++++++
+ patch/bar_systray.h |  39 +++++++++
  patch/include.c     |   3 +-
  patch/include.h     |   3 +-
- 6 files changed, 353 insertions(+), 17 deletions(-)
+ 7 files changed, 352 insertions(+), 19 deletions(-)
  create mode 100644 patch/bar_systray.c
  create mode 100644 patch/bar_systray.h
 
@@ -1186,6 +1187,25 @@ index 86763d8..6875b06 100644
  	}
  }
  
+diff --git a/patch/bar_status.c b/patch/bar_status.c
+index 7d27282..84301d1 100644
+--- a/patch/bar_status.c
++++ b/patch/bar_status.c
+@@ -4,14 +4,12 @@ width_status(Bar *bar, BarWidthArg *a)
+ 	return TEXTW(stext);
+ }
+ 
+-
+ int
+ draw_status(Bar *bar, BarDrawArg *a)
+ {
+ 	return drw_text(drw, a->x, 0, a->w, bh, lrpad / 2, stext, 0);
+ }
+ 
+-
+ int
+ click_status(Bar *bar, Arg *arg, BarClickArg *a)
+ {
 diff --git a/patch/bar_systray.c b/patch/bar_systray.c
 new file mode 100644
 index 0000000..3ae2e56
@@ -1384,10 +1404,10 @@ index 0000000..3ae2e56
 +}
 diff --git a/patch/bar_systray.h b/patch/bar_systray.h
 new file mode 100644
-index 0000000..5123a73
+index 0000000..27edc8e
 --- /dev/null
 +++ b/patch/bar_systray.h
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,39 @@
 +#define SYSTEM_TRAY_REQUEST_DOCK    0
 +#define _NET_SYSTEM_TRAY_ORIENTATION_HORZ 0
 +
@@ -1427,7 +1447,6 @@ index 0000000..5123a73
 +static void updatesystrayicongeom(Client *i, int w, int h);
 +static void updatesystrayiconstate(Client *i, XPropertyEvent *ev);
 +static Client *wintosystrayicon(Window w);
-+
 diff --git a/patch/include.c b/patch/include.c
 index d422f56..c82b392 100644
 --- a/patch/include.c
@@ -1455,5 +1474,5 @@ index 5f9a3fe..c01916a 100644
 +#include "bar_systray.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

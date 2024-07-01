@@ -1,9 +1,11 @@
-From 815203d0060a577e9973a9a7a0a0da83e7213008 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 9 Jun 2020 11:09:23 +0200
-Subject: [PATCH] This is an example patch extending the focusonnetactive patch
- to offer different behaviours on receipt of the net active event signal and a
- per client rule for what action to take.
+From ec3fd7b934b5bb0986f972102d577416ac2e9a30 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:38:53 +0200
+Subject: [PATCH] focusonnetactive variant
+
+This is an example patch extending the focusonnetactive patch
+to offer different behaviours on receipt of the net active event signal and a
+per client rule for what action to take.
 
 An example use case is to ignore net active signals from Steam,
 which triggers every time the client get focus.
@@ -213,5 +215,5 @@ index 4465af1..60327c1 100644
  }
  
 -- 
-2.19.1
+2.45.2
 

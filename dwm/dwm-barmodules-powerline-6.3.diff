@@ -1,6 +1,6 @@
-From 97343b7b17a3bdc111768f026e8532b93143d409 Mon Sep 17 00:00:00 2001
+From 34ab695c06feb31eb22d4efb4afd0cb10e2df798 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:08:58 +0100
+Date: Mon, 24 Jun 2024 10:32:30 +0200
 Subject: [PATCH 2/2] Adding powerline module
 
 ---
@@ -475,5 +475,5 @@ index 5f9a3fe..b313ca4 100644
 +#include "bar_powerline_status.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

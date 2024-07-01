@@ -1,6 +1,6 @@
-From 911ae271078c0cdaa3a4f19fa1236f090b5f8afd Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 7 Sep 2021 14:47:50 +0200
+From 4d174b7ddd7b02d750f960dafb375018f5fab887 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 22:41:12 +0200
 Subject: [PATCH] Unmanaged patch for dwm
 
 This patch adds a new rule option allowing the user to specify windows that
@@ -102,5 +102,5 @@ index 4465af1..3ac2ea9 100644
  		c->x = c->mon->mx + c->mon->mw - WIDTH(c);
  	if (c->y + HEIGHT(c) > c->mon->my + c->mon->mh)
 -- 
-2.19.1
+2.45.2
 

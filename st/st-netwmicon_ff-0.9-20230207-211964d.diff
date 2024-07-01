@@ -107,5 +107,5 @@ index aa09997..4940f28 100644
  	XChangeProperty(xw.dpy, xw.win, xw.netwmpid, XA_CARDINAL, 32,
  			PropModeReplace, (uchar *)&thispid, 1);
 -- 
-2.44.0
+2.45.2
 

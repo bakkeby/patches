@@ -1,6 +1,6 @@
-From f99462eb1afd038023d3f25a25616a0560fb895b Mon Sep 17 00:00:00 2001
+From 12a47ac0df997dd3db990b2d7279d2cbcae412e2 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:00:06 +0100
+Date: Wed, 26 Jun 2024 22:41:43 +0200
 Subject: [PATCH] Unmanaged patch for dwm
 
 This patch adds a new rule option allowing the user to specify windows that
@@ -19,9 +19,9 @@ at the end of the rules options. This is because as long as the field is
 at the very end you do not actually need to specify a value (it will
 default to 0) which means that existing rules can be left as-is.
 
-    /* class      instance    title       tags mask     isfloating   monitor  unmanaged */
-    { "Gimp",     NULL,       NULL,       0,            1,           -1,      0 },
-    { "Firefox",  NULL,       NULL,       1 << 8,       0,           -1,      0 },
+	/* class      instance    title       tags mask     isfloating   monitor  unmanaged */
+	{ "Gimp",     NULL,       NULL,       0,            1,           -1,      0 },
+	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1,      0 },
 
 Whether unmanaged windows should stay on top of other windows or not depends
 very much on the program. It may be desirable to place a bar on top of other
@@ -102,5 +102,5 @@ index a96f33c..c99a81c 100644
  		c->x = c->mon->mx + c->mon->mw - WIDTH(c);
  	if (c->y + HEIGHT(c) > c->mon->my + c->mon->mh)
 -- 
-2.19.1
+2.45.2
 

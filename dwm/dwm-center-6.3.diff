@@ -1,6 +1,6 @@
-From 687f8c8ff590302462e629f8313b8fc6371e09ca Mon Sep 17 00:00:00 2001
+From d29f1a2202d46792d28f6e3610a679a2a7654144 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:17:58 +0100
+Date: Mon, 24 Jun 2024 10:48:08 +0200
 Subject: [PATCH] Adding 6.3 center patch with multi-monitor fix and 
  auto-centering of floating popup windows
 
@@ -88,5 +88,5 @@ index a96f33c..b7b97e3 100644
  
  void
 -- 
-2.19.1
+2.45.2
 

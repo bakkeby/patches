@@ -1,6 +1,6 @@
-From 26143b40a079f2bded51a6e01dba8530bec8e486 Mon Sep 17 00:00:00 2001
+From 4d2fb76ca3024447fd06407bdc87c09e726f6c27 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:47:56 +0100
+Date: Mon, 1 Jul 2024 22:14:32 +0200
 Subject: [PATCH 1/2] Compilation of fullscreen patches for dwm.
 
 This aims to provide a comprehensive fullscreen solution with the following features:
@@ -26,8 +26,8 @@ This incorporates, and expands on, the following patches:
    - losefullscreen
 ---
  config.def.h |   5 +-
- dwm.c        | 174 ++++++++++++++++++++++++++++++++++++++++++---------
- 2 files changed, 147 insertions(+), 32 deletions(-)
+ dwm.c        | 176 ++++++++++++++++++++++++++++++++++++++++++---------
+ 2 files changed, 148 insertions(+), 33 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index a2ac963..5f28f2c 100644
@@ -56,7 +56,7 @@ index a2ac963..5f28f2c 100644
  	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
  	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index a96f33c..dbea07a 100644
+index a96f33c..53f0bd4 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -93,6 +93,7 @@ struct Client {
@@ -327,11 +327,12 @@ index a96f33c..dbea07a 100644
 +	if (c->isfullscreen && c->fakefullscreen != 1) /* no support for fullscreen windows */
  		return;
 -	selmon->sel->isfloating = !selmon->sel->isfloating || selmon->sel->isfixed;
-+	c->isfloating = !c->isfloating || c->isfixed;
- 	if (selmon->sel->isfloating)
+-	if (selmon->sel->isfloating)
 -		resize(selmon->sel, selmon->sel->x, selmon->sel->y,
 -			selmon->sel->w, selmon->sel->h, 0);
 -	arrange(selmon);
++	c->isfloating = !c->isfloating || c->isfixed;
++	if (c->isfloating)
 +		resize(c, c->x, c->y, c->w, c->h, 0);
 +	arrange(c->mon);
 +}
@@ -352,12 +353,12 @@ index a96f33c..dbea07a 100644
  
  void
 -- 
-2.19.1
+2.45.2
 
 
-From 3008b8f55b7ebd78b8433f213559068f08145e48 Mon Sep 17 00:00:00 2001
+From c2d89a73e059f939dfb932f13663b74539be4e37 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:52:50 +0100
+Date: Mon, 1 Jul 2024 22:18:47 +0200
 Subject: [PATCH 2/2] Adding fullscreen-compilation compatible tagswapmon patch
 
 ---
@@ -379,7 +380,7 @@ index 5f28f2c..c47cddb 100644
  	TAGKEYS(                        XK_2,                      1)
  	TAGKEYS(                        XK_3,                      2)
 diff --git a/dwm.c b/dwm.c
-index dbea07a..fc9c208 100644
+index 53f0bd4..8a883b2 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -211,6 +211,7 @@ static void sigchld(int unused);
@@ -463,5 +464,5 @@ index dbea07a..fc9c208 100644
  tile(Monitor *m)
  {
 -- 
-2.19.1
+2.45.2
 

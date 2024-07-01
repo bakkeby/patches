@@ -1,6 +1,6 @@
-From b1026a04c1c7c49826a17d1aca2e44f59f4b5bf3 Mon Sep 17 00:00:00 2001
+From b751c3ed7240e0d7acaa28853bcf0a142defb582 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:36:14 +0100
+Date: Thu, 27 Jun 2024 17:57:53 +0200
 Subject: [PATCH] rotatestack, allows you to scroll through the stack
 
 Stack rotation moves a client from the bottom to the top of the stack (or the other way round). This effectively rotates the clients by one position clockwise (or CCW, respectively).
@@ -117,5 +117,5 @@ index a96f33c..091cc8a 100644
  run(void)
  {
 -- 
-2.19.1
+2.45.2
 

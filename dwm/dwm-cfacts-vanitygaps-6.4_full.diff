@@ -1,10 +1,9 @@
-From 484919dbd6095feb5a51cefd531c3c6bb3c92108 Mon Sep 17 00:00:00 2001
+From b24a5d1f65b7dcbf26750414d19a0391a4e2b22a Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Fri, 20 Oct 2023 22:02:47 +0200
+Date: Wed, 26 Jun 2024 09:38:18 +0200
 Subject: [PATCH 1/2] Adding cfacts patch which provides the ability to assign
  different weights to clients in their respective stack in tiled layout.
 
-Refer to https://dwm.suckless.org/patches/cfacts/
 ---
  config.def.h |  3 +++
  dwm.c        | 35 ++++++++++++++++++++++++++++++++---
@@ -115,12 +114,12 @@ index e5efb6a..89d4f9a 100644
  }
  
 -- 
-2.19.1
+2.45.2
 
 
-From 0ca6196b1405b32617b33d811da390fd0c9dab11 Mon Sep 17 00:00:00 2001
+From 1102816044e412f7d6b54c76564e2ede48d7fea8 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Fri, 20 Oct 2023 22:06:09 +0200
+Date: Wed, 26 Jun 2024 09:43:50 +0200
 Subject: [PATCH 2/2] vanitygaps - adds gaps to layouts
 
 This patch differentiates between inner and outer gaps as well as
@@ -1110,5 +1109,5 @@ index 0000000..9b66d53
 +}
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

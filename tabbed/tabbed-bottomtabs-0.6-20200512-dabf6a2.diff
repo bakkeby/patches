@@ -48,5 +48,5 @@ index eafe28a..7fcd53c 100644
  	ce.height = wc.height = h;
  	ce.type = ConfigureNotify;
 -- 
-2.34.1
+2.45.2
 

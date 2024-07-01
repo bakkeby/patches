@@ -1,6 +1,6 @@
-From de057561771f4e849c67be952c644374271a9603 Mon Sep 17 00:00:00 2001
+From f9d00f84b88aa33e1f898a2d62d9883d313035ad Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:52:05 +0100
+Date: Mon, 1 Jul 2024 22:17:46 +0200
 Subject: [PATCH 2/2] Adding fullscreen-compilation compatible tagallmon patch
 
 ---
@@ -22,7 +22,7 @@ index 5f28f2c..0d5456a 100644
  	TAGKEYS(                        XK_2,                      1)
  	TAGKEYS(                        XK_3,                      2)
 diff --git a/dwm.c b/dwm.c
-index dbea07a..a703cad 100644
+index 53f0bd4..e37f530 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -210,6 +210,7 @@ static void showhide(Client *c);
@@ -85,5 +85,5 @@ index dbea07a..a703cad 100644
  tagmon(const Arg *arg)
  {
 -- 
-2.19.1
+2.45.2
 

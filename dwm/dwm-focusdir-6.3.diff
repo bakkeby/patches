@@ -1,7 +1,7 @@
-From 45957f20d45e99469e7f296231769966b016d11a Mon Sep 17 00:00:00 2001
+From 9ac06bbb784534b5005fe6d1cfa38a8877597a6f Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:38:04 +0100
-Subject: [PATCH] focusdir: focus on the next client by direction (up, down, 
+Date: Wed, 26 Jun 2024 10:02:47 +0200
+Subject: [PATCH] focusdir: focus on the next client by direction (up, down,
  left, right)
 
 ---
@@ -110,5 +110,5 @@ index a96f33c..c3a868e 100644
  void
  focusin(XEvent *e)
 -- 
-2.19.1
+2.45.2
 

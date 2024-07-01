@@ -1,7 +1,7 @@
-From 39647ff8b155bdff072e32d04ca4e1c5e27873d5 Mon Sep 17 00:00:00 2001
+From 4464ebaba7848d4ecf642a2f6b02334345e8260b Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:22:21 +0100
-Subject: [PATCH 2/2] The dragcfact patch allow you resize clients' size (i.e. 
+Date: Wed, 26 Jun 2024 09:40:40 +0200
+Subject: [PATCH 2/2] The dragcfact patch allow you resize clients' size (i.e.
  modify cfact) by holding modkey + shift + right-click and dragging the mouse.
 
 ---
@@ -148,5 +148,5 @@ index bcb155d..54f7320 100644
  	arrange(selmon);
  }
 -- 
-2.19.1
+2.45.2
 

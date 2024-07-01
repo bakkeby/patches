@@ -1,0 +1,43 @@
+From f3331b857bdb29a3b1ad504623a57e10d0949f8f Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 09:52:05 +0200
+Subject: [PATCH 2/2] alpha monocle layout: only show the currently focused
+ window  (rather than all windows stacked on top of each other)
+
+---
+ dwm.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/dwm.c b/dwm.c
+index 34b9a32..132bc15 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -814,6 +814,8 @@ focus(Client *c)
+ 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
+ 	}
+ 	selmon->sel = c;
++	if (selmon->lt[selmon->sellt]->arrange == monocle)
++		arrangemon(selmon);
+ 	drawbars();
+ }
+ 
+@@ -1123,8 +1125,15 @@ monocle(Monitor *m)
+ 			n++;
+ 	if (n > 0) /* override layout symbol */
+ 		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
+-	for (c = nexttiled(m->clients); c; c = nexttiled(c->next))
++	for (c = m->stack; c && (!ISVISIBLE(c) || c->isfloating); c = c->snext);
++	if (c && !c->isfloating) {
++		XMoveWindow(dpy, c->win, m->wx, m->wy);
+ 		resize(c, m->wx, m->wy, m->ww - 2 * c->bw, m->wh - 2 * c->bw, 0);
++		c = c->snext;
++	}
++	for (; c; c = c->snext)
++		if (!c->isfloating && ISVISIBLE(c))
++			XMoveWindow(dpy, c->win, WIDTH(c) * -2, c->y);
+ }
+ 
+ void
+-- 
+2.45.2
+

@@ -1,6 +1,6 @@
-From 7014c3f566124fc3612cc2e720efbf8678a046eb Mon Sep 17 00:00:00 2001
+From 456412809dbe8c91879c1e01d213e3258130c2b1 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:29:24 +0100
+Date: Wed, 26 Jun 2024 09:50:22 +0200
 Subject: [PATCH] desktop icons patch
 
 New windows that has the _NET_WM_WINDOW_TYPE_DESKTOP window type
@@ -55,5 +55,5 @@ index a96f33c..efe966f 100644
  	/* init cursors */
  	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
 -- 
-2.19.1
+2.45.2
 

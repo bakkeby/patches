@@ -1,6 +1,6 @@
-From b151e3d6ca421112b86e6b17328bf8aabd51ab9c Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 15 Sep 2020 08:34:59 +0200
+From 7568744554792a48081b6334f4d4d99a438bf634 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:15:14 +0200
 Subject: [PATCH 2/2] Adding fake fullscreen compatible noborder patch
 
 ---
@@ -8,10 +8,10 @@ Subject: [PATCH 2/2] Adding fake fullscreen compatible noborder patch
  1 file changed, 9 insertions(+)
 
 diff --git a/dwm.c b/dwm.c
-index b1d0936..36b0608 100644
+index 763c224..15849a3 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -1314,6 +1314,15 @@ resizeclient(Client *c, int x, int y, int w, int h)
+@@ -1309,6 +1309,15 @@ resizeclient(Client *c, int x, int y, int w, int h)
  	c->oldw = c->w; c->w = wc.width = w;
  	c->oldh = c->h; c->h = wc.height = h;
  	wc.border_width = c->bw;
@@ -28,5 +28,5 @@ index b1d0936..36b0608 100644
  	configure(c);
  	XSync(dpy, False);
 -- 
-2.19.1
+2.45.2
 

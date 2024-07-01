@@ -1,6 +1,6 @@
-From 14803952902c1cbde814bc1233a6c0d766a0febf Mon Sep 17 00:00:00 2001
+From 91b971e6e8961ff9aad86d190c040604db17b523 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:45:19 +0100
+Date: Mon, 24 Jun 2024 09:41:39 +0200
 Subject: [PATCH 2/2] Adding systray patch
 
 Refer to https://dwm.suckless.org/patches/systray/
@@ -717,5 +717,5 @@ index 34b9a32..2ae3e2b 100644
   * ignored (especially on UnmapNotify's). Other types of errors call Xlibs
   * default error handler, which may call exit. */
 -- 
-2.19.1
+2.45.2
 

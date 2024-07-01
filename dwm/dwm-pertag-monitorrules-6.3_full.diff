@@ -1,8 +1,8 @@
-From 8323f1e2e1e71223aa516f66415611fe4dd1f2ed Mon Sep 17 00:00:00 2001
+From 6e311e10ef479c81835039384aa52daf08bd66e7 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:02:01 +0100
+Date: Fri, 28 Jun 2024 18:06:25 +0200
 Subject: [PATCH 1/2] pertag patch, keeps layout, mwfact, barpos and nmaster
- per  tag
+ per tag
 
 Refer to https://dwm.suckless.org/patches/pertag/
 ---
@@ -203,12 +203,12 @@ index a96f33c..b8ae4a5 100644
  	arrange(selmon);
  }
 -- 
-2.19.1
+2.45.2
 
 
-From 2f39e89ed604854515f8c4be502af09b9a89d05f Mon Sep 17 00:00:00 2001
+From 6e1ddf01ff4167b8bdc4fcdd1d6beadcf15eb1b8 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:11:18 +0100
+Date: Fri, 28 Jun 2024 18:13:16 +0200
 Subject: [PATCH 2/2] Monitor rules patch on top of pertag
 
 This patch allows the user to define layout, mfact, nmaster, showbar,
@@ -343,5 +343,5 @@ index b8ae4a5..d167d42 100644
  	return m;
  }
 -- 
-2.19.1
+2.45.2
 

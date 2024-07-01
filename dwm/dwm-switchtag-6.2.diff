@@ -1,8 +1,10 @@
-From d4e831126db7e64b55daf24b770a47f04416e2ca Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 7 Apr 2020 12:01:30 +0200
-Subject: [PATCH] Adding switchtag option for rules allowing auto-moving 
- dedicated tags for specific applications
+From f2675eb73143b2d8bf9b4d38e46ef966cca16bd1 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 23:02:56 +0200
+Subject: [PATCH] switchtag patch
+
+Adding switchtag option for rules allowing auto-moving
+dedicated tags for specific applications.
 
 dwm allow you to set application specific rules so that you can have your browser, for example,
 start up on tag 9 optionally on a given monitor.
@@ -129,5 +131,5 @@ index 4465af1..c7d1025 100644
  
  void
 -- 
-2.19.1
+2.45.2
 

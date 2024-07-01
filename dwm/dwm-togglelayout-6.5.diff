@@ -1,0 +1,30 @@
+From b8908297448a84808f3ffd415d6028f3c065e90f Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 22:49:38 +0200
+Subject: [PATCH] togglelayout patch
+
+Keyboard shortcuts to set a given layout will toggle to the
+previous layout if the given layout is already active.
+---
+ dwm.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index f1d86b2..0101950 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1510,9 +1510,8 @@ setfullscreen(Client *c, int fullscreen)
+ void
+ setlayout(const Arg *arg)
+ {
+-	if (!arg || !arg->v || arg->v != selmon->lt[selmon->sellt])
+-		selmon->sellt ^= 1;
+-	if (arg && arg->v)
++	selmon->sellt ^= 1;
++	if (arg && arg->v && arg->v != selmon->lt[selmon->sellt ^ 1])
+ 		selmon->lt[selmon->sellt] = (Layout *)arg->v;
+ 	strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, sizeof selmon->ltsymbol);
+ 	if (selmon->sel)
+-- 
+2.45.2
+

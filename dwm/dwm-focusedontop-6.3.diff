@@ -1,8 +1,8 @@
-From 96b77618391c9feb45e91291fad274ca9dfeed11 Mon Sep 17 00:00:00 2001
+From 3ff894e05fe584f32962007e0c8451112010e2ef Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:43:28 +0100
-Subject: [PATCH] focusedontop: allow the currently focused client to  display
- on top of floating windows, but not on top of transient windows or  dialog
+Date: Wed, 26 Jun 2024 22:23:27 +0200
+Subject: [PATCH] focusedontop: allow the currently focused client to display
+ on top of floating windows, but not on top of transient windows or dialog
  boxes
 
 ---
@@ -297,5 +297,5 @@ index a96f33c..0f7b60e 100644
  updatewmhints(Client *c)
  {
 -- 
-2.19.1
+2.45.2
 

@@ -1,22 +1,13 @@
-From dbbd234a9a3f82a29b3e82a205f4e4ee88371b6a Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 7 Apr 2020 12:27:21 +0200
-Subject: [PATCH] Adding attachx patch (combined attach
+From aeded80685416b997be074b0fc1180d626fb65db Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 09:56:38 +0200
+Subject: [PATCH] Adding attachx patch (combined attach 
  above/below/bottom/aside/master patch)
 
 This includes the following attach modes:
 
 0 - master (default behaviour): new windows become the new master
 1 - attachabove: new window is placed above selected client
-2 - attachaside: new window is placed on top of the stack
-3 - attachbelow: new window is placed below selected client
-4 - attachbottom: new window is placed at the bottom of the stack
-
-Refer to:
-   https://dwm.suckless.org/patches/attachabove/
-   https://dwm.suckless.org/patches/attachaside/
-   https://dwm.suckless.org/patches/attachbelow/
-   https://dwm.suckless.org/patches/attachbottom/
 ---
  config.def.h |  1 +
  dwm.c        | 59 +++++++++++++++++++++++++++++++++++++++++++++++++---
@@ -133,5 +124,5 @@ index 4465af1..8667baa 100644
  	focus(NULL);
  	arrange(NULL);
 -- 
-2.19.1
+2.45.2
 

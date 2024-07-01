@@ -1,0 +1,71 @@
+From 9566bc1d2766125b8cfd6a7ad2874f0e4d3c31c6 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 16:03:31 +0200
+Subject: [PATCH] Center clients within their allocated tile based on size
+ hints
+
+---
+ dwm.c | 29 +++++++++++++++++++++++++----
+ 1 file changed, 25 insertions(+), 4 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index f1d86b2..bed044b 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -191,6 +191,7 @@ static void quit(const Arg *arg);
+ static Monitor *recttomon(int x, int y, int w, int h);
+ static void resize(Client *c, int x, int y, int w, int h, int interact);
+ static void resizeclient(Client *c, int x, int y, int w, int h);
++static void resizeclientpad(Client *c, int x, int y, int w, int h, int xpad, int ypad);
+ static void resizemouse(const Arg *arg);
+ static void restack(Monitor *m);
+ static void run(void);
+@@ -1276,21 +1277,41 @@ recttomon(int x, int y, int w, int h)
+ }
+ 
+ void
+-resize(Client *c, int x, int y, int w, int h, int interact)
++resize(Client *c, int tx, int ty, int tw, int th, int interact)
+ {
+-	if (applysizehints(c, &x, &y, &w, &h, interact))
+-		resizeclient(c, x, y, w, h);
++	int wh = tw, hh = th;
++	if (applysizehints(c, &tx, &ty, &wh, &hh, interact))
++		resizeclientpad(c, tx, ty, wh, hh, tw, th);
+ }
+ 
++/* This wrapper is just for compatibility with other patches that may call resizeclient */
+ void
+ resizeclient(Client *c, int x, int y, int w, int h)
+ {
+-	XWindowChanges wc;
++	resizeclientpad(c, x, y, w, h, w, h);
++}
+ 
++/* This is essentially the resizeclient function renamed with two
++ * additional parameters, tw and th (for tile width and height). */
++void
++resizeclientpad(Client *c, int x, int y, int w, int h, int tw, int th)
++{
++	XWindowChanges wc;
+ 	c->oldx = c->x; c->x = wc.x = x;
+ 	c->oldy = c->y; c->y = wc.y = y;
+ 	c->oldw = c->w; c->w = wc.width = w;
+ 	c->oldh = c->h; c->h = wc.height = h;
++	if (!c->isfloating) {
++		if (w != tw) {
++			wc.x += (tw - w) / 2;
++			c->w = tw;
++		}
++		if (h != th) {
++			wc.y += (th - h) / 2;
++			c->h = th;
++		}
++	}
++
+ 	wc.border_width = c->bw;
+ 	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
+ 	configure(c);
+-- 
+2.45.2
+

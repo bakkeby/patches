@@ -1,9 +1,10 @@
-From ad9512714214ea2cfb54babd8fc72de81a094c4b Mon Sep 17 00:00:00 2001
+From 7978da9c0e163bb2079f46bb359881c97d607a7a Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:38:05 +0100
-Subject: [PATCH] This variant of the shiftview patch adds left and right
- circular shift through tags, but skips tags where there are no clients.
+Date: Thu, 27 Jun 2024 08:24:56 +0200
+Subject: [PATCH] shiftview patch
 
+This variant of the shiftview patch adds left and right
+circular shift through tags, but skips tags where there are no clients.
 ---
  config.def.h |  2 ++
  dwm.c        | 41 +++++++++++++++++++++++++++++++++++++++++
@@ -82,5 +83,5 @@ index a96f33c..0f8fd34 100644
  showhide(Client *c)
  {
 -- 
-2.19.1
+2.45.2
 

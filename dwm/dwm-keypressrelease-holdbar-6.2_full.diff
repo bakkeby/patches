@@ -1,6 +1,6 @@
-From 01f86394d4a01c418820c159125b22a5d1f40237 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Thu, 3 Jun 2021 10:58:27 +0200
+From 40a31e4c853f8feb07c0d18249432c755f12c430 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:25:00 +0200
 Subject: [PATCH 1/2] keypressrelease patch
 
 ---
@@ -120,12 +120,12 @@ index 4465af1..9dcc53e 100644
  		&& keys[i].func)
  			keys[i].func(&(keys[i].arg));
 -- 
-2.19.1
+2.45.2
 
 
-From 44a4f2afa3c4a89ed9b0dc86358f686c38343a53 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Thu, 3 Jun 2021 12:04:33 +0200
+From 3e3602a33a3f8482d74a7f5e29e80e8cf75d909c Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:25:52 +0200
 Subject: [PATCH 2/2] Holdbar patch on top of keypressrelease
 
 ---
@@ -234,5 +234,5 @@ index 9dcc53e..76826e5 100644
  	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
  	arrange(selmon);
 -- 
-2.19.1
+2.45.2
 

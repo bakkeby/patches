@@ -1,6 +1,6 @@
-From 995fccf76dea0e701a76a39ff11d8f98f8ba1b87 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Thu, 11 Feb 2021 11:08:32 +0100
+From c3512157bbdf15166ce38e39aa8664750b5ccb35 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Thu, 27 Jun 2024 17:58:39 +0200
 Subject: [PATCH] Adding rio-like draw-to-resize windows.
 
 This was backported from instantWM and depends on an external tool
@@ -10,8 +10,8 @@ Contributed by jzbor.
 ---
  config.def.h |   8 ++
  config.mk    |   6 +-
- dwm.c        | 240 +++++++++++++++++++++++++++++++++++++++++++++++++--
- 3 files changed, 248 insertions(+), 6 deletions(-)
+ dwm.c        | 238 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 247 insertions(+), 5 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 1c0b587..a10847d 100644
@@ -60,7 +60,7 @@ index 6d36cb7..e65c09a 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index 4465af1..59eb871 100644
+index 4465af1..f5889fb 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -40,6 +40,12 @@
@@ -76,15 +76,6 @@ index 4465af1..59eb871 100644
  
  #include "drw.h"
  #include "util.h"
-@@ -48,7 +54,7 @@
- #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
- #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
- #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
--                               * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
-+							   * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
- #define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
- #define LENGTH(X)               (sizeof X / sizeof X[0])
- #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
 @@ -61,11 +67,11 @@
  enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
  enum { SchemeNorm, SchemeSel }; /* color schemes */
@@ -447,5 +438,5 @@ index 4465af1..59eb871 100644
  	setup();
  #ifdef __OpenBSD__
 -- 
-2.19.1
+2.45.2
 

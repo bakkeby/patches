@@ -1,6 +1,6 @@
-From 8481cf0e5f3879a19c69385917f4775f529f1ff4 Mon Sep 17 00:00:00 2001
+From 32323d32d43fcd782d62d4c34ab4feab041347c4 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:12:29 +0100
+Date: Wed, 26 Jun 2024 10:07:59 +0200
 Subject: [PATCH] Adding attachx patch (combined attach 
  above/below/bottom/aside/master patch)
 
@@ -133,5 +133,5 @@ index a96f33c..10fbeef 100644
  	focus(NULL);
  	arrange(NULL);
 -- 
-2.19.1
+2.45.2
 

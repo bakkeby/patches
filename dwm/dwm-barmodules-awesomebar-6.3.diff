@@ -1,6 +1,6 @@
-From bef83ecfe66bb83a8420239f8c068cf60d2c3e0c Mon Sep 17 00:00:00 2001
+From 1d4a880ab204ef8ad8e3539bf1cdc6f965f75229 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:07:02 +0100
+Date: Mon, 24 Jun 2024 10:27:37 +0200
 Subject: [PATCH 2/2] Adding awesomebar barmodules patch.
 
 Note that this patch does not come with bound ClkWinTitle button click
@@ -176,5 +176,5 @@ index 5f9a3fe..de77a11 100644
 +#include "bar_awesomebar.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

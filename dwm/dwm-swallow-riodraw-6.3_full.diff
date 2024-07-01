@@ -1,6 +1,6 @@
-From 66c7e6fef8a900a03e4ca861fdb11aff1f1af690 Mon Sep 17 00:00:00 2001
+From 2d22373db386a2502bcd8b653efeb3c5186623f9 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:43:13 +0100
+Date: Wed, 26 Jun 2024 23:04:00 +0200
 Subject: [PATCH 1/2] Alternative swallow patch that replaces clients instead
  of swapping windows offering better resize hints
 
@@ -502,12 +502,12 @@ index a96f33c..8735093 100644
  #endif /* __OpenBSD__ */
  	scan();
 -- 
-2.19.1
+2.45.2
 
 
-From d27eb690b062552395732ff71c046f11e91bdaf2 Mon Sep 17 00:00:00 2001
+From d962348da3b867d20ef6c046fe06a5a921c7f861 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:44:42 +0100
+Date: Wed, 26 Jun 2024 23:05:14 +0200
 Subject: [PATCH 2/2] Adding riodraw on top of swallow
 
 ---
@@ -725,5 +725,5 @@ index 8735093..8dc28d3 100644
  
  int
 -- 
-2.19.1
+2.45.2
 

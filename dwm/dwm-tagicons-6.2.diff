@@ -1,6 +1,6 @@
-From 2e3edb3febae67c7325d1a1846934335403a62f4 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Fri, 4 Dec 2020 12:32:40 +0100
+From 469aa174e9af13d9d89b09026151d185570c4d97 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 22:53:07 +0200
 Subject: [PATCH] tagicons patch
 
 Refer to:
@@ -270,5 +270,5 @@ index 4465af1..614a9ef 100644
  tagmon(const Arg *arg)
  {
 -- 
-2.19.1
+2.45.2
 

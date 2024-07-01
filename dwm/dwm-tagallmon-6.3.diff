@@ -1,8 +1,9 @@
-From c31415e692201cc85976a4147ad7d8d8d1bda8b1 Mon Sep 17 00:00:00 2001
+From e88db8b1dfe099fda78895c8d5ff6abd5d23f28c Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:48:33 +0100
-Subject: [PATCH] tagallmon, move all visible windows to an adjacent monitor
+Date: Wed, 26 Jun 2024 22:58:33 +0200
+Subject: [PATCH] tagallmon
 
+Move all visible windows to an adjacent monitor.
 ---
  config.def.h |  2 ++
  dwm.c        | 43 +++++++++++++++++++++++++++++++++++++++++++
@@ -83,5 +84,5 @@ index a96f33c..75dae54 100644
  tile(Monitor *m)
  {
 -- 
-2.19.1
+2.45.2
 

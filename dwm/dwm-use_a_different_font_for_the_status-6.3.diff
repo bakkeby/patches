@@ -1,8 +1,10 @@
-From bda52d9a5bc430489dde92c7584896aee8751338 Mon Sep 17 00:00:00 2001
+From f152b628fdc77a2438bf25a161a7992c1a96ab2b Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:01:03 +0100
-Subject: [PATCH] This is meant as an example patch (horrible hack) to use a
- different font for the status compared to the rest of the bar.
+Date: Wed, 26 Jun 2024 22:40:38 +0200
+Subject: [PATCH] Use a different font for the status
+
+This is meant as an example patch (horrible hack) to use a
+different font for the status compared to the rest of the bar.
 
 The gist of it is that we forcibly use the second, or third, font to
 draw the bar, leaving the primary (first) font to draw the rest.
@@ -35,5 +37,5 @@ index a96f33c..87497af 100644
  
  	for (c = m->clients; c; c = c->next) {
 -- 
-2.19.1
+2.45.2
 

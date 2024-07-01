@@ -1,6 +1,6 @@
-From 6f0c657ee557bcb69fd92befad586476e6f2f375 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Thu, 30 Apr 2020 17:31:36 +0200
+From 6977f159986240cf6bdba9cb97c3bb3cd0eb9ba4 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 10:08:30 +0200
 Subject: [PATCH] dragmfact patch with smooth sliding and support for multiple
  layouts
 
@@ -282,5 +282,5 @@ index 4465af1..689e338 100644
  	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
  	for (i = 0; i < LENGTH(colors); i++)
 -- 
-2.17.1
+2.45.2
 

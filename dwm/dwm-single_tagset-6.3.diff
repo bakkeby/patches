@@ -1,6 +1,6 @@
-From 8591e832ea3c584841dfaf71c9e87aea8f01ce9e Mon Sep 17 00:00:00 2001
+From 3696f5948dde61f85ce7585fdc6012ab54353cf0 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:40:01 +0100
+Date: Thu, 27 Jun 2024 08:23:47 +0200
 Subject: [PATCH] Adding single tagset
 
 Author: Jan Christoph Ebersbach <jceb@e-jc.de>
@@ -537,5 +537,5 @@ index a96f33c..81eec26 100644
  	pop(c);
  }
 -- 
-2.19.1
+2.45.2
 

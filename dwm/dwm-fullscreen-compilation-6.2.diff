@@ -1,6 +1,6 @@
-From f5fe34d1b382795ad47cd63cf43198c79c6845a5 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Sat, 5 Sep 2020 14:32:26 +0200
+From 65d10802f2b5fa0f08cee4fdc6af286befdb62f4 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:14:17 +0200
 Subject: [PATCH] Compilation of fullscreen patches for dwm.
 
 This aims to provide a comprehensive fullscreen solution with the following features:
@@ -348,5 +348,5 @@ index 4465af1..763c224 100644
  
  void
 -- 
-2.19.1
+2.45.2
 

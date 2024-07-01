@@ -1,6 +1,6 @@
-From 0fd8c7aceab8886bf904f4a567e163040356c6aa Mon Sep 17 00:00:00 2001
+From bf58cf67d731ade8690fab5dffc3d361a96b9ff7 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:55:09 +0100
+Date: Mon, 1 Jul 2024 22:26:05 +0200
 Subject: [PATCH 2/2] Holdbar patch on top of keypressrelease
 
 ---
@@ -109,5 +109,5 @@ index 5cf093a..f7c2050 100644
  	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
  	arrange(selmon);
 -- 
-2.19.1
+2.45.2
 

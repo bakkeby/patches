@@ -1,6 +1,6 @@
-From 4ab9c0daea10cc519f764612040d5d4f901700ab Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 7 Apr 2020 12:43:06 +0200
+From 306342890de0e0d41db1be68a7f83778bfd9eb43 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 22:31:52 +0200
 Subject: [PATCH] Adding window role rule
 
 This patch adds a new rule property based on WM_WINDOW_ROLE(STRING) so that one can
@@ -81,5 +81,5 @@ index 4465af1..f2cf8ed 100644
  	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
  	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
 -- 
-2.19.1
+2.45.2
 

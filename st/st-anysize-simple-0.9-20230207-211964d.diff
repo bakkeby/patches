@@ -40,5 +40,5 @@ index aa09997..ea6e016 100644
  	sizeh->base_width = 2 * borderpx;
  	sizeh->min_height = win.ch + 2 * borderpx;
 -- 
-2.41.0
+2.45.2
 

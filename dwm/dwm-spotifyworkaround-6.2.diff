@@ -1,10 +1,10 @@
-From 2c2ee392dce154de42aa32ce0156745c616a9973 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 21 Dec 2021 13:27:48 +0100
-Subject: [PATCH] Workaround for programs like spotify which do not offer
- instance or class hints when they initially map, resulting in no rules
- applying
+From 2e9f6f40d4b0deb4a938495cc57067eebc09fb5e Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 23:08:14 +0200
+Subject: [PATCH] spotify workaround
 
+Workaround for programs like spotify which do not offer instance
+or class hints when they initially map, resulting in no rules applying
 ---
  dwm.c | 5 ++++-
  1 file changed, 4 insertions(+), 1 deletion(-)
@@ -40,5 +40,5 @@ index 4465af1..eb54fd2 100644
  	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
  	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
 -- 
-2.19.1
+2.45.2
 

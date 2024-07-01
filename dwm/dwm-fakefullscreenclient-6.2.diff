@@ -1,6 +1,6 @@
-From f4c880ab88436d10732c4cccb75ec4c6fc48a92f Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Fri, 1 May 2020 22:24:50 +0200
+From 7301adfa53cf3c93f3b12a702ec25e86ad8bb795 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 09:58:53 +0200
 Subject: [PATCH] fakefullscreenclient - enable fake fullscreen on a per client
  basis
 
@@ -157,5 +157,5 @@ index 4465af1..3f3d324 100644
  	selmon->sel->isfloating = !selmon->sel->isfloating || selmon->sel->isfixed;
  	if (selmon->sel->isfloating)
 -- 
-2.19.1
+2.45.2
 

@@ -1,6 +1,6 @@
-From 05fab06d1db4eead3ab0ea17595b3ea990589a5a Mon Sep 17 00:00:00 2001
+From cb80c74a1208606ee98fb5c0f66e74ac6fb49b80 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:48:07 +0100
+Date: Wed, 26 Jun 2024 23:01:58 +0200
 Subject: [PATCH] Adding systray patch
 
 Refer to https://dwm.suckless.org/patches/systray/
@@ -741,5 +741,5 @@ index a96f33c..62ff5c4 100644
  zoom(const Arg *arg)
  {
 -- 
-2.19.1
+2.45.2
 

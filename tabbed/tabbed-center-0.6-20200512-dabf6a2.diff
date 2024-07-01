@@ -23,5 +23,5 @@ index eafe28a..52039eb 100644
  	d = XftDrawCreate(dpy, dc.drawable, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
  	XftDrawStringUtf8(d, &col[ColFG], dc.font.xfont, x, y, (XftChar8 *) buf, len);
 -- 
-2.34.1
+2.45.2
 

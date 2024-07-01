@@ -1,6 +1,6 @@
-From 3a6c2b419b9e5787fa388bad5a184b70432a41d8 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Wed, 24 Jun 2020 14:16:27 +0200
+From 4f43de8d5cbf52c68cc0e7771eb4fe4a65289346 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Thu, 27 Jun 2024 21:34:08 +0200
 Subject: [PATCH] resizepoint - Like resizecorners, but does not warp mouse
  pointer
 
@@ -93,5 +93,5 @@ index 4465af1..8c82bf3 100644
  	/* init appearance */
  	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
 -- 
-2.19.1
+2.45.2
 

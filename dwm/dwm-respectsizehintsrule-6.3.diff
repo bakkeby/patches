@@ -1,7 +1,7 @@
-From 657ba7cd33d7aa911620a97e830ef6bba29915e1 Mon Sep 17 00:00:00 2001
+From 25a850d8df8dedadfd2604d5c749647d7fc07b76 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Tue, 3 May 2022 09:15:31 +0200
-Subject: [PATCH] Adding respect size hints rule example patch
+Date: Thu, 27 Jun 2024 21:33:38 +0200
+Subject: [PATCH] respect size hints rule example patch
 
 ---
  config.def.h | 6 +++---
@@ -71,5 +71,5 @@ index a96f33c..3c12770 100644
  	updatetitle(c);
  	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
 -- 
-2.19.1
+2.45.2
 

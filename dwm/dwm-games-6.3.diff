@@ -1,6 +1,6 @@
-From 2e006925e91d86ac049d8dc6ef60e01577a32e55 Mon Sep 17 00:00:00 2001
+From 5b1874c2ea1ffb34196189016c1d8cf40b6f4cae Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Tue, 13 Sep 2022 11:15:51 +0200
+Date: Mon, 1 Jul 2024 22:19:15 +0200
 Subject: [PATCH] Game rule patch
 
 This patch adds a rule identifying clients as a "game" such that
@@ -169,5 +169,5 @@ index a96f33c..141c354 100644
  updatebars(void)
  {
 -- 
-2.19.1
+2.45.2
 

@@ -1,6 +1,6 @@
-From ad9b8cbbc006815f51c8f279359629d6b4435f23 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Mon, 31 May 2021 09:51:33 +0200
+From 01d300873bd97a6bac1aa116ce0e8db2102c0fd2 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 10:26:07 +0200
 Subject: [PATCH] barpadding: multi-monitor fix
 
 Ref.
@@ -113,5 +113,5 @@ index 4465af1..60a3632 100644
  
  void
 -- 
-2.19.1
+2.45.2
 

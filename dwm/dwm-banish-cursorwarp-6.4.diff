@@ -1,6 +1,6 @@
-From f1c11a763cb6943839c4e66c419bd84bd1b32459 Mon Sep 17 00:00:00 2001
+From 2d9dd6a13f402f61e890cbbac4234f7c821bd1de Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Thu, 21 Sep 2023 11:01:56 +0200
+Date: Mon, 24 Jun 2024 09:59:29 +0200
 Subject: [PATCH 2/2] Adding cursorwarp patch on top of banish
 
 ---
@@ -74,5 +74,5 @@ index bb7760b..1a8e311 100644
  wintoclient(Window w)
  {
 -- 
-2.19.1
+2.45.2
 

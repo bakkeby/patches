@@ -1,6 +1,6 @@
-From fbb66e4a6d703247979b8c2a6718aa8f0265804f Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Mon, 20 Jul 2020 15:57:24 +0200
+From c6cd506ad4f9d53bbc08b645ad811091033bf82b Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 10:23:20 +0200
 Subject: [PATCH 2/2] Adding taggrid module
 
 ---
@@ -256,5 +256,5 @@ index 5f9a3fe..98ac046 100644
 +#include "bar_taggrid.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

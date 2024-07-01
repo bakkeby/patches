@@ -1,9 +1,8 @@
-From 0d1ef9f548011345e144b2b37565c2f9f964ea61 Mon Sep 17 00:00:00 2001
+From 1046d409eb9b67245a7851ed18028c1e404cacdf Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 12:56:49 +0100
+Date: Mon, 1 Jul 2024 22:33:48 +0200
 Subject: [PATCH] Lose fullscreen on focus change
 
-This implements a separate losefullscreen function proposed by jzbor.
 ---
  dwm.c | 15 ++++++++++++++-
  1 file changed, 14 insertions(+), 1 deletion(-)
@@ -57,5 +56,5 @@ index a96f33c..2964adb 100644
  	arrange(c->mon);
  	XMapWindow(dpy, c->win);
 -- 
-2.19.1
+2.45.2
 

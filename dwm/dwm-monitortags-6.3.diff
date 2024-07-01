@@ -1,6 +1,6 @@
-From a6b1b5e62da24750c057fbd8fcbea4b05bb2c152 Mon Sep 17 00:00:00 2001
+From f979161db6eca283b695fae6798dafad9686b5bf Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 12:58:43 +0100
+Date: Mon, 1 Jul 2024 22:37:17 +0200
 Subject: [PATCH] Monitor tags patch
 
 This patch allows you to have different tags icons on a per-monitor
@@ -80,5 +80,5 @@ index a96f33c..1ac16f4 100644
  			drw_rect(drw, x + boxs, boxs, boxw, boxw,
  				m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
 -- 
-2.19.1
+2.45.2
 

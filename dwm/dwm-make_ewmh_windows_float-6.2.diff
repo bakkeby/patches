@@ -1,0 +1,152 @@
+From 97a88fbb534f8dd4f7047085a928e92bbfbd7250 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 22:27:13 +0200
+Subject: [PATCH] Make EWMH windows float
+
+Move updatewindowtype() functionality into applyrules(), and also make
+following EWMH windows float: DIALOG, UTILITY, TOOLBAR, SPLASH.
+
+Ref. https://lists.suckless.org/hackers/2005/17374.html
+---
+ config.def.h | 12 +++++++++---
+ dwm.c        | 28 +++++++++-------------------
+ 2 files changed, 18 insertions(+), 22 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 1c0b587..221428f 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -21,14 +21,20 @@ static const char *colors[][3]      = {
+ /* tagging */
+ static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+ 
++#define WTYPE "_NET_WM_WINDOW_TYPE_"
+ static const Rule rules[] = {
+ 	/* xprop(1):
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
++	 *	_NET_WM_WINDOW_TYPE(ATOM) = wintype
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class      instance  title  wintype,          tags mask  isfloating  monitor */
++	{ NULL,       NULL,     NULL,  WTYPE "DIALOG",   0,         1,          -1 },
++	{ NULL,       NULL,     NULL,  WTYPE "UTILITY",  0,         1,          -1 },
++	{ NULL,       NULL,     NULL,  WTYPE "TOOLBAR",  0,         1,          -1 },
++	{ NULL,       NULL,     NULL,  WTYPE "SPLASH",   0,         1,          -1 },
++	{ "Gimp",     NULL,     NULL,  NULL,             0,         1,          -1 },
++	{ "Firefox",  NULL,     NULL,  NULL,             1 << 8,    0,          -1 },
+ };
+ 
+ /* layout(s) */
+diff --git a/dwm.c b/dwm.c
+index 4465af1..1d4475b 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -62,7 +62,7 @@ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+-       NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
++       NetClientList, NetLast }; /* EWMH atoms */
+ enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
+ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
+@@ -136,6 +136,7 @@ typedef struct {
+ 	const char *class;
+ 	const char *instance;
+ 	const char *title;
++	const char *wintype;
+ 	unsigned int tags;
+ 	int isfloating;
+ 	int monitor;
+@@ -169,6 +170,7 @@ static void focus(Client *c);
+ static void focusin(XEvent *e);
+ static void focusmon(const Arg *arg);
+ static void focusstack(const Arg *arg);
++static Atom getatomprop(Client *c, Atom prop);
+ static int getrootptr(int *x, int *y);
+ static long getstate(Window w);
+ static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
+@@ -224,7 +226,6 @@ static void updatenumlockmask(void);
+ static void updatesizehints(Client *c);
+ static void updatestatus(void);
+ static void updatetitle(Client *c);
+-static void updatewindowtype(Client *c);
+ static void updatewmhints(Client *c);
+ static void view(const Arg *arg);
+ static Client *wintoclient(Window w);
+@@ -279,6 +280,7 @@ void
+ applyrules(Client *c)
+ {
+ 	const char *class, *instance;
++	Atom wintype;
+ 	unsigned int i;
+ 	const Rule *r;
+ 	Monitor *m;
+@@ -290,12 +292,14 @@ applyrules(Client *c)
+ 	XGetClassHint(dpy, c->win, &ch);
+ 	class    = ch.res_class ? ch.res_class : broken;
+ 	instance = ch.res_name  ? ch.res_name  : broken;
++	wintype  = getatomprop(c, netatom[NetWMWindowType]);
+ 
+ 	for (i = 0; i < LENGTH(rules); i++) {
+ 		r = &rules[i];
+ 		if ((!r->title || strstr(c->name, r->title))
+ 		&& (!r->class || strstr(class, r->class))
+-		&& (!r->instance || strstr(instance, r->instance)))
++		&& (!r->instance || strstr(instance, r->instance))
++		&& (!r->wintype || wintype == XInternAtom(dpy, r->wintype, False)))
+ 		{
+ 			c->isfloating = r->isfloating;
+ 			c->tags |= r->tags;
+@@ -1053,7 +1057,8 @@ manage(Window w, XWindowAttributes *wa)
+ 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
+ 	XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
+ 	configure(c); /* propagates border_width, if size doesn't change */
+-	updatewindowtype(c);
++	if (getatomprop(c, netatom[NetWMState]) == netatom[NetWMFullscreen])
++		setfullscreen(c, 1);
+ 	updatesizehints(c);
+ 	updatewmhints(c);
+ 	XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
+@@ -1240,8 +1245,6 @@ propertynotify(XEvent *e)
+ 			if (c == c->mon->sel)
+ 				drawbar(c->mon);
+ 		}
+-		if (ev->atom == netatom[NetWMWindowType])
+-			updatewindowtype(c);
+ 	}
+ }
+ 
+@@ -1560,7 +1563,6 @@ setup(void)
+ 	netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
+ 	netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+ 	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+-	netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+ 	netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
+ 	/* init cursors */
+ 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
+@@ -2001,18 +2003,6 @@ updatetitle(Client *c)
+ 		strcpy(c->name, broken);
+ }
+ 
+-void
+-updatewindowtype(Client *c)
+-{
+-	Atom state = getatomprop(c, netatom[NetWMState]);
+-	Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
+-
+-	if (state == netatom[NetWMFullscreen])
+-		setfullscreen(c, 1);
+-	if (wtype == netatom[NetWMWindowTypeDialog])
+-		c->isfloating = 1;
+-}
+-
+ void
+ updatewmhints(Client *c)
+ {
+-- 
+2.45.2
+

@@ -1,6 +1,6 @@
-From 7e64cf33b56a4ad51a12f6e391c224defdf62255 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 7 Apr 2020 12:36:21 +0200
+From 027fa98a0343942ce66f0a04f6123850fcd7b619 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Thu, 27 Jun 2024 21:35:18 +0200
 Subject: [PATCH] Resize a floating window from any corner
 
 By default, windows only from the bottom right corner.
@@ -8,10 +8,6 @@ With this patch the mouse is warped to the nearest corner and you
 resize from there.
 
 Refer to https://dwm.suckless.org/patches/resizecorners/
-
-Authors:
-   dusty - dusty@teknik.io
-   Klemens Nanni kl3@posteo.org (6.1 version)
 ---
  dwm.c | 27 ++++++++++++++++++++++++---
  1 file changed, 24 insertions(+), 3 deletions(-)
@@ -85,5 +81,5 @@ index 4465af1..9922271 100644
  	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
  	if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
 -- 
-2.19.1
+2.45.2
 

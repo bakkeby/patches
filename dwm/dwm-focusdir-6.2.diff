@@ -1,6 +1,6 @@
-From eee865367a7903abeffd652ed293c090717294de Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Mon, 19 Oct 2020 17:37:59 +0200
+From 1dcde6773f9790c8563c8dae2c4610928be13547 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 10:02:22 +0200
 Subject: [PATCH] focusdir: focus on the next client by direction (up, down,
  left, right)
 
@@ -110,5 +110,5 @@ index 4465af1..c4b5995 100644
  void
  focusin(XEvent *e)
 -- 
-2.19.1
+2.45.2
 

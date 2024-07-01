@@ -1,0 +1,53 @@
+From 391a2500cb508bf64e7259c8f274ef7a3faa95df Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 23:39:08 +0200
+Subject: [PATCH 2/2] tagicons with separate icon for selected tags
+
+---
+ config.def.h | 5 +++--
+ dwm.c        | 5 ++++-
+ 2 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 7953203..c8a8681 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -21,9 +21,10 @@ static const char *colors[][3]      = {
+ /* tagging: refer to https://github.com/bakkeby/patches/wiki/tagicons */
+ static const char *tags[NUMTAGS] = { NULL };  /* left for compatibility reasons, i.e. code that checks LENGTH(tags) */
+ static char *tagicons[][NUMTAGS] = {
+-	[IconsDefault]        = { "1", "2", "3", "4", "5", "6", "7", "8", "9" },
++	[IconsDefault]        = { "○" },
+ 	[IconsVacant]         = { NULL },
+-	[IconsOccupied]       = { NULL },
++	[IconsOccupied]       = { "☉" },
++	[IconsSelected]       = { "◉" },
+ };
+ 
+ static const Rule rules[] = {
+diff --git a/dwm.c b/dwm.c
+index bb48a4e..bc51463 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -71,6 +71,7 @@ enum {
+ 	IconsDefault,
+ 	IconsVacant,
+ 	IconsOccupied,
++	IconsSelected,
+ 	IconsLast
+ }; /* icon sets */
+ 
+@@ -1743,7 +1744,9 @@ tagicon(Monitor *m, int tag)
+ 	char *icon;
+ 	for (c = m->clients; c && (!(c->tags & 1 << tag)); c = c->next);
+ 	// for (c = m->clients; c && (!(c->tags & 1 << tag) || HIDDEN(c)); c = c->next); // awesomebar / wintitleactions compatibility
+-	if (c && tagicons[IconsOccupied][0] != NULL)
++	if (m->tagset[m->seltags] & 1 << tag && tagicons[IconsSelected][0] != NULL)
++		icon = geticon(m, tag, IconsSelected);
++	else if (c && tagicons[IconsOccupied][0] != NULL)
+ 		icon = geticon(m, tag, IconsOccupied);
+ 	else {
+ 		icon = geticon(m, tag, m->iconset);
+-- 
+2.45.2
+

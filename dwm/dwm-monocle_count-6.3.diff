@@ -1,6 +1,6 @@
-From 8af423e333611d3a7eac5e09b78b004422945f19 Mon Sep 17 00:00:00 2001
+From 272fb99e9f1ba34fbbe8412967f5f64c567b12d6 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Tue, 26 Apr 2022 10:17:35 +0200
+Date: Mon, 1 Jul 2024 22:37:39 +0200
 Subject: [PATCH] monocle_count - prints "[M] [2/3]" layout symbol
 
 ---
@@ -46,5 +46,5 @@ index a96f33c..a3094d9 100644
  		resize(c, m->wx, m->wy, m->ww - 2 * c->bw, m->wh - 2 * c->bw, 0);
  }
 -- 
-2.19.1
+2.45.2
 

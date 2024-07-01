@@ -1,6 +1,6 @@
-From 1f8095f674fa16aca726e5d34b009cb232796010 Mon Sep 17 00:00:00 2001
+From cb9852d1b940ae87277bbc346966076a8910c24b Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Fri, 20 Oct 2023 10:28:57 +0200
+Date: Fri, 28 Jun 2024 18:06:35 +0200
 Subject: [PATCH] pertag patch, keeps layout, mwfact, barpos and nmaster per
  tag
 
@@ -203,5 +203,5 @@ index e5efb6a..5800810 100644
  	arrange(selmon);
  }
 -- 
-2.19.1
+2.45.2
 

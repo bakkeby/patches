@@ -1,6 +1,6 @@
-From 67840904a9510d6a6fc991b7f04046e74d196a26 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Sun, 25 Oct 2020 16:40:05 +0100
+From 619c08699f0f90dde91bc85a0a0021ffc5812cef Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:40:44 +0200
 Subject: [PATCH] Adds the _NET_CLIENT_LIST_STACKING property which may be
  needed by some applications, e.g. zoom for window sharing.
 
@@ -61,5 +61,5 @@ index 4465af1..0be261f 100644
  
  int
 -- 
-2.19.1
+2.45.2
 

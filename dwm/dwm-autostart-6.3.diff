@@ -1,6 +1,6 @@
-From b27822d126334b6fd5bf5265fff201e54f4d8ede Mon Sep 17 00:00:00 2001
+From 788b6667e121ad234fb8dab6c5ab962b0dd9d8c4 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:13:09 +0100
+Date: Mon, 24 Jun 2024 09:55:42 +0200
 Subject: [PATCH] Adding autostart patch
 
 Refer to https://dwm.suckless.org/patches/autostart/
@@ -47,5 +47,5 @@ index a96f33c..0fad144 100644
  	cleanup();
  	XCloseDisplay(dpy);
 -- 
-2.19.1
+2.45.2
 

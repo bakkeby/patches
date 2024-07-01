@@ -1,6 +1,6 @@
-From 3008b8f55b7ebd78b8433f213559068f08145e48 Mon Sep 17 00:00:00 2001
+From c2d89a73e059f939dfb932f13663b74539be4e37 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:52:50 +0100
+Date: Mon, 1 Jul 2024 22:18:47 +0200
 Subject: [PATCH 2/2] Adding fullscreen-compilation compatible tagswapmon patch
 
 ---
@@ -22,7 +22,7 @@ index 5f28f2c..c47cddb 100644
  	TAGKEYS(                        XK_2,                      1)
  	TAGKEYS(                        XK_3,                      2)
 diff --git a/dwm.c b/dwm.c
-index dbea07a..fc9c208 100644
+index 53f0bd4..8a883b2 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -211,6 +211,7 @@ static void sigchld(int unused);
@@ -106,5 +106,5 @@ index dbea07a..fc9c208 100644
  tile(Monitor *m)
  {
 -- 
-2.19.1
+2.45.2
 

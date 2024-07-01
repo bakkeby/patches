@@ -1,6 +1,6 @@
-From 1dfc5eb2d0bc17984a6398453e0026f98ca488ad Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Aug 2020 16:45:00 +0200
+From 2487d4bca375401df3713dd5c627a2be7a08e316 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 23:06:16 +0200
 Subject: [PATCH] Steam patch
 
 Steam, and steam windows (games), trigger a ConfigureNotify request every time the window
@@ -68,5 +68,5 @@ index 4465af1..e758060 100644
  }
  
 -- 
-2.19.1
+2.45.2
 

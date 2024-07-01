@@ -1,9 +1,9 @@
-From 0b662a1515f6d270c6fc6ac5102411a54a663f2d Mon Sep 17 00:00:00 2001
+From 18eeef248d1e80f395003d5688947f0d2529e527 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:52:25 +0100
-Subject: [PATCH] tagswapmon, swap all visible windows with those of one of the
- adjacent monitors
+Date: Wed, 26 Jun 2024 22:51:34 +0200
+Subject: [PATCH] tagswapmon patch
 
+Swap all visible windows with those of one of the adjacent monitors.
 ---
  config.def.h |  2 ++
  dwm.c        | 62 ++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -103,5 +103,5 @@ index a96f33c..5b9c480 100644
  tile(Monitor *m)
  {
 -- 
-2.19.1
+2.45.2
 

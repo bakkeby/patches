@@ -1,6 +1,6 @@
-From de9e4c3cd933812c12b217c46f97b314584ed507 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Mon, 20 Jul 2020 10:35:17 +0200
+From 0a48663a9352d39d34a5762e201700189a49c13f Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 10:17:39 +0200
 Subject: [PATCH 2/2] Adding powerline module
 
 ---
@@ -133,7 +133,7 @@ index 4bcd5ad..4a42557 100644
  /* Map functions */
  void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h);
 diff --git a/dwm.c b/dwm.c
-index 03dccfb..0e147de 100644
+index 9173ba9..e243817 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -1729,6 +1729,13 @@ setup(void)
@@ -475,5 +475,5 @@ index 5f9a3fe..b313ca4 100644
 +#include "bar_powerline_status.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

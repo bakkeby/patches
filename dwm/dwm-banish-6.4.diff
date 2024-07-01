@@ -1,6 +1,6 @@
-From 15f09e0e690328cb7bfd35b577435cba7b2e4859 Mon Sep 17 00:00:00 2001
+From fdd7f85a71dd137e9e3ea313ce8c1588ba61d51a Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 12 Jun 2023 15:17:51 +0200
+Date: Mon, 24 Jun 2024 09:58:13 +0200
 Subject: [PATCH] Banish patch - behaviour similiar to xbanish and unclutter
 
 ---
@@ -327,5 +327,5 @@ index e5efb6a..bb7760b 100644
  showhide(Client *c)
  {
 -- 
-2.19.1
+2.45.2
 

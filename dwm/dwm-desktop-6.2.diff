@@ -1,6 +1,6 @@
-From e76f9bab4f3d8c7d222cf098cf5215ab74a3a703 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Sat, 30 Jan 2021 12:06:54 +0100
+From 31bfeba5a8993201bddf8736f0e236c3d5273384 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 09:46:49 +0200
 Subject: [PATCH] Adding desktop patch
 
 ---
@@ -49,5 +49,5 @@ index 4465af1..328540d 100644
  
  Client *
 -- 
-2.19.1
+2.45.2
 

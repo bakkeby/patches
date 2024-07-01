@@ -1,0 +1,30 @@
+From 00b7b697f47694c7b637c6cbf0f528b001c052f5 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 22:44:04 +0200
+Subject: [PATCH] toggletag patch
+
+Keyboard shortcuts to view a given tag will toggle to the
+previous layout if the given tag is already active.
+---
+ dwm.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/dwm.c b/dwm.c
+index f1d86b2..3002d51 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -2053,8 +2053,10 @@ updatewmhints(Client *c)
+ void
+ view(const Arg *arg)
+ {
+-	if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
++	if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags]) {
++		view(&((Arg) { .ui = 0 }));
+ 		return;
++	}
+ 	selmon->seltags ^= 1; /* toggle sel tagset */
+ 	if (arg->ui & TAGMASK)
+ 		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
+-- 
+2.45.2
+

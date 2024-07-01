@@ -1,0 +1,397 @@
+From e70c53b8b4830e41893869c253626645f50396a8 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 09:10:04 +0200
+Subject: [PATCH 1/2] Alpha, adds transparency for the status bar.
+
+Allow dwm to have translucent bars, while keeping all the text on it opaque, just like the alpha-patch for st.
+
+Refer to https://dwm.suckless.org/patches/alpha/
+
+Authors:
+
+Eon S. Jeon - esjeon@hyunmu.am
+Laslo Hunhold - dev@frign.de (6.1 port)
+Thomas Oltmann - thomas.oltmann.hhg@gmail.com (20180613-b69c870 port)
+---
+ config.def.h |  7 ++++++
+ config.mk    |  2 +-
+ drw.c        | 26 ++++++++++++-----------
+ drw.h        |  9 +++++---
+ dwm.c        | 60 ++++++++++++++++++++++++++++++++++++++++++++++------
+ 5 files changed, 82 insertions(+), 22 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..ca7a9ba 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -12,11 +12,18 @@ static const char col_gray2[]       = "#444444";
+ static const char col_gray3[]       = "#bbbbbb";
+ static const char col_gray4[]       = "#eeeeee";
+ static const char col_cyan[]        = "#005577";
++static const unsigned int baralpha = 0xd0;
++static const unsigned int borderalpha = OPAQUE;
+ static const char *colors[][3]      = {
+ 	/*               fg         bg         border   */
+ 	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
+ 	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
+ };
++static const unsigned int alphas[][3]      = {
++	/*               fg      bg        border     */
++	[SchemeNorm] = { OPAQUE, baralpha, borderalpha },
++	[SchemeSel]  = { OPAQUE, baralpha, borderalpha },
++};
+ 
+ /* tagging */
+ static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+diff --git a/config.mk b/config.mk
+index b6eb7e0..848aef9 100644
+--- a/config.mk
++++ b/config.mk
+@@ -22,7 +22,7 @@ FREETYPEINC = /usr/include/freetype2
+ 
+ # includes and libs
+ INCS = -I${X11INC} -I${FREETYPEINC}
+-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS}
++LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} -lXrender
+ 
+ # flags
+ CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
+diff --git a/drw.c b/drw.c
+index 4cdbcbe..fe3aadd 100644
+--- a/drw.c
++++ b/drw.c
+@@ -61,7 +61,7 @@ utf8decode(const char *c, long *u, size_t clen)
+ }
+ 
+ Drw *
+-drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h)
++drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h, Visual *visual, unsigned int depth, Colormap cmap)
+ {
+ 	Drw *drw = ecalloc(1, sizeof(Drw));
+ 
+@@ -70,8 +70,11 @@ drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h
+ 	drw->root = root;
+ 	drw->w = w;
+ 	drw->h = h;
+-	drw->drawable = XCreatePixmap(dpy, root, w, h, DefaultDepth(dpy, screen));
+-	drw->gc = XCreateGC(dpy, root, 0, NULL);
++	drw->visual = visual;
++	drw->depth = depth;
++	drw->cmap = cmap;
++	drw->drawable = XCreatePixmap(dpy, root, w, h, depth);
++	drw->gc = XCreateGC(dpy, drw->drawable, 0, NULL);
+ 	XSetLineAttributes(dpy, drw->gc, 1, LineSolid, CapButt, JoinMiter);
+ 
+ 	return drw;
+@@ -87,7 +90,7 @@ drw_resize(Drw *drw, unsigned int w, unsigned int h)
+ 	drw->h = h;
+ 	if (drw->drawable)
+ 		XFreePixmap(drw->dpy, drw->drawable);
+-	drw->drawable = XCreatePixmap(drw->dpy, drw->root, w, h, DefaultDepth(drw->dpy, drw->screen));
++	drw->drawable = XCreatePixmap(drw->dpy, drw->root, w, h, drw->depth);
+ }
+ 
+ void
+@@ -194,21 +197,22 @@ drw_fontset_free(Fnt *font)
+ }
+ 
+ void
+-drw_clr_create(Drw *drw, Clr *dest, const char *clrname)
++drw_clr_create(Drw *drw, Clr *dest, const char *clrname, unsigned int alpha)
+ {
+ 	if (!drw || !dest || !clrname)
+ 		return;
+ 
+-	if (!XftColorAllocName(drw->dpy, DefaultVisual(drw->dpy, drw->screen),
+-	                       DefaultColormap(drw->dpy, drw->screen),
++	if (!XftColorAllocName(drw->dpy, drw->visual, drw->cmap,
+ 	                       clrname, dest))
+ 		die("error, cannot allocate color '%s'", clrname);
++
++	dest->pixel = (dest->pixel & 0x00ffffffU) | (alpha << 24);
+ }
+ 
+ /* Wrapper to create color schemes. The caller has to call free(3) on the
+  * returned color scheme when done using it. */
+ Clr *
+-drw_scm_create(Drw *drw, const char *clrnames[], size_t clrcount)
++drw_scm_create(Drw *drw, const char *clrnames[], const unsigned int alphas[], size_t clrcount)
+ {
+ 	size_t i;
+ 	Clr *ret;
+@@ -218,7 +222,7 @@ drw_scm_create(Drw *drw, const char *clrnames[], size_t clrcount)
+ 		return NULL;
+ 
+ 	for (i = 0; i < clrcount; i++)
+-		drw_clr_create(drw, &ret[i], clrnames[i]);
++		drw_clr_create(drw, &ret[i], clrnames[i], alphas[i]);
+ 	return ret;
+ }
+ 
+@@ -274,9 +278,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
+ 	} else {
+ 		XSetForeground(drw->dpy, drw->gc, drw->scheme[invert ? ColFg : ColBg].pixel);
+ 		XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
+-		d = XftDrawCreate(drw->dpy, drw->drawable,
+-		                  DefaultVisual(drw->dpy, drw->screen),
+-		                  DefaultColormap(drw->dpy, drw->screen));
++		d = XftDrawCreate(drw->dpy, drw->drawable, drw->visual, drw->cmap);
+ 		x += lpad;
+ 		w -= lpad;
+ 	}
+diff --git a/drw.h b/drw.h
+index 4bcd5ad..a56f523 100644
+--- a/drw.h
++++ b/drw.h
+@@ -20,6 +20,9 @@ typedef struct {
+ 	Display *dpy;
+ 	int screen;
+ 	Window root;
++	Visual *visual;
++	unsigned int depth;
++	Colormap cmap;
+ 	Drawable drawable;
+ 	GC gc;
+ 	Clr *scheme;
+@@ -27,7 +30,7 @@ typedef struct {
+ } Drw;
+ 
+ /* Drawable abstraction */
+-Drw *drw_create(Display *dpy, int screen, Window win, unsigned int w, unsigned int h);
++Drw *drw_create(Display *dpy, int screen, Window win, unsigned int w, unsigned int h, Visual *visual, unsigned int depth, Colormap cmap);
+ void drw_resize(Drw *drw, unsigned int w, unsigned int h);
+ void drw_free(Drw *drw);
+ 
+@@ -38,8 +41,8 @@ unsigned int drw_fontset_getwidth(Drw *drw, const char *text);
+ void drw_font_getexts(Fnt *font, const char *text, unsigned int len, unsigned int *w, unsigned int *h);
+ 
+ /* Colorscheme abstraction */
+-void drw_clr_create(Drw *drw, Clr *dest, const char *clrname);
+-Clr *drw_scm_create(Drw *drw, const char *clrnames[], size_t clrcount);
++void drw_clr_create(Drw *drw, Clr *dest, const char *clrname, unsigned int alpha);
++Clr *drw_scm_create(Drw *drw, const char *clrnames[], const unsigned int alphas[], size_t clrcount);
+ 
+ /* Cursor abstraction */
+ Cur *drw_cur_create(Drw *drw, int shape);
+diff --git a/dwm.c b/dwm.c
+index a96f33c..34b9a32 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -57,6 +57,8 @@
+ #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
+ #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
+ 
++#define OPAQUE                  0xffU
++
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+@@ -233,6 +235,7 @@ static Monitor *wintomon(Window w);
+ static int xerror(Display *dpy, XErrorEvent *ee);
+ static int xerrordummy(Display *dpy, XErrorEvent *ee);
+ static int xerrorstart(Display *dpy, XErrorEvent *ee);
++static void xinitvisual();
+ static void zoom(const Arg *arg);
+ 
+ /* variables */
+@@ -269,6 +272,11 @@ static Drw *drw;
+ static Monitor *mons, *selmon;
+ static Window root, wmcheckwin;
+ 
++static int useargb = 0;
++static Visual *visual;
++static int depth;
++static Colormap cmap;
++
+ /* configuration, allows nested code to access above variables */
+ #include "config.h"
+ 
+@@ -1545,7 +1553,8 @@ setup(void)
+ 	sw = DisplayWidth(dpy, screen);
+ 	sh = DisplayHeight(dpy, screen);
+ 	root = RootWindow(dpy, screen);
+-	drw = drw_create(dpy, screen, root, sw, sh);
++	xinitvisual();
++	drw = drw_create(dpy, screen, root, sw, sh, visual, depth, cmap);
+ 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
+ 		die("no fonts could be loaded.");
+ 	lrpad = drw->fonts->h;
+@@ -1573,7 +1582,7 @@ setup(void)
+ 	/* init appearance */
+ 	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
+ 	for (i = 0; i < LENGTH(colors); i++)
+-		scheme[i] = drw_scm_create(drw, colors[i], 3);
++		scheme[i] = drw_scm_create(drw, colors[i], alphas[i], 3);
+ 	/* init bars */
+ 	updatebars();
+ 	updatestatus();
+@@ -1810,16 +1819,18 @@ updatebars(void)
+ 	Monitor *m;
+ 	XSetWindowAttributes wa = {
+ 		.override_redirect = True,
+-		.background_pixmap = ParentRelative,
++		.background_pixel = 0,
++		.border_pixel = 0,
++		.colormap = cmap,
+ 		.event_mask = ButtonPressMask|ExposureMask
+ 	};
+ 	XClassHint ch = {"dwm", "dwm"};
+ 	for (m = mons; m; m = m->next) {
+ 		if (m->barwin)
+ 			continue;
+-		m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bh, 0, DefaultDepth(dpy, screen),
+-				CopyFromParent, DefaultVisual(dpy, screen),
+-				CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
++		m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bh, 0, depth,
++		                          InputOutput, visual,
++		                          CWOverrideRedirect|CWBackPixel|CWBorderPixel|CWColormap|CWEventMask, &wa);
+ 		XDefineCursor(dpy, m->barwin, cursor[CurNormal]->cursor);
+ 		XMapRaised(dpy, m->barwin);
+ 		XSetClassHint(dpy, m->barwin, &ch);
+@@ -2116,6 +2127,43 @@ xerrorstart(Display *dpy, XErrorEvent *ee)
+ 	return -1;
+ }
+ 
++void
++xinitvisual()
++{
++	XVisualInfo *infos;
++	XRenderPictFormat *fmt;
++	int nitems;
++	int i;
++
++	XVisualInfo tpl = {
++		.screen = screen,
++		.depth = 32,
++		.class = TrueColor
++	};
++	long masks = VisualScreenMask | VisualDepthMask | VisualClassMask;
++
++	infos = XGetVisualInfo(dpy, masks, &tpl, &nitems);
++	visual = NULL;
++	for(i = 0; i < nitems; i ++) {
++		fmt = XRenderFindVisualFormat(dpy, infos[i].visual);
++		if (fmt->type == PictTypeDirect && fmt->direct.alphaMask) {
++			visual = infos[i].visual;
++			depth = infos[i].depth;
++			cmap = XCreateColormap(dpy, root, visual, AllocNone);
++			useargb = 1;
++			break;
++		}
++	}
++
++	XFree(infos);
++
++	if (! visual) {
++		visual = DefaultVisual(dpy, screen);
++		depth = DefaultDepth(dpy, screen);
++		cmap = DefaultColormap(dpy, screen);
++	}
++}
++
+ void
+ zoom(const Arg *arg)
+ {
+-- 
+2.45.2
+
+
+From 1833012eaeb223b2034b98e17ac3dd08d8da0c0c Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 09:49:44 +0200
+Subject: [PATCH 2/2] alpha deck layout: only show the currently focused window
+  (rather than all windows stacked on top of each other)
+
+---
+ config.def.h |  2 ++
+ dwm.c        | 40 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 42 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index ca7a9ba..445701a 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -49,6 +49,7 @@ static const Layout layouts[] = {
+ 	{ "[]=",      tile },    /* first entry is default */
+ 	{ "><>",      NULL },    /* no layout function means floating behavior */
+ 	{ "[M]",      monocle },
++	{ "[D]",      deck },
+ };
+ 
+ /* key definitions */
+@@ -84,6 +85,7 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
+ 	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
+ 	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
++	{ MODKEY,                       XK_c,      setlayout,      {.v = &layouts[3]} },
+ 	{ MODKEY,                       XK_space,  setlayout,      {0} },
+ 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
+ 	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
+diff --git a/dwm.c b/dwm.c
+index 34b9a32..c3b0651 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -159,6 +159,7 @@ static void configure(Client *c);
+ static void configurenotify(XEvent *e);
+ static void configurerequest(XEvent *e);
+ static Monitor *createmon(void);
++static void deck(Monitor *m);
+ static void destroynotify(XEvent *e);
+ static void detach(Client *c);
+ static void detachstack(Client *c);
+@@ -653,6 +654,43 @@ createmon(void)
+ 	return m;
+ }
+ 
++void
++deck(Monitor *m) {
++	unsigned int i, n, h, mw, my;
++	Client *c, *s;
++
++	for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
++	if (n == 0)
++		return;
++
++	if (n > m->nmaster) {
++		mw = m->nmaster ? m->ww * m->mfact : 0;
++		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n - m->nmaster);
++	}
++	else
++		mw = m->ww;
++	for (i = my = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++)
++		if (i < m->nmaster) {
++			h = (m->wh - my) / (MIN(n, m->nmaster) - i);
++			resize(c, m->wx, m->wy + my, mw - (2*c->bw), h - (2*c->bw), False);
++			my += HEIGHT(c);
++		}
++		else
++			XMoveWindow(dpy, c->win, WIDTH(c) * -2, c->y);
++
++	for (s = m->stack; s; s = s->snext) {
++		if (!ISVISIBLE(s) || s->isfloating)
++			continue;
++
++		for (i = my = 0, c = nexttiled(m->clients); c && c != s; c = nexttiled(c->next), i++);
++		if (i < m->nmaster)
++			continue;
++		XMoveWindow(dpy, s->win, c->x, c->y);
++		resize(s, m->wx + mw, m->wy, m->ww - mw - (2*s->bw), m->wh - (2*s->bw), False);
++		break;
++	}
++}
++
+ void
+ destroynotify(XEvent *e)
+ {
+@@ -814,6 +852,8 @@ focus(Client *c)
+ 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
+ 	}
+ 	selmon->sel = c;
++	if (selmon->lt[selmon->sellt]->arrange == deck)
++		arrangemon(selmon);
+ 	drawbars();
+ }
+ 
+-- 
+2.45.2
+

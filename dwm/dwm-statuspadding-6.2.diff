@@ -1,6 +1,6 @@
-From 9ef9ccccf9cbd6341bc601ef1501a3188e9d49f5 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 7 Apr 2020 12:37:13 +0200
+From a2a33f7009624af06bc691464307cb179ea87ed2 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 23:07:01 +0200
 Subject: [PATCH] Adding statuspadding patch
 
 Refer to:
@@ -50,5 +50,5 @@ index 4465af1..35e8275 100644
  	/* init atoms */
  	utf8string = XInternAtom(dpy, "UTF8_STRING", False);
 -- 
-2.19.1
+2.45.2
 

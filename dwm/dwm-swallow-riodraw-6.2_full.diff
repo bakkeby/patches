@@ -1,6 +1,6 @@
-From f7ca16b6b30fa4759dd05155ea61af811f050ba2 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Fri, 29 Jan 2021 19:29:59 +0100
+From 75e20776f0680bf98287d0ef803780f3a9514498 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 23:03:47 +0200
 Subject: [PATCH 1/2] Alternative swallow patch that replaces clients instead
  of swapping windows offering better resize hints
 
@@ -58,7 +58,7 @@ index 6d36cb7..e65c09a 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index 4465af1..d55c2f5 100644
+index 4465af1..abff8be 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -40,6 +40,12 @@
@@ -294,9 +294,9 @@ index 4465af1..d55c2f5 100644
 +
 +	if (ISVISIBLE(new) && !new->isfullscreen) {
 +		if (new->isfloating)
-+			resize(new, old->x, old->y, new->w - 2*new->bw, new->h - 2*new->bw, 0);
++			resize(new, old->x, old->y, new->w, new->h, 0);
 +		else
-+			resize(new, old->x, old->y, old->w - 2*new->bw, old->h - 2*new->bw, 0);
++			resize(new, old->x, old->y, old->w, old->h, 0);
 +	}
 +}
 +
@@ -502,12 +502,12 @@ index 4465af1..d55c2f5 100644
  #endif /* __OpenBSD__ */
  	scan();
 -- 
-2.19.1
+2.45.2
 
 
-From 593dfbe7447086ebdb4da89e637a043a170b2538 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Sun, 14 Feb 2021 14:16:33 +0100
+From dc0fc852d2324703b6594fbcf58761c90c62f461 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 23:04:34 +0200
 Subject: [PATCH 2/2] Adding riodraw on top of swallow
 
 ---
@@ -542,7 +542,7 @@ index 392ae32..0bc8a7d 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index d55c2f5..3491997 100644
+index abff8be..7ce0f14 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -204,6 +204,10 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
@@ -725,5 +725,5 @@ index d55c2f5..3491997 100644
  
  int
 -- 
-2.19.1
+2.45.2
 

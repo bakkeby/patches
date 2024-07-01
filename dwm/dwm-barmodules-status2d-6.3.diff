@@ -1,6 +1,6 @@
-From 8592c59216ccdbaf3bfbc028130e116057517d0d Mon Sep 17 00:00:00 2001
+From 0e8657c854a01ff5f6bc8e29f348a6a9217ecc4e Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:09:50 +0100
+Date: Mon, 24 Jun 2024 10:33:10 +0200
 Subject: [PATCH 2/2] Adding status2d module
 
 ---
@@ -342,5 +342,5 @@ index 5f9a3fe..2927238 100644
 +#include "bar_status2d.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

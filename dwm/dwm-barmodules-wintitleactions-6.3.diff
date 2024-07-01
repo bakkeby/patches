@@ -1,7 +1,7 @@
-From 54674a344665e893a72a81319b7caf9226a2180f Mon Sep 17 00:00:00 2001
+From 8f37d590e96760faa74a34bce4cf44a34296e8db Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:13:41 +0100
-Subject: [PATCH 2/2] Adding wintitleactions patch
+Date: Mon, 24 Jun 2024 10:46:50 +0200
+Subject: [PATCH 2/2] Adding wintitleactions module
 
 ---
  config.def.h                |  4 ++
@@ -262,5 +262,5 @@ index 5f9a3fe..be075b5 100644
 +#include "bar_wintitleactions.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

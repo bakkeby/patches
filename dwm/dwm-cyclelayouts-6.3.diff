@@ -1,6 +1,6 @@
-From 48d8560319e18a0325007a1f765f0589fb2dbfc8 Mon Sep 17 00:00:00 2001
+From d54f931d007a32ddc1fd9d8084258d92378597a5 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:26:41 +0100
+Date: Wed, 26 Jun 2024 09:45:28 +0200
 Subject: [PATCH] cyclelayout, function to cycle through available layouts.
 
 MOD-CTRL-, and MOD-CTRL-.
@@ -91,5 +91,5 @@ index a96f33c..2d98c2b 100644
  destroynotify(XEvent *e)
  {
 -- 
-2.19.1
+2.45.2
 

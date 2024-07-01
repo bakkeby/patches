@@ -1,0 +1,66 @@
+From a492ae788e399fe80fb9ed54faa89ca1606018dd Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:26:29 +0200
+Subject: [PATCH] lockmask patch
+
+By default in dwm the status of Caps Lock and Num Lock is ignored
+when handling keybindings.
+
+To achieve this dwm will, for each button and key binding, subscribe
+to all four combinations of the Caps and Num Lock states, then when
+interpreting the key and button press events the lock states are
+discarded by the CLEANMASK macro.
+
+This patch changes this logic so that a user can, if they so desire,
+have keybindings that are only active when the Caps Lock or Num Lock
+are active - while still ignoring the Caps Lock and Num Lock states
+for general keybindings.
+
+As an example the following button bindings would allow the user to
+move and resize windows using only the mouse buttons when Caps Lock
+is on (i.e. no need to hold down a modifier key):
+
+	{ ClkClientWin,         LockMask,       Button1,        movemouse,      {0} },
+	{ ClkClientWin,         LockMask,       Button2,        togglefloating, {0} },
+	{ ClkClientWin,         LockMask,       Button3,        resizemouse,    {0} },
+
+The modifier for Num Lock is usually Mod2Mask, but check with xmodmap
+to be sure.
+---
+ dwm.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index f1d86b2..ded3652 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -46,7 +46,7 @@
+ 
+ /* macros */
+ #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
+-#define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
++#define MATCHMASK(mod,state)    ((state & ~((numlockmask|LockMask) ^ ((numlockmask|LockMask) & mod))) == mod)
+ #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
+                                * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
+ #define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
+@@ -453,7 +453,7 @@ buttonpress(XEvent *e)
+ 	}
+ 	for (i = 0; i < LENGTH(buttons); i++)
+ 		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
+-		&& CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
++		&& MATCHMASK(buttons[i].mask, ev->state))
+ 			buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+ }
+ 
+@@ -1007,7 +1007,7 @@ keypress(XEvent *e)
+ 	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
+ 	for (i = 0; i < LENGTH(keys); i++)
+ 		if (keysym == keys[i].keysym
+-		&& CLEANMASK(keys[i].mod) == CLEANMASK(ev->state)
++		&& MATCHMASK(keys[i].mod, ev->state)
+ 		&& keys[i].func)
+ 			keys[i].func(&(keys[i].arg));
+ }
+-- 
+2.45.2
+

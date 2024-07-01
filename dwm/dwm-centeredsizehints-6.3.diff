@@ -1,7 +1,7 @@
-From b38b2f665b587add976cd9572ad0bfb748f1b143 Mon Sep 17 00:00:00 2001
+From 08628b009cf2dce509b2d4b3954661fdc3f0e741 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:19:17 +0100
-Subject: [PATCH] Center clients within their allocated tile based on size
+Date: Mon, 24 Jun 2024 16:03:31 +0200
+Subject: [PATCH] Center clients within their allocated tile based on size 
  hints
 
 ---
@@ -75,5 +75,5 @@ index a96f33c..bc7c7ef 100644
  	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
  	configure(c);
 -- 
-2.19.1
+2.45.2
 

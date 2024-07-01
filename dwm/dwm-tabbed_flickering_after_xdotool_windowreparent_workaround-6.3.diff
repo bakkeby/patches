@@ -1,0 +1,48 @@
+From 48735caa6bc7230532e899792a444aa22f64e521 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 23:00:39 +0200
+Subject: [PATCH] Fixes flickering in tabbed after reparenting a window in dwm
+
+This is a workaround ref.
+https://www.reddit.com/r/suckless/comments/sisbe2/adding_an_existing_window_to_tabbed_causes/
+
+The scenario is that you run tabbed and then you use xdotool to
+reparent an existing client window into tabbed then that window
+will start flickering when it has focus.
+
+This has to do with that both dwm and tabbed will receive FocusIn
+events resulting in an endless loop where tabbed sets focus to the
+tabbed window whereas dwm will set the focus back to tabbed itself.
+
+To replicate:
+   - start two terminals and tabbed
+   - run xwininfo on tabbed to get its window ID (e.g. 0xe00003)
+   - now run the following command and select the other terminal
+
+xdotool windowreparent $(xdotool selectwindow) 0xe00003
+
+The other terminal should be placed within tabbed as expected, but
+it should flicker and CPU usage should go up.
+
+The workaround is to have dwm ignore the FocusIn event if the window
+that the event is related to is not managed by the window manager.
+---
+ dwm.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dwm.c b/dwm.c
+index a96f33c..f625ef3 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -815,7 +815,7 @@ focusin(XEvent *e)
+ {
+ 	XFocusChangeEvent *ev = &e->xfocus;
+ 
+-	if (selmon->sel && ev->window != selmon->sel->win)
++	if (selmon->sel && ev->window != selmon->sel->win && wintoclient(ev->window))
+ 		setfocus(selmon->sel);
+ }
+ 
+-- 
+2.45.2
+

@@ -1,6 +1,6 @@
-From e0e096f565942088fa14774433523e43136e0e36 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Wed, 12 May 2021 16:05:54 +0200
+From c05eeaad8101522756d533510d5129972740e9ab Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:16:15 +0200
 Subject: [PATCH 2/2] Adding fake fullscreen client rule
 
 ---
@@ -26,7 +26,7 @@ index 5f28f2c..dd98367 100644
  
  /* layout(s) */
 diff --git a/dwm.c b/dwm.c
-index b1d0936..246888f 100644
+index 763c224..c62a02b 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -139,6 +139,7 @@ typedef struct {
@@ -46,5 +46,5 @@ index b1d0936..246888f 100644
  			if (m)
  				c->mon = m;
 -- 
-2.19.1
+2.45.2
 

@@ -1,9 +1,10 @@
-From 655bae350b3dee9565f413c21f7a951a4e3f71cb Mon Sep 17 00:00:00 2001
+From fc7fea4eaf2cb0e7188943e7372371fa856d0a97 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Thu, 25 May 2023 23:15:06 +0200
-Subject: [PATCH] restrictfocus: a variant of focusstack that is restricted to
- the area (master, stack) the currently focused client is in
+Date: Thu, 27 Jun 2024 18:17:38 +0200
+Subject: [PATCH] restrictfocus
 
+A variant of focusstack that is restricted to
+the area (master, stack) the currently focused client is in.
 ---
  config.def.h |  2 ++
  dwm.c        | 55 ++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -96,5 +97,5 @@ index e5efb6a..88cf993 100644
  getatomprop(Client *c, Atom prop)
  {
 -- 
-2.19.1
+2.45.2
 

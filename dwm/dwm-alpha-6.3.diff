@@ -1,6 +1,6 @@
-From 29ce86e6162c47ee5cd830df5781a572e3fed43e Mon Sep 17 00:00:00 2001
+From e70c53b8b4830e41893869c253626645f50396a8 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 10:55:28 +0100
+Date: Mon, 24 Jun 2024 09:10:04 +0200
 Subject: [PATCH] Alpha, adds transparency for the status bar.
 
 Allow dwm to have translucent bars, while keeping all the text on it opaque, just like the alpha-patch for st.
@@ -293,5 +293,5 @@ index a96f33c..34b9a32 100644
  zoom(const Arg *arg)
  {
 -- 
-2.19.1
+2.45.2
 

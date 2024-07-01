@@ -1,6 +1,6 @@
-From 0ac50d43c5a48de34a53db8240143e4fb39239d3 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Fri, 22 May 2020 13:51:06 +0200
+From 13d697567fe5f34fbb93493b39aae6cf7a7c98f6 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:38:11 +0200
 Subject: [PATCH] The moveresize patch allows floating windows to be resized
  and moved using keyboard shortcuts.
 
@@ -125,5 +125,5 @@ index 4465af1..89483c1 100644
  nexttiled(Client *c)
  {
 -- 
-2.19.1
+2.45.2
 

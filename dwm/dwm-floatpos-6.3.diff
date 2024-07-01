@@ -1,6 +1,6 @@
-From 6639e81666ec1793956fa462282a85d3d046aa45 Mon Sep 17 00:00:00 2001
+From 233dc53693eb8cc20d0f69270d86c2e883d09abd Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:37:31 +0100
+Date: Wed, 26 Jun 2024 10:01:11 +0200
 Subject: [PATCH] floatpos: Control the size and position of floating windows
 
 This patch offers a comprehensive and monitor size agnostic way
@@ -365,5 +365,5 @@ index a96f33c..bf9ba9a 100644
  setfocus(Client *c)
  {
 -- 
-2.19.1
+2.45.2
 

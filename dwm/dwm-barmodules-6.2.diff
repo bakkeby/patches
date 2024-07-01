@@ -1,7 +1,7 @@
-From 53e19fbad52e4cba1f9f2ed9f21ab26db37f4eef Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Sun, 19 Jul 2020 19:26:10 +0200
-Subject: [PATCH] Bar Modules - splits the bar functionality into individual
+From e4809db6a8422851916ca9e2eafc3b54acbe2735 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 10:11:26 +0200
+Subject: [PATCH] Bar Modules - splits the bar functionality into individual 
  segments that can be re-arranged
 
 ---
@@ -890,5 +890,5 @@ index 0000000..5f9a3fe
 +#include "bar_wintitle.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

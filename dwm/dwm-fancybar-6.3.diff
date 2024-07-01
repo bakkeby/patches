@@ -1,7 +1,7 @@
-From 781cd03b7c3a0cf59701b9d6a928c1b81cd28cdd Mon Sep 17 00:00:00 2001
+From e17794d0de497d0850f726cee9d9abd60deb03a6 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:36:07 +0100
-Subject: [PATCH] fancybar, shows the titles of all visible windows in the 
+Date: Wed, 26 Jun 2024 10:00:22 +0200
+Subject: [PATCH] fancybar, shows the titles of all visible windows in the
  status bar
 
 Inspired by the decorated tabbed layout of Xmonad this patch provides a status bar that shows
@@ -92,5 +92,5 @@ index a96f33c..b8c6449 100644
  	drw_map(drw, m->barwin, 0, 0, m->ww, bh);
  }
 -- 
-2.19.1
+2.45.2
 

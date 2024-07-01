@@ -1,6 +1,6 @@
-From 99df82c57af398e415fb2458e8fdb0677577846f Mon Sep 17 00:00:00 2001
+From ce006e44bcb9ca91ab812c4218ffae44920eb1c7 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Fri, 23 Jun 2023 23:29:38 +0200
+Date: Wed, 26 Jun 2024 22:22:22 +0200
 Subject: [PATCH] focusfollowmouse: give precedence to the mouse cursor when
  deciding next focus
 
@@ -130,5 +130,5 @@ index e5efb6a..8a9a6d8 100644
  
  Client *
 -- 
-2.19.1
+2.45.2
 

@@ -1,6 +1,6 @@
-From f2e1a6e15ba38b29d20f1fa8fa979f8f380e93ae Mon Sep 17 00:00:00 2001
+From a11a0646a7ef2c83d8d3a78dfe99f6e786407ba7 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 12:57:26 +0100
+Date: Mon, 1 Jul 2024 22:36:38 +0200
 Subject: [PATCH] Monitor rules patch
 
 This patch allows the user to define layout, mfact, nmaster, showbar,
@@ -91,5 +91,5 @@ index a96f33c..31e5834 100644
  }
  
 -- 
-2.19.1
+2.45.2
 

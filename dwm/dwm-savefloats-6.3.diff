@@ -1,6 +1,6 @@
-From d8cd51f56a9089aa2d492ddbce88c2e563633c8d Mon Sep 17 00:00:00 2001
+From 510a5cfc0e7b67d016da0857be5997f2b33d9514 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:37:00 +0100
+Date: Thu, 27 Jun 2024 17:55:21 +0200
 Subject: [PATCH] Savefloats, saves size and position of floating windows
 
 Refer to https://dwm.suckless.org/patches/save_floats/
@@ -51,5 +51,5 @@ index a96f33c..faa3c54 100644
  }
  
 -- 
-2.19.1
+2.45.2
 

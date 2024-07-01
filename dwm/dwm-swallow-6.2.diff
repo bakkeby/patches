@@ -1,6 +1,6 @@
-From 21f99dac0e04a4e23f8aa28dad83368398268f36 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Fri, 29 Jan 2021 19:29:59 +0100
+From 75e20776f0680bf98287d0ef803780f3a9514498 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 23:03:47 +0200
 Subject: [PATCH] Alternative swallow patch that replaces clients instead of
  swapping windows offering better resize hints
 
@@ -502,5 +502,5 @@ index 4465af1..abff8be 100644
  #endif /* __OpenBSD__ */
  	scan();
 -- 
-2.19.1
+2.45.2
 

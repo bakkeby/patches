@@ -1,6 +1,6 @@
-From 01f86394d4a01c418820c159125b22a5d1f40237 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Thu, 3 Jun 2021 10:58:27 +0200
+From 40a31e4c853f8feb07c0d18249432c755f12c430 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:25:00 +0200
 Subject: [PATCH] keypressrelease patch
 
 ---
@@ -120,5 +120,5 @@ index 4465af1..9dcc53e 100644
  		&& keys[i].func)
  			keys[i].func(&(keys[i].arg));
 -- 
-2.19.1
+2.45.2
 

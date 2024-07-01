@@ -1,7 +1,7 @@
-From 8323f1e2e1e71223aa516f66415611fe4dd1f2ed Mon Sep 17 00:00:00 2001
+From 6e311e10ef479c81835039384aa52daf08bd66e7 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:02:01 +0100
-Subject: [PATCH] pertag patch, keeps layout, mwfact, barpos and nmaster per 
+Date: Fri, 28 Jun 2024 18:06:25 +0200
+Subject: [PATCH] pertag patch, keeps layout, mwfact, barpos and nmaster per
  tag
 
 Refer to https://dwm.suckless.org/patches/pertag/
@@ -203,5 +203,5 @@ index a96f33c..b8ae4a5 100644
  	arrange(selmon);
  }
 -- 
-2.19.1
+2.45.2
 

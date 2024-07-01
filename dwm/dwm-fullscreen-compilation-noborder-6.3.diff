@@ -1,6 +1,6 @@
-From 1d6a64f277ae11bfdea1d2af4dcbc4be43664e0b Mon Sep 17 00:00:00 2001
+From 9e621b2da0e43f670c869fb74ef4b5f527a3a8b7 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:50:15 +0100
+Date: Mon, 1 Jul 2024 22:15:33 +0200
 Subject: [PATCH 2/2] Adding fake fullscreen compatible noborder patch
 
 ---
@@ -28,5 +28,5 @@ index 53f0bd4..972e8cd 100644
  	configure(c);
  	XSync(dpy, False);
 -- 
-2.19.1
+2.45.2
 

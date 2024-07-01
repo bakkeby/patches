@@ -1,6 +1,6 @@
-From d27eb690b062552395732ff71c046f11e91bdaf2 Mon Sep 17 00:00:00 2001
+From d962348da3b867d20ef6c046fe06a5a921c7f861 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:44:42 +0100
+Date: Wed, 26 Jun 2024 23:05:14 +0200
 Subject: [PATCH 2/2] Adding riodraw on top of swallow
 
 ---
@@ -218,5 +218,5 @@ index 8735093..8dc28d3 100644
  
  int
 -- 
-2.19.1
+2.45.2
 

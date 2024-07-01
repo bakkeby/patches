@@ -1,8 +1,9 @@
-From bc7c08714e547d8782da0aae16d8b3bbe1d4d1af Mon Sep 17 00:00:00 2001
+From cf0eb0846c16901818647ca32e95ad8938751352 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Sat, 22 Jul 2023 22:14:04 +0200
+Date: Wed, 26 Jun 2024 22:23:44 +0200
 Subject: [PATCH] focusedontop: allow the currently focused client to display
- on top of floating windows, but not on top of transient windows
+ on top of floating windows, but not on top of transient windows or dialog
+ boxes
 
 ---
  config.def.h |  7 ++---
@@ -224,5 +225,5 @@ index e5efb6a..cf2e55b 100644
  	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
  }
 -- 
-2.19.1
+2.45.2
 

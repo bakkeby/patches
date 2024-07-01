@@ -1,9 +1,9 @@
-From e74ccf3918f4628d6995af3aa38d47fe17a6cc3b Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 7 Apr 2020 12:04:11 +0200
-Subject: [PATCH] tagmonfixfs: Allow moving a fullscreen window to another
- monitor
+From b0b2b0e78cac878553f7dec06b813bf12343ecd9 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 22:52:22 +0200
+Subject: [PATCH] tagmonfixfs
 
+Allow moving a fullscreen window to another monitor while it remains in fullscreen.
 ---
  dwm.c | 12 ++++++++++--
  1 file changed, 10 insertions(+), 2 deletions(-)
@@ -33,5 +33,5 @@ index 4465af1..39cece0 100644
  
  void
 -- 
-2.19.1
+2.45.2
 

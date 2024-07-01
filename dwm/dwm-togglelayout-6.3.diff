@@ -1,9 +1,10 @@
-From d1dd47c496e469f4c826ee884793d153f704a7ed Mon Sep 17 00:00:00 2001
+From 825f7750ac9c9ca883f4146cde74c4156159a589 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:53:40 +0100
-Subject: [PATCH] togglelayout - keyboard shortcuts to set a given layout will
- toggle to the previous layout if the given layout is already active
+Date: Wed, 26 Jun 2024 22:49:38 +0200
+Subject: [PATCH] togglelayout patch
 
+Keyboard shortcuts to set a given layout will toggle to the
+previous layout if the given layout is already active.
 ---
  dwm.c | 5 ++---
  1 file changed, 2 insertions(+), 3 deletions(-)
@@ -25,5 +26,5 @@ index a96f33c..9006fef 100644
  	strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, sizeof selmon->ltsymbol);
  	if (selmon->sel)
 -- 
-2.19.1
+2.45.2
 

@@ -1,6 +1,6 @@
-From 2b0aa06acb2ce04d8761cfd993adf069e9abb9ab Mon Sep 17 00:00:00 2001
+From 72d57efb6520e3a14a09bec7fb9afa11f6c6a53e Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:11:00 +0100
+Date: Mon, 24 Jun 2024 09:53:55 +0200
 Subject: [PATCH] attachbottom patch
 
 New clients attach at the bottom of the stack instead of the top.
@@ -67,5 +67,5 @@ index a96f33c..15b0138 100644
  				}
  				if (m == selmon)
 -- 
-2.19.1
+2.45.2
 

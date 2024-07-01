@@ -1,6 +1,6 @@
-From 2f39e89ed604854515f8c4be502af09b9a89d05f Mon Sep 17 00:00:00 2001
+From 6e1ddf01ff4167b8bdc4fcdd1d6beadcf15eb1b8 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:11:18 +0100
+Date: Fri, 28 Jun 2024 18:13:16 +0200
 Subject: [PATCH 2/2] Monitor rules patch on top of pertag
 
 This patch allows the user to define layout, mfact, nmaster, showbar,
@@ -135,5 +135,5 @@ index b8ae4a5..d167d42 100644
  	return m;
  }
 -- 
-2.19.1
+2.45.2
 

@@ -1,9 +1,9 @@
-From 782641d908feecba022be1e7653e20f3bc4993f6 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 1 Jun 2021 13:54:19 +0200
-Subject: [PATCH] Adding placedir, moving clients around with behaviour similar
- to that of focusdir
+From 72edc684fdc72f5d77bc928909772dbefd9b8145 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Fri, 28 Jun 2024 10:07:14 +0200
+Subject: [PATCH] placedir patch
 
+Moving clients around with behaviour similar to that of focusdir
 ---
  config.def.h |  4 +++
  dwm.c        | 98 ++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -141,5 +141,5 @@ index 4465af1..8bc6182 100644
  pop(Client *c)
  {
 -- 
-2.19.1
+2.45.2
 

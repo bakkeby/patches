@@ -1,6 +1,6 @@
-From 54297429dcf490511076ebc738c9688e113c7731 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Mon, 20 Jul 2020 11:48:07 +0200
+From cc71203d4552f31828e2f6c07d1dc32502e7fff9 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 10:21:03 +0200
 Subject: [PATCH 2/2] Adding statusbutton module
 
 ---
@@ -47,7 +47,7 @@ index 2534eac..b70c552 100644
  	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
  	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
 diff --git a/dwm.c b/dwm.c
-index 03dccfb..048221b 100644
+index 9173ba9..88e7197 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -65,7 +65,7 @@ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
@@ -123,5 +123,5 @@ index 5f9a3fe..c2a1127 100644
 +#include "bar_statusbutton.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

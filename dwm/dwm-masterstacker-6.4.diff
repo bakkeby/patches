@@ -1,6 +1,6 @@
-From b21bc2db75d2dce254a6740fcca276eb7d815553 Mon Sep 17 00:00:00 2001
+From 20033272333a35def201d8a6e9c29373c0cff612 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 12 Jun 2023 11:48:51 +0200
+Date: Mon, 1 Jul 2024 22:35:58 +0200
 Subject: [PATCH] Master stacker patch
 
 ---
@@ -400,5 +400,5 @@ index 0000000..0099db0
 +static void stackswap(const Arg *arg);
 +static Client *stackposclient(const Arg *arg);
 -- 
-2.19.1
+2.45.2
 

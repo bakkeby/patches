@@ -1,6 +1,6 @@
-From d8f276471e66eb7a4d9f5bcf23964f0e37be1db9 Mon Sep 17 00:00:00 2001
+From 6d7c194480e01734dc4f7787a5344945c23ea79e Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:07:45 +0100
+Date: Mon, 24 Jun 2024 10:29:47 +0200
 Subject: [PATCH 2/2] Adding bartabgroups barmodules patch.
 
 Note that this patch does not come with bound ClkWinTitle button click
@@ -68,7 +68,7 @@ index 86763d8..ba80bc9 100644
         NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
 diff --git a/patch/bar_tabgroups.c b/patch/bar_tabgroups.c
 new file mode 100644
-index 0000000..116ddc7
+index 0000000..d1b15f7
 --- /dev/null
 +++ b/patch/bar_tabgroups.c
 @@ -0,0 +1,233 @@
@@ -217,7 +217,7 @@ index 0000000..116ddc7
 +	}
 +
 +	if (clientsnmaster + clientsnstack + clientsnfloating + clientsnhidden == 0)
-+	 	return;
++		return;
 +
 +	tgactive = 1;
 +	num = tabw;
@@ -305,10 +305,9 @@ index 0000000..116ddc7
 +		#endif // BARTAB_FLOATWEIGHT
 +	}
 +}
-\ No newline at end of file
 diff --git a/patch/bar_tabgroups.h b/patch/bar_tabgroups.h
 new file mode 100644
-index 0000000..15f6876
+index 0000000..5940a5f
 --- /dev/null
 +++ b/patch/bar_tabgroups.h
 @@ -0,0 +1,7 @@
@@ -319,7 +318,6 @@ index 0000000..15f6876
 +static void bartabdraw(Monitor *m, Client *c, int unused, int x, int w, int groupactive, Arg *arg);
 +static void bartabclick(Monitor *m, Client *c, int passx, int x, int w, int unused, Arg *arg);
 +static void bartabcalculate(Monitor *m, int offx, int w, int passx, void(*tabfn)(Monitor *, Client *, int, int, int, int, Arg *arg), Arg *arg);
-\ No newline at end of file
 diff --git a/patch/include.c b/patch/include.c
 index d422f56..a1885ed 100644
 --- a/patch/include.c
@@ -347,5 +345,5 @@ index 5f9a3fe..a024a16 100644
 +#include "bar_tabgroups.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

@@ -1,0 +1,449 @@
+From f127277298a9af1679f7e35dffc396f7665d3d78 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Fri, 28 Jun 2024 18:16:45 +0200
+Subject: [PATCH] Tags depatch
+
+Example patch for completely removing tags from dwm ref.
+https://www.reddit.com/r/suckless/comments/j629j0/dwm_is_it_possible_to_remove_tags_functionality/
+---
+ config.def.h |  30 ++---------
+ dwm.c        | 139 +++++++--------------------------------------------
+ 2 files changed, 21 insertions(+), 148 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 1c0b587..14d9f0c 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -18,17 +18,14 @@ static const char *colors[][3]      = {
+ 	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
+ };
+ 
+-/* tagging */
+-static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+-
+ static const Rule rules[] = {
+ 	/* xprop(1):
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
+-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	/* class      instance    title       isfloating   monitor */
++	{ "Gimp",     NULL,       NULL,       1,           -1 },
++	{ "Firefox",  NULL,       NULL,       0,           -1 },
+ };
+ 
+ /* layout(s) */
+@@ -45,11 +42,6 @@ static const Layout layouts[] = {
+ 
+ /* key definitions */
+ #define MODKEY Mod1Mask
+-#define TAGKEYS(KEY,TAG) \
+-	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
+-	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
+-	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
+-	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
+ 
+ /* helper for spawning shell commands in the pre dwm-5.0 fashion */
+ #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+@@ -71,28 +63,16 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+ 	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
+ 	{ MODKEY,                       XK_Return, zoom,           {0} },
+-	{ MODKEY,                       XK_Tab,    view,           {0} },
+ 	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
+ 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
+ 	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
+ 	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
+ 	{ MODKEY,                       XK_space,  setlayout,      {0} },
+ 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
+-	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
+-	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
+ 	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
+ 	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+ 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
+ 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
+-	TAGKEYS(                        XK_1,                      0)
+-	TAGKEYS(                        XK_2,                      1)
+-	TAGKEYS(                        XK_3,                      2)
+-	TAGKEYS(                        XK_4,                      3)
+-	TAGKEYS(                        XK_5,                      4)
+-	TAGKEYS(                        XK_6,                      5)
+-	TAGKEYS(                        XK_7,                      6)
+-	TAGKEYS(                        XK_8,                      7)
+-	TAGKEYS(                        XK_9,                      8)
+ 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+ };
+ 
+@@ -107,9 +87,5 @@ static Button buttons[] = {
+ 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
+ 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
+ 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
+-	{ ClkTagBar,            0,              Button1,        view,           {0} },
+-	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
+-	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
+-	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
+ };
+ 
+diff --git a/dwm.c b/dwm.c
+index 4465af1..b583484 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -49,12 +49,10 @@
+ #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
+ #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
+                                * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
+-#define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
+ #define LENGTH(X)               (sizeof X / sizeof X[0])
+ #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
+ #define WIDTH(X)                ((X)->w + 2 * (X)->bw)
+ #define HEIGHT(X)               ((X)->h + 2 * (X)->bw)
+-#define TAGMASK                 ((1 << LENGTH(tags)) - 1)
+ #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
+ 
+ /* enums */
+@@ -91,7 +89,6 @@ struct Client {
+ 	int oldx, oldy, oldw, oldh;
+ 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
+ 	int bw, oldbw;
+-	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+ 	Client *next;
+ 	Client *snext;
+@@ -119,9 +116,7 @@ struct Monitor {
+ 	int by;               /* bar geometry */
+ 	int mx, my, mw, mh;   /* screen size */
+ 	int wx, wy, ww, wh;   /* window area  */
+-	unsigned int seltags;
+ 	unsigned int sellt;
+-	unsigned int tagset[2];
+ 	int showbar;
+ 	int topbar;
+ 	Client *clients;
+@@ -136,7 +131,6 @@ typedef struct {
+ 	const char *class;
+ 	const char *instance;
+ 	const char *title;
+-	unsigned int tags;
+ 	int isfloating;
+ 	int monitor;
+ } Rule;
+@@ -206,13 +200,10 @@ static void seturgent(Client *c, int urg);
+ static void showhide(Client *c);
+ static void sigchld(int unused);
+ static void spawn(const Arg *arg);
+-static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
+ static void tile(Monitor *);
+ static void togglebar(const Arg *arg);
+ static void togglefloating(const Arg *arg);
+-static void toggletag(const Arg *arg);
+-static void toggleview(const Arg *arg);
+ static void unfocus(Client *c, int setfocus);
+ static void unmanage(Client *c, int destroyed);
+ static void unmapnotify(XEvent *e);
+@@ -226,7 +217,6 @@ static void updatestatus(void);
+ static void updatetitle(Client *c);
+ static void updatewindowtype(Client *c);
+ static void updatewmhints(Client *c);
+-static void view(const Arg *arg);
+ static Client *wintoclient(Window w);
+ static Monitor *wintomon(Window w);
+ static int xerror(Display *dpy, XErrorEvent *ee);
+@@ -271,9 +261,6 @@ static Window root, wmcheckwin;
+ /* configuration, allows nested code to access above variables */
+ #include "config.h"
+ 
+-/* compile-time check if all tags fit into an unsigned int bit array. */
+-struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
+-
+ /* function implementations */
+ void
+ applyrules(Client *c)
+@@ -286,7 +273,6 @@ applyrules(Client *c)
+ 
+ 	/* rule matching */
+ 	c->isfloating = 0;
+-	c->tags = 0;
+ 	XGetClassHint(dpy, c->win, &ch);
+ 	class    = ch.res_class ? ch.res_class : broken;
+ 	instance = ch.res_name  ? ch.res_name  : broken;
+@@ -298,7 +284,6 @@ applyrules(Client *c)
+ 		&& (!r->instance || strstr(instance, r->instance)))
+ 		{
+ 			c->isfloating = r->isfloating;
+-			c->tags |= r->tags;
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+ 			if (m)
+ 				c->mon = m;
+@@ -308,7 +293,6 @@ applyrules(Client *c)
+ 		XFree(ch.res_class);
+ 	if (ch.res_name)
+ 		XFree(ch.res_name);
+-	c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
+ }
+ 
+ int
+@@ -431,13 +415,7 @@ buttonpress(XEvent *e)
+ 	}
+ 	if (ev->window == selmon->barwin) {
+ 		i = x = 0;
+-		do
+-			x += TEXTW(tags[i]);
+-		while (ev->x >= x && ++i < LENGTH(tags));
+-		if (i < LENGTH(tags)) {
+-			click = ClkTagBar;
+-			arg.ui = 1 << i;
+-		} else if (ev->x < x + blw)
++		if (ev->x < x + blw)
+ 			click = ClkLtSymbol;
+ 		else if (ev->x > selmon->ww - TEXTW(stext))
+ 			click = ClkStatusText;
+@@ -469,12 +447,10 @@ checkotherwm(void)
+ void
+ cleanup(void)
+ {
+-	Arg a = {.ui = ~0};
+ 	Layout foo = { "", NULL };
+ 	Monitor *m;
+ 	size_t i;
+ 
+-	view(&a);
+ 	selmon->lt[selmon->sellt] = &foo;
+ 	for (m = mons; m; m = m->next)
+ 		while (m->stack)
+@@ -610,8 +586,7 @@ configurerequest(XEvent *e)
+ 				c->y = m->my + (m->mh / 2 - HEIGHT(c) / 2); /* center in y direction */
+ 			if ((ev->value_mask & (CWX|CWY)) && !(ev->value_mask & (CWWidth|CWHeight)))
+ 				configure(c);
+-			if (ISVISIBLE(c))
+-				XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
++			XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
+ 		} else
+ 			configure(c);
+ 	} else {
+@@ -633,7 +608,6 @@ createmon(void)
+ 	Monitor *m;
+ 
+ 	m = ecalloc(1, sizeof(Monitor));
+-	m->tagset[0] = m->tagset[1] = 1;
+ 	m->mfact = mfact;
+ 	m->nmaster = nmaster;
+ 	m->showbar = showbar;
+@@ -672,7 +646,7 @@ detachstack(Client *c)
+ 	*tc = c->snext;
+ 
+ 	if (c == c->mon->sel) {
+-		for (t = c->mon->stack; t && !ISVISIBLE(t); t = t->snext);
++		for (t = c->mon->stack; t; t = t->snext);
+ 		c->mon->sel = t;
+ 	}
+ }
+@@ -698,32 +672,15 @@ drawbar(Monitor *m)
+ 	int x, w, sw = 0;
+ 	int boxs = drw->fonts->h / 9;
+ 	int boxw = drw->fonts->h / 6 + 2;
+-	unsigned int i, occ = 0, urg = 0;
+-	Client *c;
+ 
+-	/* draw status first so it can be overdrawn by tags later */
++	/* draw status first so it can be overdrawn by layout symbol later */
+ 	if (m == selmon) { /* status is only drawn on selected monitor */
+ 		drw_setscheme(drw, scheme[SchemeNorm]);
+ 		sw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
+ 		drw_text(drw, m->ww - sw, 0, sw, bh, 0, stext, 0);
+ 	}
+ 
+-	for (c = m->clients; c; c = c->next) {
+-		occ |= c->tags;
+-		if (c->isurgent)
+-			urg |= c->tags;
+-	}
+ 	x = 0;
+-	for (i = 0; i < LENGTH(tags); i++) {
+-		w = TEXTW(tags[i]);
+-		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
+-		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
+-		if (occ & 1 << i)
+-			drw_rect(drw, x + boxs, boxs, boxw, boxw,
+-				m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
+-				urg & 1 << i);
+-		x += w;
+-	}
+ 	w = blw = TEXTW(m->ltsymbol);
+ 	drw_setscheme(drw, scheme[SchemeNorm]);
+ 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+@@ -783,8 +740,8 @@ expose(XEvent *e)
+ void
+ focus(Client *c)
+ {
+-	if (!c || !ISVISIBLE(c))
+-		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
++	if (!c)
++		for (c = selmon->stack; c; c = c->snext);
+ 	if (selmon->sel && selmon->sel != c)
+ 		unfocus(selmon->sel, 0);
+ 	if (c) {
+@@ -837,17 +794,15 @@ focusstack(const Arg *arg)
+ 	if (!selmon->sel)
+ 		return;
+ 	if (arg->i > 0) {
+-		for (c = selmon->sel->next; c && !ISVISIBLE(c); c = c->next);
++		for (c = selmon->sel->next; c; c = c->next);
+ 		if (!c)
+-			for (c = selmon->clients; c && !ISVISIBLE(c); c = c->next);
++			for (c = selmon->clients; c; c = c->next);
+ 	} else {
+ 		for (i = selmon->clients; i != selmon->sel; i = i->next)
+-			if (ISVISIBLE(i))
+-				c = i;
++			c = i;
+ 		if (!c)
+ 			for (; i; i = i->next)
+-				if (ISVISIBLE(i))
+-					c = i;
++				c = i;
+ 	}
+ 	if (c) {
+ 		focus(c);
+@@ -1033,7 +988,6 @@ manage(Window w, XWindowAttributes *wa)
+ 	updatetitle(c);
+ 	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
+ 		c->mon = t->mon;
+-		c->tags = t->tags;
+ 	} else {
+ 		c->mon = selmon;
+ 		applyrules(c);
+@@ -1107,8 +1061,7 @@ monocle(Monitor *m)
+ 	Client *c;
+ 
+ 	for (c = m->clients; c; c = c->next)
+-		if (ISVISIBLE(c))
+-			n++;
++		n++;
+ 	if (n > 0) /* override layout symbol */
+ 		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
+ 	for (c = nexttiled(m->clients); c; c = nexttiled(c->next))
+@@ -1195,7 +1148,7 @@ movemouse(const Arg *arg)
+ Client *
+ nexttiled(Client *c)
+ {
+-	for (; c && (c->isfloating || !ISVISIBLE(c)); c = c->next);
++	for (; c && c->isfloating; c = c->next);
+ 	return c;
+ }
+ 
+@@ -1360,7 +1313,7 @@ restack(Monitor *m)
+ 		wc.stack_mode = Below;
+ 		wc.sibling = m->barwin;
+ 		for (c = m->stack; c; c = c->snext)
+-			if (!c->isfloating && ISVISIBLE(c)) {
++			if (!c->isfloating) {
+ 				XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
+ 				wc.sibling = c->win;
+ 			}
+@@ -1416,7 +1369,6 @@ sendmon(Client *c, Monitor *m)
+ 	detach(c);
+ 	detachstack(c);
+ 	c->mon = m;
+-	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+ 	attach(c);
+ 	attachstack(c);
+ 	focus(NULL);
+@@ -1615,17 +1567,11 @@ showhide(Client *c)
+ {
+ 	if (!c)
+ 		return;
+-	if (ISVISIBLE(c)) {
+-		/* show clients top down */
+-		XMoveWindow(dpy, c->win, c->x, c->y);
+-		if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
+-			resize(c, c->x, c->y, c->w, c->h, 0);
+-		showhide(c->snext);
+-	} else {
+-		/* hide clients bottom up */
+-		showhide(c->snext);
+-		XMoveWindow(dpy, c->win, WIDTH(c) * -2, c->y);
+-	}
++	/* show clients top down */
++	XMoveWindow(dpy, c->win, c->x, c->y);
++	if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
++		resize(c, c->x, c->y, c->w, c->h, 0);
++	showhide(c->snext);
+ }
+ 
+ void
+@@ -1652,16 +1598,6 @@ spawn(const Arg *arg)
+ 	}
+ }
+ 
+-void
+-tag(const Arg *arg)
+-{
+-	if (selmon->sel && arg->ui & TAGMASK) {
+-		selmon->sel->tags = arg->ui & TAGMASK;
+-		focus(NULL);
+-		arrange(selmon);
+-	}
+-}
+-
+ void
+ tagmon(const Arg *arg)
+ {
+@@ -1719,33 +1655,6 @@ togglefloating(const Arg *arg)
+ 	arrange(selmon);
+ }
+ 
+-void
+-toggletag(const Arg *arg)
+-{
+-	unsigned int newtags;
+-
+-	if (!selmon->sel)
+-		return;
+-	newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
+-	if (newtags) {
+-		selmon->sel->tags = newtags;
+-		focus(NULL);
+-		arrange(selmon);
+-	}
+-}
+-
+-void
+-toggleview(const Arg *arg)
+-{
+-	unsigned int newtagset = selmon->tagset[selmon->seltags] ^ (arg->ui & TAGMASK);
+-
+-	if (newtagset) {
+-		selmon->tagset[selmon->seltags] = newtagset;
+-		focus(NULL);
+-		arrange(selmon);
+-	}
+-}
+-
+ void
+ unfocus(Client *c, int setfocus)
+ {
+@@ -2032,18 +1941,6 @@ updatewmhints(Client *c)
+ 	}
+ }
+ 
+-void
+-view(const Arg *arg)
+-{
+-	if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
+-		return;
+-	selmon->seltags ^= 1; /* toggle sel tagset */
+-	if (arg->ui & TAGMASK)
+-		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
+-	focus(NULL);
+-	arrange(selmon);
+-}
+-
+ Client *
+ wintoclient(Window w)
+ {
+-- 
+2.45.2
+

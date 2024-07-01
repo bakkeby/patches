@@ -1,7 +1,7 @@
-From 7d9d6df932f76cd4d7bd74eabe7d847d01768fb8 Mon Sep 17 00:00:00 2001
+From c0a264fe408a0dc6c7c31037e9d10ba7ee9e88b2 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Tue, 10 Oct 2023 22:53:16 +0200
-Subject: [PATCH] Adding mark patch
+Date: Mon, 1 Jul 2024 22:34:28 +0200
+Subject: [PATCH] mark patch
 
 ---
  config.def.h |  10 ++
@@ -480,5 +480,5 @@ index e5efb6a..601ca27 100644
  updatebars(void)
  {
 -- 
-2.19.1
+2.45.2
 

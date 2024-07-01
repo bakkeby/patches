@@ -1,0 +1,280 @@
+From f3fbb79fd00a07443b300174fae59fe4c523d8f8 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 09:38:02 +0200
+Subject: [PATCH 1/2] Adding cfacts patch which provides the ability to assign
+ different weights to clients in their respective stack in tiled layout.
+
+---
+ config.def.h |  3 +++
+ dwm.c        | 35 ++++++++++++++++++++++++++++++++---
+ 2 files changed, 35 insertions(+), 3 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index a2ac963..5b0cfde 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -71,6 +71,9 @@ static Key keys[] = {
+ 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
+ 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+ 	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
++	{ MODKEY|ShiftMask,             XK_h,      setcfact,       {.f = +0.25} },
++	{ MODKEY|ShiftMask,             XK_l,      setcfact,       {.f = -0.25} },
++	{ MODKEY|ShiftMask,             XK_o,      setcfact,       {.f =  0.00} },
+ 	{ MODKEY,                       XK_Return, zoom,           {0} },
+ 	{ MODKEY,                       XK_Tab,    view,           {0} },
+ 	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
+diff --git a/dwm.c b/dwm.c
+index a96f33c..bcb155d 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -87,6 +87,7 @@ typedef struct Client Client;
+ struct Client {
+ 	char name[256];
+ 	float mina, maxa;
++	float cfact;
+ 	int x, y, w, h;
+ 	int oldx, oldy, oldw, oldh;
+ 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
+@@ -201,6 +202,7 @@ static void setclientstate(Client *c, long state);
+ static void setfocus(Client *c);
+ static void setfullscreen(Client *c, int fullscreen);
+ static void setlayout(const Arg *arg);
++static void setcfact(const Arg *arg);
+ static void setmfact(const Arg *arg);
+ static void setup(void);
+ static void seturgent(Client *c, int urg);
+@@ -1033,6 +1035,7 @@ manage(Window w, XWindowAttributes *wa)
+ 	c->w = c->oldw = wa->width;
+ 	c->h = c->oldh = wa->height;
+ 	c->oldbw = wa->border_width;
++	c->cfact = 1.0;
+ 
+ 	updatetitle(c);
+ 	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
+@@ -1515,6 +1518,24 @@ setlayout(const Arg *arg)
+ 		drawbar(selmon);
+ }
+ 
++void
++setcfact(const Arg *arg) {
++	float f;
++	Client *c;
++
++	c = selmon->sel;
++
++	if(!arg || !c || !selmon->lt[selmon->sellt]->arrange)
++		return;
++	f = arg->f + c->cfact;
++	if(arg->f == 0.0)
++		f = 1.0;
++	else if(f < 0.25 || f > 4.0)
++		return;
++	c->cfact = f;
++	arrange(selmon);
++}
++
+ /* arg > 1.0 will set mfact absolutely */
+ void
+ setmfact(const Arg *arg)
+@@ -1678,9 +1699,15 @@ void
+ tile(Monitor *m)
+ {
+ 	unsigned int i, n, h, mw, my, ty;
++	float mfacts = 0, sfacts = 0;
+ 	Client *c;
+ 
+-	for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
++	for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++) {
++		if (n < m->nmaster)
++			mfacts += c->cfact;
++		else
++			sfacts += c->cfact;
++	}
+ 	if (n == 0)
+ 		return;
+ 
+@@ -1690,15 +1717,17 @@ tile(Monitor *m)
+ 		mw = m->ww;
+ 	for (i = my = ty = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++)
+ 		if (i < m->nmaster) {
+-			h = (m->wh - my) / (MIN(n, m->nmaster) - i);
++			h = (m->wh - my) * (c->cfact / mfacts);
+ 			resize(c, m->wx, m->wy + my, mw - (2*c->bw), h - (2*c->bw), 0);
+ 			if (my + HEIGHT(c) < m->wh)
+ 				my += HEIGHT(c);
++			mfacts -= c->cfact;
+ 		} else {
+-			h = (m->wh - ty) / (n - i);
++			h = (m->wh - ty) * (c->cfact / sfacts);
+ 			resize(c, m->wx + mw, m->wy + ty, m->ww - mw - (2*c->bw), h - (2*c->bw), 0);
+ 			if (ty + HEIGHT(c) < m->wh)
+ 				ty += HEIGHT(c);
++			sfacts -= c->cfact;
+ 		}
+ }
+ 
+-- 
+2.45.2
+
+
+From 9eaea08f3a66b2a8e787f562a0656cdc846d5925 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 09:55:45 +0200
+Subject: [PATCH 2/2] Adding dragfact patch (combines dragmfact and dragcfact)
+
+---
+ config.def.h |  3 +-
+ dwm.c        | 88 +++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 89 insertions(+), 2 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 5b0cfde..3889a18 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -110,7 +110,8 @@ static Button buttons[] = {
+ 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+ 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
+ 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
+-	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
++	{ ClkClientWin,         MODKEY,         Button3,        resizeorfacts,  {0} },
++	{ ClkClientWin,       MODKEY|ShiftMask, Button3,        resizemouse,    {0} },
+ 	{ ClkTagBar,            0,              Button1,        view,           {0} },
+ 	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
+ 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
+diff --git a/dwm.c b/dwm.c
+index bcb155d..30e64ac 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -58,7 +58,7 @@
+ #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
+ 
+ /* enums */
+-enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
++enum { CurNormal, CurResize, CurMove, CurDragFact, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+@@ -162,6 +162,7 @@ static void destroynotify(XEvent *e);
+ static void detach(Client *c);
+ static void detachstack(Client *c);
+ static Monitor *dirtomon(int dir);
++static void dragfact(const Arg *arg);
+ static void drawbar(Monitor *m);
+ static void drawbars(void);
+ static void enternotify(XEvent *e);
+@@ -193,6 +194,7 @@ static Monitor *recttomon(int x, int y, int w, int h);
+ static void resize(Client *c, int x, int y, int w, int h, int interact);
+ static void resizeclient(Client *c, int x, int y, int w, int h);
+ static void resizemouse(const Arg *arg);
++static void resizeorfacts(const Arg *arg);
+ static void restack(Monitor *m);
+ static void run(void);
+ static void scan(void);
+@@ -695,6 +697,75 @@ dirtomon(int dir)
+ 	return m;
+ }
+ 
++void
++dragfact(const Arg *arg)
++{
++	unsigned int n;
++	int px, py; // pointer coordinates
++	int dist_x, dist_y;
++	int horizontal = 0; // layout configuration
++	float mfact, cfact, cf, cw, ch, mw, mh;
++	Client *c;
++	Monitor *m = selmon;
++	XEvent ev;
++	Time lasttime = 0;
++
++	for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
++	if (!(c = m->sel) || !n || !m->lt[m->sellt]->arrange)
++		return;
++
++	/* Add custom handling for horizontal layouts here, e.g. */
++	// if (m->lt[m->sellt]->arrange == bstack)
++	// 	horizontal = 1;
++
++	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
++		None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
++		return;
++
++	if (!getrootptr(&px, &py))
++		return;
++
++	cf = c->cfact;
++	ch = c->h;
++	cw = c->w;
++	mw = m->ww * m->mfact;
++	mh = m->wh * m->mfact;
++
++	do {
++		XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
++		switch (ev.type) {
++		case ConfigureRequest:
++		case Expose:
++		case MapRequest:
++			handler[ev.type](&ev);
++			break;
++		case MotionNotify:
++			if ((ev.xmotion.time - lasttime) <= (1000 / 40))
++				continue;
++			lasttime = ev.xmotion.time;
++
++			dist_x = ev.xmotion.x - px;
++			dist_y = ev.xmotion.y - py;
++
++			if (horizontal) {
++				cfact = (float) cf * (cw + dist_x) / cw;
++				mfact = (float) (mh + dist_y) / m->wh;
++			} else {
++				cfact = (float) cf * (ch - dist_y) / ch;
++				mfact = (float) (mw + dist_x) / m->ww;
++			}
++
++			c->cfact = MAX(0.25, MIN(4.0, cfact));
++			m->mfact = MAX(0.05, MIN(0.95, mfact));
++			arrangemon(m);
++			break;
++		}
++	} while (ev.type != ButtonRelease);
++
++	XUngrabPointer(dpy, CurrentTime);
++	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
++}
++
+ void
+ drawbar(Monitor *m)
+ {
+@@ -1351,6 +1422,20 @@ resizemouse(const Arg *arg)
+ 	}
+ }
+ 
++void
++resizeorfacts(const Arg *arg)
++{
++	Monitor *m = selmon;
++
++	if (!m->sel)
++		return;
++
++	if (!m->lt[m->sellt]->arrange || m->sel->isfloating)
++		resizemouse(arg);
++	else
++		dragfact(arg);
++}
++
+ void
+ restack(Monitor *m)
+ {
+@@ -1591,6 +1676,7 @@ setup(void)
+ 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
+ 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
+ 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
++	cursor[CurDragFact] = drw_cur_create(drw, XC_rightbutton);
+ 	/* init appearance */
+ 	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
+ 	for (i = 0; i < LENGTH(colors); i++)
+-- 
+2.45.2
+

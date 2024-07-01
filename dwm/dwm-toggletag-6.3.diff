@@ -1,9 +1,10 @@
-From d3db7d14cc9d1bb1af02dc299327df0a67eb4a65 Mon Sep 17 00:00:00 2001
+From c336441965af8aa37b46c69e5b27ef8c9bcde437 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:54:13 +0100
-Subject: [PATCH] toggletag - keyboard shortcuts to view a given tag will
- toggle to the previous tag if the given tag is already active
+Date: Wed, 26 Jun 2024 22:44:04 +0200
+Subject: [PATCH] toggletag patch
 
+Keyboard shortcuts to view a given tag will toggle to the
+previous layout if the given tag is already active.
 ---
  dwm.c | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)
@@ -25,5 +26,5 @@ index a96f33c..68ceea2 100644
  	if (arg->ui & TAGMASK)
  		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
 -- 
-2.19.1
+2.45.2
 

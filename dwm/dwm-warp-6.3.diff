@@ -1,9 +1,11 @@
-From c369a3f4457091fd107634b169e3ad87e6172cab Mon Sep 17 00:00:00 2001
+From cc31e5167f59c073416cfb12b2f7955d4f08cd3a Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:02:41 +0100
-Subject: [PATCH] Warp: warps the mouse cursor to the center of the currently
- focused window or screen when the mouse cursor is (a) on a different screen
- or (b) on top of a different window.
+Date: Wed, 26 Jun 2024 22:34:57 +0200
+Subject: [PATCH] Warp patch
+
+Warps the mouse cursor to the center of the currently
+focused window or screen when the mouse cursor is (a) on a different screen
+or (b) on top of a different window.
 
 If you are using barmodules then you may want to have a look at the warp function here:
 https://github.com/bakkeby/dwm-flexipatch/blob/master/patch/warp.c
@@ -70,5 +72,5 @@ index a96f33c..a20d778 100644
  wintoclient(Window w)
  {
 -- 
-2.19.1
+2.45.2
 

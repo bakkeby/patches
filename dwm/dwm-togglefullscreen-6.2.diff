@@ -1,9 +1,9 @@
-From af8c9d2e1b0ad8c686cbacc46a296d7f91e00e2e Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Tue, 7 Apr 2020 12:25:58 +0200
-Subject: [PATCH] togglefullscreen, allows you to toggle fullscreen on and off
- using the same shortcut key
+From 632190a65901831e17dfcbc4f9df18b44b6e2f4d Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 22:50:21 +0200
+Subject: [PATCH] togglefullscreen patch
 
+Allows you to toggle fullscreen on and off using the same shortcut key.
 ---
  config.def.h | 1 +
  dwm.c        | 9 +++++++++
@@ -49,5 +49,5 @@ index 4465af1..bcc6ce2 100644
  toggletag(const Arg *arg)
  {
 -- 
-2.19.1
+2.45.2
 

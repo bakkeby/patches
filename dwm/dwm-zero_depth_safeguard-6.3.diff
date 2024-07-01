@@ -1,6 +1,6 @@
-From 0ea022a0d39fcbfdaa421b34fedf486a00d34571 Mon Sep 17 00:00:00 2001
+From 99fd1b7cb31ca14059fd202f3786aee19c6bc534 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:04:15 +0100
+Date: Wed, 26 Jun 2024 22:33:23 +0200
 Subject: [PATCH] Zero depth safeguard for dwm
 
 The colour depth attribute of an X window represents the number of bits
@@ -82,5 +82,5 @@ index a96f33c..807fcb9 100644
  		return;
  	if (!wintoclient(ev->window))
 -- 
-2.19.1
+2.45.2
 

@@ -1,6 +1,6 @@
-From 9aa9efbbcfcae50ce7d61f46c72f5e582afe3ad2 Mon Sep 17 00:00:00 2001
+From b9a21a48f96500c4d9774a3611b885292c9e98e4 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:49:42 +0100
+Date: Wed, 26 Jun 2024 22:53:19 +0200
 Subject: [PATCH 1/2] tagicons patch
 
 Refer to:
@@ -270,12 +270,12 @@ index a96f33c..63b800f 100644
  tagmon(const Arg *arg)
  {
 -- 
-2.19.1
+2.45.2
 
 
-From 133fb2668556041439a03c61f29cd23d56ed928d Mon Sep 17 00:00:00 2001
+From 6a4b2e73b39a57b0d7f042b9740263ec44f8db56 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:50:15 +0100
+Date: Wed, 26 Jun 2024 22:54:39 +0200
 Subject: [PATCH 2/2] tagicons with separate icon for selected tags
 
 Example patch ref.
@@ -326,5 +326,5 @@ index 63b800f..f6fb72a 100644
  	else {
  		icon = geticon(m, tag, m->iconset);
 -- 
-2.19.1
+2.45.2
 

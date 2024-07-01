@@ -1,7 +1,7 @@
-From 3bb61044cf40188fadcf9f7d7432415194dd547a Mon Sep 17 00:00:00 2001
+From 3ea3d684bbfb3c2cfadc334059014034f64f3764 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Fri, 20 Oct 2023 10:39:40 +0200
-Subject: [PATCH 2/2] flextile-deluxe layout - a re-envisoned and revamped 
+Date: Fri, 28 Jun 2024 18:12:22 +0200
+Subject: [PATCH 2/2] flextile-deluxe layout - a re-envisoned and revamped
  flextile
 
 Features:
@@ -1302,5 +1302,5 @@ index 0000000..366be3f
 +	84,  // "T",
 +};
 -- 
-2.19.1
+2.45.2
 

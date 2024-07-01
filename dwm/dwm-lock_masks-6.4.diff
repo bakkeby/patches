@@ -1,6 +1,6 @@
-From 4541f2ee3016810e9fc9efd58c9de4aac1def76e Mon Sep 17 00:00:00 2001
+From 03c639a6d2432afbdb63998b2f1ea08a7d0ffc0c Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Tue, 1 Nov 2022 10:31:18 +0100
+Date: Mon, 1 Jul 2024 22:26:29 +0200
 Subject: [PATCH] lockmask patch
 
 By default in dwm the status of Caps Lock and Num Lock is ignored
@@ -62,5 +62,5 @@ index e5efb6a..ade5dca 100644
  			keys[i].func(&(keys[i].arg));
  }
 -- 
-2.19.1
+2.45.2
 

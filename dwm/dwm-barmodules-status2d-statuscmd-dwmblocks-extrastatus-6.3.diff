@@ -1,7 +1,7 @@
-From 69ba99292c4eac2ffa2eb1f1962f55ce463b35db Mon Sep 17 00:00:00 2001
+From 6e1cb3b39aed9d17db6ef9f113c0ecea6f038942 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:10:28 +0100
-Subject: [PATCH 2/2] Adding status2d + statuscmd + dwmblocks + extrastatus
+Date: Mon, 24 Jun 2024 10:34:30 +0200
+Subject: [PATCH 2/2] Adding status2d + statuscmd + dwmblocks + extrastatus 
  module
 
 ---
@@ -455,5 +455,5 @@ index 5f9a3fe..78f7520 100644
 +#include "bar_statuscmd.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

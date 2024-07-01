@@ -1,6 +1,6 @@
-From 78448cc7ba78cb1e24ddfbb7e233f229893a4007 Mon Sep 17 00:00:00 2001
+From 6d049ac4a34cb2f3a9e774cf7e13886a9da349a8 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 29 Aug 2022 11:20:27 +0200
+Date: Wed, 26 Jun 2024 10:01:41 +0200
 Subject: [PATCH] Adding focusborder patch
 
 ---
@@ -196,5 +196,5 @@ index a96f33c..5f93b7e 100644
  		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
  		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
 -- 
-2.19.1
+2.45.2
 

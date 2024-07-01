@@ -1,6 +1,6 @@
-From 0f63d25a93d1fc1566947ee6aaac57b3388e6f7b Mon Sep 17 00:00:00 2001
+From 940284359c9734eabe953f4b1cb359968d7b0f2f Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Fri, 20 Oct 2023 22:00:15 +0200
+Date: Wed, 26 Jun 2024 22:37:49 +0200
 Subject: [PATCH] vanitygaps - adds gaps to layouts
 
 This patch differentiates between inner and outer gaps as well as
@@ -969,5 +969,5 @@ index 0000000..640a158
 +}
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

@@ -1,7 +1,9 @@
-From a1b6d5f5f83570e1234fa4cb09bea0818674b192 Mon Sep 17 00:00:00 2001
+From f79f3d56b4ebe77a624123deec943de8579e780e Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Fri, 29 Jul 2022 21:52:14 +0200
-Subject: [PATCH] This patch allows for client rules to apply for transient
+Date: Thu, 27 Jun 2024 17:57:05 +0200
+Subject: [PATCH] ruled transients patch
+
+This patch allows for client rules to apply for transient
  windows like they do for normal windows.
 
 A new "transient" rule filter has been added that indicates whether
@@ -141,5 +143,5 @@ index a96f33c..86eae43 100644
  		XRaiseWindow(dpy, c->win);
  	attach(c);
 -- 
-2.19.1
+2.45.2
 

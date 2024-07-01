@@ -1,15 +1,15 @@
-From ee60db4461820fbc670338ed1cddbdc2ea5c0fd3 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Mon, 20 Jul 2020 10:16:30 +0200
+From 52e0578c880aa6b208769becdbd926fea6b622d7 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 10:16:45 +0200
 Subject: [PATCH 2/2] Adding fancybar module
 
 ---
  config.def.h         |  2 +-
- patch/bar_fancybar.c | 84 ++++++++++++++++++++++++++++++++++++++++++++
+ patch/bar_fancybar.c | 82 ++++++++++++++++++++++++++++++++++++++++++++
  patch/bar_fancybar.h |  3 ++
  patch/include.c      |  3 +-
  patch/include.h      |  3 +-
- 5 files changed, 92 insertions(+), 3 deletions(-)
+ 5 files changed, 90 insertions(+), 3 deletions(-)
  create mode 100644 patch/bar_fancybar.c
  create mode 100644 patch/bar_fancybar.h
 
@@ -28,10 +28,10 @@ index 2534eac..40cb38c 100644
  /* layout(s) */
 diff --git a/patch/bar_fancybar.c b/patch/bar_fancybar.c
 new file mode 100644
-index 0000000..810026d
+index 0000000..7bcb079
 --- /dev/null
 +++ b/patch/bar_fancybar.c
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,82 @@
 +int
 +width_fancybar(Bar *bar, BarWidthArg *a)
 +{
@@ -114,18 +114,15 @@ index 0000000..810026d
 +{
 +	return ClkWinTitle;
 +}
-+
-+
 diff --git a/patch/bar_fancybar.h b/patch/bar_fancybar.h
 new file mode 100644
-index 0000000..c90d189
+index 0000000..b23d930
 --- /dev/null
 +++ b/patch/bar_fancybar.h
 @@ -0,0 +1,3 @@
 +static int width_fancybar(Bar *bar, BarWidthArg *a);
 +static int draw_fancybar(Bar *bar, BarDrawArg *a);
 +static int click_fancybar(Bar *bar, Arg *arg, BarClickArg *a);
-\ No newline at end of file
 diff --git a/patch/include.c b/patch/include.c
 index d422f56..2ab4594 100644
 --- a/patch/include.c
@@ -153,5 +150,5 @@ index 5f9a3fe..4eab55d 100644
 +#include "bar_fancybar.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

@@ -1,6 +1,6 @@
-From 43b77da0e9125c66ac7585d79d2f0784cc38e86e Mon Sep 17 00:00:00 2001
+From aaca322b309768a81188b7063a22b4731402902c Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:44:58 +0100
+Date: Mon, 1 Jul 2024 22:12:17 +0200
 Subject: [PATCH] Activate a window in response to _NET_ACTIVE_WINDOW
 
 By default, dwm response to client requests to _NET_ACTIVE_WINDOW client
@@ -56,5 +56,5 @@ index a96f33c..44d55b1 100644
  }
  
 -- 
-2.19.1
+2.45.2
 

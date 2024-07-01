@@ -1,7 +1,7 @@
-From 15d27250cc3b1b34df8116052f5608a3be3388b8 Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Mon, 20 Jul 2020 15:17:52 +0200
-Subject: [PATCH 2/2] Adding status2d + statuscmd + dwmblocks + extrastatus
+From 87e97a96f7c85e0f34e370789e37bcc1dc577c96 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 10:20:18 +0200
+Subject: [PATCH 2/2] Adding status2d + statuscmd + dwmblocks + extrastatus 
  module
 
 ---
@@ -61,7 +61,7 @@ index 2534eac..40541cb 100644
  	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
  	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
 diff --git a/dwm.c b/dwm.c
-index 03dccfb..1e60958 100644
+index 9173ba9..c290a68 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -289,7 +289,10 @@ static void zoom(const Arg *arg);
@@ -95,7 +95,7 @@ index 03dccfb..1e60958 100644
  	for (i = 0; i < LENGTH(colors); i++)
  		scheme[i] = drw_scm_create(drw, colors[i], 3);
  	/* init bars */
-@@ -2169,8 +2173,19 @@ void
+@@ -2182,8 +2186,19 @@ void
  updatestatus(void)
  {
  	Monitor *m;
@@ -455,5 +455,5 @@ index 5f9a3fe..78f7520 100644
 +#include "bar_statuscmd.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

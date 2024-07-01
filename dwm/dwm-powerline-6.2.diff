@@ -1,9 +1,8 @@
-From e48168fbfa734d4af61ca47af139b1c4b6d9145f Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Sun, 19 Jul 2020 17:53:47 +0200
-Subject: [PATCH] Powerline patch - adds arrows for tags and status
+From 0d6e75506f94c96a350504b273b0a098d7ca46fc Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Fri, 28 Jun 2024 10:06:36 +0200
+Subject: [PATCH] powerline patch - adds arrows for tags and status
 
-https://gitlab.com/udiboy1209-suckless/dwm/-/commit/071f5063e8ac4280666828179f92788d893eea40
 ---
  config.def.h |  16 +++++--
  drw.c        |  51 +++++++++++++++++++--
@@ -370,5 +369,5 @@ index 4465af1..0604315 100644
  	updatebars();
  	updatestatus();
 -- 
-2.19.1
+2.45.2
 

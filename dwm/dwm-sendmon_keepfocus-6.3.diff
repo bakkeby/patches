@@ -1,7 +1,7 @@
-From aa3796065846a03a81c10c9ea5cbcee85ab9e41e Mon Sep 17 00:00:00 2001
+From 55f8b13f93402967d1cbe21489fc4998baf559cb Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:37:27 +0100
-Subject: [PATCH] Adding sendmon_keepfocus patch
+Date: Thu, 27 Jun 2024 17:56:24 +0200
+Subject: [PATCH] sendmon_keepfocus patch
 
 ---
  dwm.c | 10 ++++++++--
@@ -36,5 +36,5 @@ index a96f33c..f46e77e 100644
  
  void
 -- 
-2.19.1
+2.45.2
 

@@ -1,6 +1,6 @@
-From 07804818ec69a86887533f47f4393f040de5a447 Mon Sep 17 00:00:00 2001
+From 278aab272d35cc26403901829fdaaf22f49747e5 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:23:00 +0100
+Date: Fri, 28 Jun 2024 08:26:06 +0200
 Subject: [PATCH] Named scratchpad variant
 
 ---
@@ -353,5 +353,5 @@ index a96f33c..c58c6ed 100644
  		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
  		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
 -- 
-2.19.1
+2.45.2
 

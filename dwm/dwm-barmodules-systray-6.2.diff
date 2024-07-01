@@ -1,16 +1,16 @@
-From 6c4fcf6c03689c39aba7ab2e7c28ee81145e3f3d Mon Sep 17 00:00:00 2001
-From: bakkeby <bakkeby@gmail.com>
-Date: Mon, 20 Jul 2020 11:19:12 +0200
+From 4565443bb8450bb697811807b034f4b0e88705e3 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 24 Jun 2024 10:22:25 +0200
 Subject: [PATCH 2/2] Adding systray module
 
 ---
  config.def.h        |   3 +
  dwm.c               | 131 ++++++++++++++++++++++++++----
  patch/bar_systray.c | 190 ++++++++++++++++++++++++++++++++++++++++++++
- patch/bar_systray.h |  40 ++++++++++
+ patch/bar_systray.h |  39 +++++++++
  patch/include.c     |   3 +-
  patch/include.h     |   3 +-
- 6 files changed, 353 insertions(+), 17 deletions(-)
+ 6 files changed, 352 insertions(+), 17 deletions(-)
  create mode 100644 patch/bar_systray.c
  create mode 100644 patch/bar_systray.h
 
@@ -36,7 +36,7 @@ index 2534eac..d17b65c 100644
  	{ -1,       0,     BAR_ALIGN_NONE,   width_wintitle,        draw_wintitle,        click_wintitle,     "wintitle" },
  };
 diff --git a/dwm.c b/dwm.c
-index 03dccfb..39fbfdb 100644
+index 9173ba9..1ded14d 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -63,6 +63,8 @@ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
@@ -486,10 +486,10 @@ index 0000000..3ae2e56
 +}
 diff --git a/patch/bar_systray.h b/patch/bar_systray.h
 new file mode 100644
-index 0000000..5123a73
+index 0000000..27edc8e
 --- /dev/null
 +++ b/patch/bar_systray.h
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,39 @@
 +#define SYSTEM_TRAY_REQUEST_DOCK    0
 +#define _NET_SYSTEM_TRAY_ORIENTATION_HORZ 0
 +
@@ -529,7 +529,6 @@ index 0000000..5123a73
 +static void updatesystrayicongeom(Client *i, int w, int h);
 +static void updatesystrayiconstate(Client *i, XPropertyEvent *ev);
 +static Client *wintosystrayicon(Window w);
-+
 diff --git a/patch/include.c b/patch/include.c
 index d422f56..c82b392 100644
 --- a/patch/include.c
@@ -557,5 +556,5 @@ index 5f9a3fe..c01916a 100644
 +#include "bar_systray.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

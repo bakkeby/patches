@@ -1,7 +1,7 @@
-From 399cb51f86d259d0d15d2db767d31c9e030c0528 Mon Sep 17 00:00:00 2001
+From 7d8496d8f2e5105056946ec6e02b81fcbba412eb Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 13:18:37 +0100
-Subject: [PATCH] Adding placemouse patch
+Date: Fri, 28 Jun 2024 10:08:24 +0200
+Subject: [PATCH] placemouse patch
 
 ---
  config.def.h |  12 +++-
@@ -255,5 +255,5 @@ index a96f33c..5d57e18 100644
  	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
  	configure(c);
 -- 
-2.19.1
+2.45.2
 

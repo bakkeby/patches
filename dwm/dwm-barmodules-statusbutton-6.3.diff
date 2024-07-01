@@ -1,6 +1,6 @@
-From 941d14787a5f49e5fe1be516a2b30858110ec35d Mon Sep 17 00:00:00 2001
+From 81c10e4c2ac7fb5616bf33381eb7501be99c60e3 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 14:11:09 +0100
+Date: Mon, 24 Jun 2024 10:35:14 +0200
 Subject: [PATCH 2/2] Adding statusbutton module
 
 ---
@@ -123,5 +123,5 @@ index 5f9a3fe..c2a1127 100644
 +#include "bar_statusbutton.h"
 \ No newline at end of file
 -- 
-2.19.1
+2.45.2
 

@@ -1,0 +1,62 @@
+From cb5a8471e37fd4637976cb059343705a43293e59 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:42:12 +0200
+Subject: [PATCH] Adding no border for unselected clients patch
+
+---
+ dwm.c | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index a96f33c..1450e65 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -806,6 +806,8 @@ focus(Client *c)
+ 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
+ 	}
+ 	selmon->sel = c;
++	if (selmon->sel)
++		resizeclient(c, c->x, c->y, c->w, c->h);
+ 	drawbars();
+ }
+ 
+@@ -1285,7 +1287,13 @@ resizeclient(Client *c, int x, int y, int w, int h)
+ 	c->oldy = c->y; c->y = wc.y = y;
+ 	c->oldw = c->w; c->w = wc.width = w;
+ 	c->oldh = c->h; c->h = wc.height = h;
+-	wc.border_width = c->bw;
++	if (c == selmon->sel)
++		wc.border_width = c->bw;
++	else {
++		wc.border_width = 0;
++		wc.x += c->bw;
++		wc.y += c->bw;
++	}
+ 	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
+ 	configure(c);
+ 	XSync(dpy, False);
+@@ -1621,7 +1629,10 @@ showhide(Client *c)
+ 		return;
+ 	if (ISVISIBLE(c)) {
+ 		/* show clients top down */
+-		XMoveWindow(dpy, c->win, c->x, c->y);
++		if (selmon->sel == c)
++			XMoveWindow(dpy, c->win, c->x, c->y);
++		else
++			XMoveWindow(dpy, c->win, c->x + borderpx, c->y + borderpx);
+ 		if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
+ 			resize(c, c->x, c->y, c->w, c->h, 0);
+ 		showhide(c->snext);
+@@ -1763,6 +1774,9 @@ unfocus(Client *c, int setfocus)
+ 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+ 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
+ 	}
++	if (c == selmon->sel)
++		selmon->sel = NULL;
++	resizeclient(c, c->x, c->y, c->w, c->h);
+ }
+ 
+ void
+-- 
+2.45.2
+

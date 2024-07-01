@@ -6,9 +6,6 @@ Subject: [PATCH] Fixes flickering in tabbed after reparenting a window in dwm
 This is a workaround ref.
 https://www.reddit.com/r/suckless/comments/sisbe2/adding_an_existing_window_to_tabbed_causes/
 
-This workaround is deprecated in favour of the following fix:
-https://github.com/bakkeby/patches/blob/master/dwm/dwm-tabbed_fickering_after_xdotool_windowreparent_fix-20220612-d3f93c7.diff
-
 The scenario is that you run tabbed and then you use xdotool to
 reparent an existing client window into tabbed then that window
 will start flickering when it has focus.

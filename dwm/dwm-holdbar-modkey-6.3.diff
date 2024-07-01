@@ -1,7 +1,7 @@
-From 4faf7404d72587f940024a63568ae3d4f00e3028 Mon Sep 17 00:00:00 2001
+From 26c218bf9f767846cf54c3cba336e2f5a08205e5 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Mon, 10 Jan 2022 11:53:22 +0100
-Subject: [PATCH] holdbar: variant of the patch where holdbar is only active 
+Date: Mon, 1 Jul 2024 22:24:19 +0200
+Subject: [PATCH] holdbar: variant of the patch where holdbar is only active
  when the bar is toggled off
 
 Additionally this allows the use of the primary MOD key to be used as the holdbar key while
@@ -142,5 +142,5 @@ index a96f33c..ec84ee8 100644
  	XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
  	arrange(selmon);
 -- 
-2.19.1
+2.45.2
 

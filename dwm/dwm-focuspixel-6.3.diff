@@ -1,7 +1,7 @@
-From 4c6ecb73d694e7d9f542a4c3671211dae7e1926b Mon Sep 17 00:00:00 2001
+From 1d01932d08cd68abe5b27027468e6658e5c57d6c Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
-Date: Fri, 2 Sep 2022 21:14:09 +0200
-Subject: [PATCH] Adding focuspixel example patch
+Date: Mon, 1 Jul 2024 22:12:55 +0200
+Subject: [PATCH] focuspixel example patch
 
 ---
  config.def.h |  1 +
@@ -183,5 +183,5 @@ index a96f33c..85230b0 100644
  
  void
 -- 
-2.19.1
+2.45.2
 

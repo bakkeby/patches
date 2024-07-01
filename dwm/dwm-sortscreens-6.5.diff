@@ -1,0 +1,76 @@
+From 0b0b97823147e04f21cd6039f2596b933f59842a Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Thu, 27 Jun 2024 08:36:51 +0200
+Subject: [PATCH] Sort screens by origin
+
+Doing a multi-head setup using other means than Xinerama may lead to
+XineramaQueryScreens() returning the screens in an order that does not
+actually represent the actual screen layout. This in turn may result
+in dwm using the "wrong" monitor in monitor related
+functions (focusmon(), tagmon(), applying rules, ...).
+
+This change sorts the list of unique screens by their origin to
+alleviate this problem.
+---
+ dwm.c | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/dwm.c b/dwm.c
+index f1d86b2..6a57be9 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -56,6 +56,8 @@
+ #define HEIGHT(X)               ((X)->h + 2 * (X)->bw)
+ #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
+ #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
++#define RIGHTOF(a,b)            (a.y_org > b.y_org) || \
++                                ((a.y_org == b.y_org) && (a.x_org > b.x_org))
+ 
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+@@ -205,6 +207,9 @@ static void setmfact(const Arg *arg);
+ static void setup(void);
+ static void seturgent(Client *c, int urg);
+ static void showhide(Client *c);
++#ifdef XINERAMA
++static void sortscreens(XineramaScreenInfo *screens, int n);
++#endif /* XINERAMA */
+ static void spawn(const Arg *arg);
+ static void tag(const Arg *arg);
+ static void tagmon(const Arg *arg);
+@@ -1644,6 +1649,24 @@ showhide(Client *c)
+ 	}
+ }
+ 
++#ifdef XINERAMA
++void
++sortscreens(XineramaScreenInfo *screens, int n)
++{
++	int i, j;
++	XineramaScreenInfo *screen = ecalloc(1, sizeof(XineramaScreenInfo));
++
++	for (i = 0; i < n; i++)
++		for (j = i + 1; j < n; j++)
++			if (RIGHTOF(screens[i], screens[j])) {
++				memcpy(&screen[0], &screens[i], sizeof(XineramaScreenInfo));
++				memcpy(&screens[i], &screens[j], sizeof(XineramaScreenInfo));
++				memcpy(&screens[j], &screen[0], sizeof(XineramaScreenInfo));
++			}
++	XFree(screen);
++}
++#endif /* XINERAMA */
++
+ void
+ spawn(const Arg *arg)
+ {
+@@ -1885,6 +1908,7 @@ updategeom(void)
+ 				memcpy(&unique[j++], &info[i], sizeof(XineramaScreenInfo));
+ 		XFree(info);
+ 		nn = j;
++		sortscreens(unique, nn);
+ 
+ 		/* new monitors if nn > n */
+ 		for (i = n; i < nn; i++) {
+-- 
+2.45.2
+
