@@ -1,0 +1,134 @@
+From 1d36c6a0e42e97d7b310b5f6e6ddf60857c01fd8 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Fri, 5 Jul 2024 08:47:17 +0200
+Subject: [PATCH] Use libgrapheme to decode UTF-8
+
+---
+ config.mk |  8 +++++--
+ drw.c     | 65 +++++++++----------------------------------------------
+ 2 files changed, 16 insertions(+), 57 deletions(-)
+
+diff --git a/config.mk b/config.mk
+index 8efca9a..0caa98a 100644
+--- a/config.mk
++++ b/config.mk
+@@ -21,9 +21,13 @@ FREETYPEINC = /usr/include/freetype2
+ #FREETYPEINC = ${X11INC}/freetype2
+ #MANPREFIX = ${PREFIX}/man
+ 
++# Dependency on libgrapheme for text processing
++GRAPHEMEINC = /usr/local/lib
++GRAPHEMELIBS = -lgrapheme
++
+ # includes and libs
+-INCS = -I${X11INC} -I${FREETYPEINC}
+-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS}
++INCS = -I${X11INC} -I${FREETYPEINC} -I${GRAPHEMEINC}
++LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${GRAPHEMELIBS}
+ 
+ # flags
+ CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
+diff --git a/drw.c b/drw.c
+index a58a2b4..8e67ac0 100644
+--- a/drw.c
++++ b/drw.c
+@@ -4,62 +4,11 @@
+ #include <string.h>
+ #include <X11/Xlib.h>
+ #include <X11/Xft/Xft.h>
++#include <grapheme.h>
+ 
+ #include "drw.h"
+ #include "util.h"
+ 
+-#define UTF_INVALID 0xFFFD
+-#define UTF_SIZ     4
+-
+-static const unsigned char utfbyte[UTF_SIZ + 1] = {0x80,    0, 0xC0, 0xE0, 0xF0};
+-static const unsigned char utfmask[UTF_SIZ + 1] = {0xC0, 0x80, 0xE0, 0xF0, 0xF8};
+-static const long utfmin[UTF_SIZ + 1] = {       0,    0,  0x80,  0x800,  0x10000};
+-static const long utfmax[UTF_SIZ + 1] = {0x10FFFF, 0x7F, 0x7FF, 0xFFFF, 0x10FFFF};
+-
+-static long
+-utf8decodebyte(const char c, size_t *i)
+-{
+-	for (*i = 0; *i < (UTF_SIZ + 1); ++(*i))
+-		if (((unsigned char)c & utfmask[*i]) == utfbyte[*i])
+-			return (unsigned char)c & ~utfmask[*i];
+-	return 0;
+-}
+-
+-static size_t
+-utf8validate(long *u, size_t i)
+-{
+-	if (!BETWEEN(*u, utfmin[i], utfmax[i]) || BETWEEN(*u, 0xD800, 0xDFFF))
+-		*u = UTF_INVALID;
+-	for (i = 1; *u > utfmax[i]; ++i)
+-		;
+-	return i;
+-}
+-
+-static size_t
+-utf8decode(const char *c, long *u, size_t clen)
+-{
+-	size_t i, j, len, type;
+-	long udecoded;
+-
+-	*u = UTF_INVALID;
+-	if (!clen)
+-		return 0;
+-	udecoded = utf8decodebyte(c[0], &len);
+-	if (!BETWEEN(len, 1, UTF_SIZ))
+-		return 1;
+-	for (i = 1, j = 1; i < clen && j < len; ++i, ++j) {
+-		udecoded = (udecoded << 6) | utf8decodebyte(c[i], &type);
+-		if (type)
+-			return j;
+-	}
+-	if (j < len)
+-		return 0;
+-	*u = udecoded;
+-	utf8validate(u, len);
+-
+-	return len;
+-}
+-
+ Drw *
+ drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h)
+ {
+@@ -243,7 +192,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
+ 	XftDraw *d = NULL;
+ 	Fnt *usedfont, *curfont, *nextfont;
+ 	int utf8strlen, utf8charlen, render = x || y || w || h;
+-	long utf8codepoint = 0;
++	uint_least32_t utf8codepoint = 0;
+ 	const char *utf8str;
+ 	FcCharSet *fccharset;
+ 	FcPattern *fcpattern;
+@@ -252,7 +201,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
+ 	int charexists = 0, overflow = 0;
+ 	/* keep track of a couple codepoints for which we have no match. */
+ 	enum { nomatches_len = 64 };
+-	static struct { long codepoint[nomatches_len]; unsigned int idx; } nomatches;
++	static struct { uint_least32_t codepoint[nomatches_len]; unsigned int idx; } nomatches;
+ 	static unsigned int ellipsis_width = 0;
+ 
+ 	if (!drw || (render && (!drw->scheme || !w)) || !text || !drw->fonts)
+@@ -278,7 +227,13 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
+ 		utf8str = text;
+ 		nextfont = NULL;
+ 		while (*text) {
+-			utf8charlen = utf8decode(text, &utf8codepoint, UTF_SIZ);
++			utf8charlen = grapheme_next_character_break_utf8(text, SIZE_MAX);
++			if (!grapheme_decode_utf8(text, utf8charlen, &utf8codepoint)) {
++				/* Bail in the event the string ended unexpectedly in the middle of a multi-byte
++				 * sequence. */
++				overflow = 1;
++				break;
++			}
+ 			for (curfont = drw->fonts; curfont; curfont = curfont->next) {
+ 				charexists = charexists || XftCharExists(drw->dpy, curfont->xfont, utf8codepoint);
+ 				if (charexists) {
+-- 
+2.45.2
+
