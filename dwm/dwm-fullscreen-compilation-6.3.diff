@@ -72,6 +72,7 @@ index a96f33c..53f0bd4 100644
  static void keypress(XEvent *e);
  static void killclient(const Arg *arg);
 +static void losefullscreen(Client *next);
++static void fullscreencheck(Client *c);
  static void manage(Window w, XWindowAttributes *wa);
  static void mappingnotify(XEvent *e);
  static void maprequest(XEvent *e);
@@ -114,7 +115,7 @@ index a96f33c..53f0bd4 100644
  		for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
 -	if (selmon->sel && selmon->sel != c)
 +	if (selmon->sel && selmon->sel != c) {
-+		losefullscreen(c);
++		fullscreencheck(selmon->sel);
  		unfocus(selmon->sel, 0);
 +	}
  	if (c) {
@@ -138,9 +139,19 @@ index a96f33c..53f0bd4 100644
 +{
 +	Client *sel = selmon->sel;
 +	if (!sel || !next)
-+		return;
++	   return;
 +	if (sel->isfullscreen && sel->fakefullscreen != 1 && ISVISIBLE(sel) && sel->mon == next->mon && !next->isfloating)
 +		setfullscreen(sel, 0);
++}
++
++void 
++fullscreencheck(Client *c)
++{
++   if (!c) return;
++   if (c->fakefullscreen == 0 && c->isfullscreen)
++      togglefakefullscreen(0);
++   else if (c->fakefullscreen == 2)
++      togglefullscreen(0);
 +}
 +
  void
