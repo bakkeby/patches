@@ -1,28 +1,29 @@
-From e167b026b6dac825e4d5ad108553674ca7380ccb Mon Sep 17 00:00:00 2001
+From 675be29a39db061dcd405f575d849c05af053a14 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Wed, 26 Jun 2024 23:04:00 +0200
-Subject: [PATCH 1/2] Alternative swallow patch that replaces clients instead
+Subject: [PATCH 1/3] Alternative swallow patch that replaces clients instead
  of swapping windows offering better resize hints
 
 ---
- config.def.h |   9 +-
+ config.def.h |  10 +-
  config.mk    |   6 +-
- dwm.c        | 300 +++++++++++++++++++++++++++++++++++++++++++++++----
- 3 files changed, 288 insertions(+), 27 deletions(-)
+ dwm.c        | 317 +++++++++++++++++++++++++++++++++++++++++++++++----
+ 3 files changed, 306 insertions(+), 27 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
-index 9efa774..5dc3f22 100644
+index 9efa774..776d579 100644
 --- a/config.def.h
 +++ b/config.def.h
-@@ -3,6 +3,7 @@
+@@ -3,6 +3,8 @@
  /* appearance */
  static const unsigned int borderpx  = 1;        /* border pixel of windows */
  static const unsigned int snap      = 32;       /* snap pixel */
 +static const int swallowfloating    = 0;        /* 1 means swallow floating windows by default */
++static const int swterminheritfs    = 1;        /* 1 terminal inherits fullscreen on unswallow, 0 otherwise */
  static const int showbar            = 1;        /* 0 means no bar */
  static const int topbar             = 1;        /* 0 means bottom bar */
  static const char *fonts[]          = { "monospace:size=10" };
-@@ -26,9 +27,11 @@ static const Rule rules[] = {
+@@ -26,9 +28,11 @@ static const Rule rules[] = {
  	 *	WM_CLASS(STRING) = instance, class
  	 *	WM_NAME(STRING) = title
  	 */
@@ -58,7 +59,7 @@ index 8efca9a..fc05587 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index f1d86b2..7aef964 100644
+index f1d86b2..4ae052f 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -40,6 +40,12 @@
@@ -256,7 +257,7 @@ index f1d86b2..7aef964 100644
  }
  
  void
-@@ -1275,6 +1327,46 @@ recttomon(int x, int y, int w, int h)
+@@ -1275,6 +1327,66 @@ recttomon(int x, int y, int w, int h)
  	return r;
  }
  
@@ -268,21 +269,20 @@ index f1d86b2..7aef964 100644
 +
 +	new->mon = mon;
 +	new->tags = old->tags;
-+	new->isfloating = old->isfloating;
 +
 +	new->next = old->next;
 +	new->snext = old->snext;
 +
-+	if (old == mon->clients)
++	if (old == mon->clients) {
 +		mon->clients = new;
-+	else {
++	} else {
 +		for (c = mon->clients; c && c->next != old; c = c->next);
 +		c->next = new;
 +	}
 +
-+	if (old == mon->stack)
++	if (old == mon->stack) {
 +		mon->stack = new;
-+	else {
++	} else {
 +		for (c = mon->stack; c && c->snext != old; c = c->snext);
 +		c->snext = new;
 +	}
@@ -290,20 +290,41 @@ index f1d86b2..7aef964 100644
 +	old->next = NULL;
 +	old->snext = NULL;
 +
++	if (!swterminheritfs && new->isterminal && !new->isfullscreen && old->isfullscreen) {
++		/* Do not allow a non-fullscreen terminal to inherit the fullscreen property of
++		 * a windoww when unswallowed */
++		new->x = old->oldx;
++		new->y = old->oldy;
++		new->w = old->oldw;
++		new->h = old->oldh;
++		new->isfloating = old->oldstate;
++	} else {
++		setfullscreen(new, old->isfullscreen);
++		new->x = old->x;
++		new->y = old->y;
++		new->w = old->w;
++		new->h = old->h;
++		new->oldx = old->oldx;
++		new->oldy = old->oldy;
++		new->oldw = old->oldw;
++		new->oldh = old->oldh;
++		new->oldbw = old->oldbw;
++		new->bw = old->bw;
++		new->isfloating = old->isfloating;
++		new->oldstate = old->oldstate;
++	}
++
 +	XMoveWindow(dpy, old->win, WIDTH(old) * -2, old->y);
 +
-+	if (ISVISIBLE(new) && !new->isfullscreen) {
-+		if (new->isfloating)
-+			resize(new, old->x, old->y, new->w, new->h, 0);
-+		else
-+			resize(new, old->x, old->y, old->w, old->h, 0);
++	if (ISVISIBLE(new) && new->isfloating && !new->isfullscreen) {
++		resize(new, new->x, new->y, new->w, new->h, 0);
 +	}
 +}
 +
  void
  resize(Client *c, int x, int y, int w, int h, int interact)
  {
-@@ -1666,6 +1758,31 @@ spawn(const Arg *arg)
+@@ -1666,6 +1778,28 @@ spawn(const Arg *arg)
  	}
  }
  
@@ -312,11 +333,8 @@ index f1d86b2..7aef964 100644
 +{
 +	if (c->noswallow || c->isterminal)
 +		return 0;
-+	if (!swallowfloating && c->isfloating)
++	if (!swallowfloating && (c->isfullscreen ? c->oldstate : c->isfloating))
 +		return 0;
-+
-+	if (t->isfullscreen)
-+		setfullscreen(c, 1);
 +
 +	replaceclient(t, c);
 +	c->ignorecfgreqpos = 1;
@@ -335,7 +353,7 @@ index f1d86b2..7aef964 100644
  void
  tag(const Arg *arg)
  {
-@@ -1778,9 +1895,17 @@ unfocus(Client *c, int setfocus)
+@@ -1778,9 +1912,17 @@ unfocus(Client *c, int setfocus)
  void
  unmanage(Client *c, int destroyed)
  {
@@ -353,7 +371,7 @@ index f1d86b2..7aef964 100644
  	detach(c);
  	detachstack(c);
  	if (!destroyed) {
-@@ -2062,6 +2187,133 @@ view(const Arg *arg)
+@@ -2062,6 +2204,133 @@ view(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -487,7 +505,7 @@ index f1d86b2..7aef964 100644
  Client *
  wintoclient(Window w)
  {
-@@ -2151,10 +2403,12 @@ main(int argc, char *argv[])
+@@ -2151,10 +2420,12 @@ main(int argc, char *argv[])
  		fputs("warning: no locale support\n", stderr);
  	if (!(dpy = XOpenDisplay(NULL)))
  		die("dwm: cannot open display");
@@ -502,13 +520,47 @@ index f1d86b2..7aef964 100644
  #endif /* __OpenBSD__ */
  	scan();
 -- 
-2.45.2
+2.46.0
 
 
-From 1418a2c1fbb8e8ed8347a73f2022cf8cb1d5f091 Mon Sep 17 00:00:00 2001
+From f01c8e682d11cf4726a27c295bec214427555ff2 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 26 Jun 2024 23:04:00 +0200
+Subject: [PATCH 2/3] Alternative swallow patch that replaces clients instead
+ of swapping windows offering better resize hints
+
+---
+ dwm.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/dwm.c b/dwm.c
+index 4ae052f..afa3ca2 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1339,6 +1339,7 @@ replaceclient(Client *old, Client *new)
+ 	new->next = old->next;
+ 	new->snext = old->snext;
+ 
++
+ 	if (old == mon->clients) {
+ 		mon->clients = new;
+ 	} else {
+@@ -1783,6 +1784,7 @@ swallow(Client *t, Client *c)
+ {
+ 	if (c->noswallow || c->isterminal)
+ 		return 0;
++
+ 	if (!swallowfloating && (c->isfullscreen ? c->oldstate : c->isfloating))
+ 		return 0;
+ 
+-- 
+2.46.0
+
+
+From 58dfd781f3c7caf64f8dd35e49bf386ad0351ce0 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Mon, 1 Jul 2024 23:31:40 +0200
-Subject: [PATCH 2/2] Adding riodraw on top of swallow
+Subject: [PATCH 3/3] Adding riodraw on top of swallow
 
 ---
  config.def.h |   8 ++++
@@ -516,11 +568,11 @@ Subject: [PATCH 2/2] Adding riodraw on top of swallow
  2 files changed, 135 insertions(+), 1 deletion(-)
 
 diff --git a/config.def.h b/config.def.h
-index 5dc3f22..664a1ad 100644
+index 776d579..37931c5 100644
 --- a/config.def.h
 +++ b/config.def.h
-@@ -6,6 +6,12 @@ static const unsigned int snap      = 32;       /* snap pixel */
- static const int swallowfloating    = 0;        /* 1 means swallow floating windows by default */
+@@ -7,6 +7,12 @@ static const int swallowfloating    = 0;        /* 1 means swallow floating wind
+ static const int swterminheritfs    = 1;        /* 1 terminal inherits fullscreen on unswallow, 0 otherwise */
  static const int showbar            = 1;        /* 0 means no bar */
  static const int topbar             = 1;        /* 0 means bottom bar */
 +static const char slopspawnstyle[]  = "-t 0 -c 0.92,0.85,0.69,0.3 -o"; /* do NOT define -f (format) here */
@@ -532,7 +584,7 @@ index 5dc3f22..664a1ad 100644
  static const char *fonts[]          = { "monospace:size=10" };
  static const char dmenufont[]       = "monospace:size=10";
  static const char col_gray1[]       = "#222222";
-@@ -67,6 +73,8 @@ static const Key keys[] = {
+@@ -68,6 +74,8 @@ static const Key keys[] = {
  	/* modifier                     key        function        argument */
  	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
  	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
@@ -542,7 +594,7 @@ index 5dc3f22..664a1ad 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 7aef964..5f2162e 100644
+index afa3ca2..8818af7 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -205,6 +205,10 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
@@ -592,7 +644,7 @@ index 7aef964..5f2162e 100644
  	arrange(c->mon);
  	XMapWindow(dpy, c->win);
  	if (focusclient)
-@@ -1471,6 +1490,105 @@ restack(Monitor *m)
+@@ -1492,6 +1511,105 @@ restack(Monitor *m)
  	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
  }
  
@@ -698,7 +750,7 @@ index 7aef964..5f2162e 100644
  void
  run(void)
  {
-@@ -1739,11 +1857,18 @@ showhide(Client *c)
+@@ -1760,11 +1878,18 @@ showhide(Client *c)
  void
  spawn(const Arg *arg)
  {
@@ -718,7 +770,7 @@ index 7aef964..5f2162e 100644
  		if (dpy)
  			close(ConnectionNumber(dpy));
  		setsid();
-@@ -1756,6 +1881,7 @@ spawn(const Arg *arg)
+@@ -1777,6 +1902,7 @@ spawn(const Arg *arg)
  		execvp(((char **)arg->v)[0], (char **)arg->v);
  		die("dwm: execvp '%s' failed:", ((char **)arg->v)[0]);
  	}
@@ -727,5 +779,5 @@ index 7aef964..5f2162e 100644
  
  int
 -- 
-2.45.2
+2.46.0
 
