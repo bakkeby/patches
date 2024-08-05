@@ -1,14 +1,14 @@
-From da0a2ead38b1a5f7d5272aab0ffc7cbc6f0dc78b Mon Sep 17 00:00:00 2001
+From 1e4c0935b55fb695e11e702b121f6e9c6069fa15 Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Wed, 26 Jun 2024 23:04:00 +0200
-Subject: [PATCH 1/4] Alternative swallow patch that replaces clients instead
+Subject: [PATCH 1/2] Alternative swallow patch that replaces clients instead
  of swapping windows offering better resize hints
 
 ---
  config.def.h |  10 +-
  config.mk    |   6 +-
- dwm.c        | 318 +++++++++++++++++++++++++++++++++++++++++++++++----
- 3 files changed, 307 insertions(+), 27 deletions(-)
+ dwm.c        | 325 +++++++++++++++++++++++++++++++++++++++++++++++----
+ 3 files changed, 314 insertions(+), 27 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 9efa774..776d579 100644
@@ -59,7 +59,7 @@ index 8efca9a..fc05587 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index f1d86b2..fd78193 100644
+index f1d86b2..e48de00 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -40,6 +40,12 @@
@@ -257,7 +257,7 @@ index f1d86b2..fd78193 100644
  }
  
  void
-@@ -1275,6 +1327,67 @@ recttomon(int x, int y, int w, int h)
+@@ -1275,6 +1327,73 @@ recttomon(int x, int y, int w, int h)
  	return r;
  }
  
@@ -266,13 +266,14 @@ index f1d86b2..fd78193 100644
 +{
 +	Client *c = NULL;
 +	Monitor *mon = old->mon;
-+	int x, y, w, h;
++	int x = old->x, y = old->y, w = old->w, h = old->h;
 +
 +	new->mon = mon;
 +	new->tags = old->tags;
 +
 +	new->next = old->next;
 +	new->snext = old->snext;
++
 +
 +	if (old == mon->clients) {
 +		mon->clients = new;
@@ -294,17 +295,22 @@ index f1d86b2..fd78193 100644
 +	if (!swterminheritfs && new->isterminal && !new->isfullscreen && old->isfullscreen) {
 +		/* Do not allow a non-fullscreen terminal to inherit the fullscreen property of
 +		 * a windoww when unswallowed */
-+		x = old->oldx;
-+		y = old->oldy;
-+		w = old->oldw;
-+		h = old->oldh;
++		new->x = old->oldx;
++		new->y = old->oldy;
++		new->w = old->oldw;
++		new->h = old->oldh;
 +		new->isfloating = old->oldstate;
++	} else if (old->isterminal && new->isfullscreen && !old->isfullscreen) {
++		/* Allow windows starting in fullscreen to retain fullscreen */
++		new->oldx = old->x;
++		new->oldy = old->y;
++		new->oldw = old->w;
++		new->oldh = old->h;
++		new->oldbw = old->bw;
++		new->oldstate = old->isfloating;
 +	} else {
++		/* Inherit fullscreen property from the old client */
 +		setfullscreen(new, old->isfullscreen);
-+		x = old->x;
-+		y = old->y;
-+		w = old->w;
-+		h = old->h;
 +		new->oldx = old->oldx;
 +		new->oldy = old->oldy;
 +		new->oldw = old->oldw;
@@ -325,7 +331,7 @@ index f1d86b2..fd78193 100644
  void
  resize(Client *c, int x, int y, int w, int h, int interact)
  {
-@@ -1666,6 +1779,28 @@ spawn(const Arg *arg)
+@@ -1666,6 +1785,29 @@ spawn(const Arg *arg)
  	}
  }
  
@@ -334,6 +340,7 @@ index f1d86b2..fd78193 100644
 +{
 +	if (c->noswallow || c->isterminal)
 +		return 0;
++
 +	if (!swallowfloating && (c->isfullscreen ? c->oldstate : c->isfloating))
 +		return 0;
 +
@@ -354,7 +361,7 @@ index f1d86b2..fd78193 100644
  void
  tag(const Arg *arg)
  {
-@@ -1778,9 +1913,17 @@ unfocus(Client *c, int setfocus)
+@@ -1778,9 +1920,17 @@ unfocus(Client *c, int setfocus)
  void
  unmanage(Client *c, int destroyed)
  {
@@ -372,7 +379,7 @@ index f1d86b2..fd78193 100644
  	detach(c);
  	detachstack(c);
  	if (!destroyed) {
-@@ -2062,6 +2205,133 @@ view(const Arg *arg)
+@@ -2062,6 +2212,133 @@ view(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -506,7 +513,7 @@ index f1d86b2..fd78193 100644
  Client *
  wintoclient(Window w)
  {
-@@ -2151,10 +2421,12 @@ main(int argc, char *argv[])
+@@ -2151,10 +2428,12 @@ main(int argc, char *argv[])
  		fputs("warning: no locale support\n", stderr);
  	if (!(dpy = XOpenDisplay(NULL)))
  		die("dwm: cannot open display");
@@ -524,88 +531,10 @@ index f1d86b2..fd78193 100644
 2.46.0
 
 
-From fee35bd821866da9213f856d4abc418f6977c434 Mon Sep 17 00:00:00 2001
-From: Bakkeby <bakkeby@gmail.com>
-Date: Wed, 26 Jun 2024 23:04:00 +0200
-Subject: [PATCH 2/4] Alternative swallow patch that replaces clients instead
- of swapping windows offering better resize hints
-
----
- dwm.c | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
-
-diff --git a/dwm.c b/dwm.c
-index fd78193..4bf37e7 100644
---- a/dwm.c
-+++ b/dwm.c
-@@ -1360,17 +1360,17 @@ replaceclient(Client *old, Client *new)
- 	if (!swterminheritfs && new->isterminal && !new->isfullscreen && old->isfullscreen) {
- 		/* Do not allow a non-fullscreen terminal to inherit the fullscreen property of
- 		 * a windoww when unswallowed */
--		x = old->oldx;
--		y = old->oldy;
--		w = old->oldw;
--		h = old->oldh;
-+		new->x = old->oldx;
-+		new->y = old->oldy;
-+		new->w = old->oldw;
-+		new->h = old->oldh;
- 		new->isfloating = old->oldstate;
- 	} else {
- 		setfullscreen(new, old->isfullscreen);
--		x = old->x;
--		y = old->y;
--		w = old->w;
--		h = old->h;
-+		new->x = old->x;
-+		new->y = old->y;
-+		new->w = old->w;
-+		new->h = old->h;
- 		new->oldx = old->oldx;
- 		new->oldy = old->oldy;
- 		new->oldw = old->oldw;
--- 
-2.46.0
-
-
-From ac1992467fa8144154372738dd7d7dbb1e89c32b Mon Sep 17 00:00:00 2001
-From: Bakkeby <bakkeby@gmail.com>
-Date: Wed, 26 Jun 2024 23:04:00 +0200
-Subject: [PATCH 3/4] Alternative swallow patch that replaces clients instead
- of swapping windows offering better resize hints
-
----
- dwm.c | 2 ++
- 1 file changed, 2 insertions(+)
-
-diff --git a/dwm.c b/dwm.c
-index 4bf37e7..0bee3ef 100644
---- a/dwm.c
-+++ b/dwm.c
-@@ -1340,6 +1340,7 @@ replaceclient(Client *old, Client *new)
- 	new->next = old->next;
- 	new->snext = old->snext;
- 
-+
- 	if (old == mon->clients) {
- 		mon->clients = new;
- 	} else {
-@@ -1784,6 +1785,7 @@ swallow(Client *t, Client *c)
- {
- 	if (c->noswallow || c->isterminal)
- 		return 0;
-+
- 	if (!swallowfloating && (c->isfullscreen ? c->oldstate : c->isfloating))
- 		return 0;
- 
--- 
-2.46.0
-
-
-From f6f90640da2e979ca8a8f4114347d393ccc521f6 Mon Sep 17 00:00:00 2001
+From 078b4f4d1efbc282ded912e000ffdbcb4e0ed3dd Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Mon, 1 Jul 2024 23:31:40 +0200
-Subject: [PATCH 4/4] Adding riodraw on top of swallow
+Subject: [PATCH 2/2] Adding riodraw on top of swallow
 
 ---
  config.def.h |   8 ++++
@@ -639,7 +568,7 @@ index 776d579..37931c5 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index 0bee3ef..62263e2 100644
+index e48de00..ea0afa3 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -205,6 +205,10 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
@@ -689,7 +618,7 @@ index 0bee3ef..62263e2 100644
  	arrange(c->mon);
  	XMapWindow(dpy, c->win);
  	if (focusclient)
-@@ -1493,6 +1512,105 @@ restack(Monitor *m)
+@@ -1498,6 +1517,105 @@ restack(Monitor *m)
  	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
  }
  
@@ -795,7 +724,7 @@ index 0bee3ef..62263e2 100644
  void
  run(void)
  {
-@@ -1761,11 +1879,18 @@ showhide(Client *c)
+@@ -1766,11 +1884,18 @@ showhide(Client *c)
  void
  spawn(const Arg *arg)
  {
@@ -815,7 +744,7 @@ index 0bee3ef..62263e2 100644
  		if (dpy)
  			close(ConnectionNumber(dpy));
  		setsid();
-@@ -1778,6 +1903,7 @@ spawn(const Arg *arg)
+@@ -1783,6 +1908,7 @@ spawn(const Arg *arg)
  		execvp(((char **)arg->v)[0], (char **)arg->v);
  		die("dwm: execvp '%s' failed:", ((char **)arg->v)[0]);
  	}
