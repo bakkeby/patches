@@ -1,4 +1,4 @@
-From e9604928484239ab3411e6f2b8e26555180bbf2b Mon Sep 17 00:00:00 2001
+From fb4064f8488832973e7359e3c81ac3bab461a4fc Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Wed, 26 Jun 2024 23:04:00 +0200
 Subject: [PATCH] Alternative swallow patch that replaces clients instead of
@@ -7,8 +7,8 @@ Subject: [PATCH] Alternative swallow patch that replaces clients instead of
 ---
  config.def.h |  10 +-
  config.mk    |   6 +-
- dwm.c        | 323 +++++++++++++++++++++++++++++++++++++++++++++++----
- 3 files changed, 312 insertions(+), 27 deletions(-)
+ dwm.c        | 333 +++++++++++++++++++++++++++++++++++++++++++++++----
+ 3 files changed, 322 insertions(+), 27 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 9efa774..776d579 100644
@@ -59,7 +59,7 @@ index 8efca9a..fc05587 100644
  # flags
  CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 diff --git a/dwm.c b/dwm.c
-index f1d86b2..65b5d00 100644
+index f1d86b2..3dff731 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -40,6 +40,12 @@
@@ -257,7 +257,7 @@ index f1d86b2..65b5d00 100644
  }
  
  void
-@@ -1275,6 +1327,72 @@ recttomon(int x, int y, int w, int h)
+@@ -1275,6 +1327,82 @@ recttomon(int x, int y, int w, int h)
  	return r;
  }
  
@@ -266,7 +266,7 @@ index f1d86b2..65b5d00 100644
 +{
 +	Client *c = NULL;
 +	Monitor *mon = old->mon;
-+	int x = old->x, y = old->y, w = old->w, h = old->h;
++	int x, y, w, h, f, bw;
 +
 +	new->mon = mon;
 +	new->tags = old->tags;
@@ -291,46 +291,56 @@ index f1d86b2..65b5d00 100644
 +	old->next = NULL;
 +	old->snext = NULL;
 +
-+	if (!swterminheritfs && new->isterminal && !new->isfullscreen && old->isfullscreen) {
-+		/* Do not allow a non-fullscreen terminal to inherit the fullscreen property of
-+		 * a windoww when unswallowed */
++	/* Capture the normal state of the old client */
++	if (old->isfullscreen) {
 +		x = old->oldx;
 +		y = old->oldy;
 +		w = old->oldw;
 +		h = old->oldh;
-+		new->isfloating = old->oldstate;
-+	} else if (old->isterminal && new->isfullscreen && !old->isfullscreen) {
-+		/* Allow windows starting in fullscreen to retain fullscreen */
-+		new->oldx = old->x;
-+		new->oldy = old->y;
-+		new->oldw = old->w;
-+		new->oldh = old->h;
-+		new->oldbw = old->bw;
-+		new->oldstate = old->isfloating;
++		f = old->oldstate;
++		bw = old->oldbw;
 +	} else {
-+		/* Inherit fullscreen property from the old client */
-+		setfullscreen(new, old->isfullscreen);
-+		new->oldx = old->oldx;
-+		new->oldy = old->oldy;
-+		new->oldw = old->oldw;
-+		new->oldh = old->oldh;
-+		new->oldbw = old->oldbw;
-+		new->bw = old->bw;
-+		new->isfloating = old->isfloating;
-+		new->oldstate = old->oldstate;
++		x = old->x;
++		y = old->y;
++		w = old->w;
++		h = old->h;
++		f = old->isfloating;
++		bw = old->bw;
++	}
++
++	/* Work out whether the new client should gain fullscreen, lose fullscreen or remain as-is */
++	if (!new->isfullscreen && old->isfullscreen && (swterminheritfs || !new->isterminal)) {
++		/* Gain fullscreen */
++		setfullscreen(new, 1);
++	} else if (new->isfullscreen && !old->isfullscreen && !old->isterminal) {
++		/* Lose fullscreen */
++		setfullscreen(new, 0);
++	}
++
++	/* Correct state of new client based on the normal state of the old client */
++	if (new->isfullscreen) {
++		new->oldbw = bw;
++		new->oldstate = f;
++		new->oldx = x;
++		new->oldy = y;
++		new->oldw = w;
++		new->oldh = h;
++	} else {
++		new->bw = bw;
++		new->isfloating = f;
++
++		if (ISVISIBLE(new) && new->isfloating) {
++			resize(new, x, y, w, h, 0);
++		}
 +	}
 +
 +	XMoveWindow(dpy, old->win, WIDTH(old) * -2, old->y);
-+
-+	if (ISVISIBLE(new) && new->isfloating && !new->isfullscreen) {
-+		resize(new, x, y, w, h, 0);
-+	}
 +}
 +
  void
  resize(Client *c, int x, int y, int w, int h, int interact)
  {
-@@ -1666,6 +1784,28 @@ spawn(const Arg *arg)
+@@ -1666,6 +1794,28 @@ spawn(const Arg *arg)
  	}
  }
  
@@ -359,7 +369,7 @@ index f1d86b2..65b5d00 100644
  void
  tag(const Arg *arg)
  {
-@@ -1778,9 +1918,17 @@ unfocus(Client *c, int setfocus)
+@@ -1778,9 +1928,17 @@ unfocus(Client *c, int setfocus)
  void
  unmanage(Client *c, int destroyed)
  {
@@ -377,7 +387,7 @@ index f1d86b2..65b5d00 100644
  	detach(c);
  	detachstack(c);
  	if (!destroyed) {
-@@ -2062,6 +2210,133 @@ view(const Arg *arg)
+@@ -2062,6 +2220,133 @@ view(const Arg *arg)
  	arrange(selmon);
  }
  
@@ -511,7 +521,7 @@ index f1d86b2..65b5d00 100644
  Client *
  wintoclient(Window w)
  {
-@@ -2151,10 +2426,12 @@ main(int argc, char *argv[])
+@@ -2151,10 +2436,12 @@ main(int argc, char *argv[])
  		fputs("warning: no locale support\n", stderr);
  	if (!(dpy = XOpenDisplay(NULL)))
  		die("dwm: cannot open display");

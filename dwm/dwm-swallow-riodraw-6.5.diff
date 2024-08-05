@@ -1,4 +1,4 @@
-From 078b4f4d1efbc282ded912e000ffdbcb4e0ed3dd Mon Sep 17 00:00:00 2001
+From e46b26ace1912b7b074330b273e0c6213be405ba Mon Sep 17 00:00:00 2001
 From: Bakkeby <bakkeby@gmail.com>
 Date: Mon, 1 Jul 2024 23:31:40 +0200
 Subject: [PATCH 2/2] Adding riodraw on top of swallow
@@ -35,7 +35,7 @@ index 776d579..37931c5 100644
  	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
  	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 diff --git a/dwm.c b/dwm.c
-index e48de00..ea0afa3 100644
+index 3dff731..6374808 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -205,6 +205,10 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
@@ -85,7 +85,7 @@ index e48de00..ea0afa3 100644
  	arrange(c->mon);
  	XMapWindow(dpy, c->win);
  	if (focusclient)
-@@ -1498,6 +1517,105 @@ restack(Monitor *m)
+@@ -1507,6 +1526,105 @@ restack(Monitor *m)
  	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
  }
  
@@ -191,7 +191,7 @@ index e48de00..ea0afa3 100644
  void
  run(void)
  {
-@@ -1766,11 +1884,18 @@ showhide(Client *c)
+@@ -1775,11 +1893,18 @@ showhide(Client *c)
  void
  spawn(const Arg *arg)
  {
@@ -211,7 +211,7 @@ index e48de00..ea0afa3 100644
  		if (dpy)
  			close(ConnectionNumber(dpy));
  		setsid();
-@@ -1783,6 +1908,7 @@ spawn(const Arg *arg)
+@@ -1792,6 +1917,7 @@ spawn(const Arg *arg)
  		execvp(((char **)arg->v)[0], (char **)arg->v);
  		die("dwm: execvp '%s' failed:", ((char **)arg->v)[0]);
  	}
