@@ -1,0 +1,112 @@
+From 875f40460ce02f4a3daa60107a9076412ace5deb Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Fri, 5 Jul 2024 08:47:17 +0200
+Subject: [PATCH] Use libgrapheme to decode UTF-8
+
+---
+ config.mk |  8 ++++++--
+ drw.c     | 50 ++++++++++----------------------------------------
+ 2 files changed, 16 insertions(+), 42 deletions(-)
+
+diff --git a/config.mk b/config.mk
+index b469a2b..20c1aee 100644
+--- a/config.mk
++++ b/config.mk
+@@ -21,9 +21,13 @@ FREETYPEINC = /usr/include/freetype2
+ #FREETYPEINC = ${X11INC}/freetype2
+ #MANPREFIX = ${PREFIX}/man
+ 
++# Dependency on libgrapheme for text processing
++GRAPHEMEINC = /usr/local/lib
++GRAPHEMELIBS = -lgrapheme
++
+ # includes and libs
+-INCS = -I${X11INC} -I${FREETYPEINC}
+-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS}
++INCS = -I${X11INC} -I${FREETYPEINC} -I${GRAPHEMEINC}
++LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${GRAPHEMELIBS}
+ 
+ # flags
+ CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
+diff --git a/drw.c b/drw.c
+index c41e6af..f9acd64 100644
+--- a/drw.c
++++ b/drw.c
+@@ -4,48 +4,11 @@
+ #include <string.h>
+ #include <X11/Xlib.h>
+ #include <X11/Xft/Xft.h>
++#include <grapheme.h>
+ 
+ #include "drw.h"
+ #include "util.h"
+ 
+-#define UTF_INVALID 0xFFFD
+-
+-static int
+-utf8decode(const char *s_in, long *u, int *err)
+-{
+-	static const unsigned char lens[] = {
+-		/* 0XXXX */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+-		/* 10XXX */ 0, 0, 0, 0, 0, 0, 0, 0,  /* invalid */
+-		/* 110XX */ 2, 2, 2, 2,
+-		/* 1110X */ 3, 3,
+-		/* 11110 */ 4,
+-		/* 11111 */ 0,  /* invalid */
+-	};
+-	static const unsigned char leading_mask[] = { 0x7F, 0x1F, 0x0F, 0x07 };
+-	static const unsigned int overlong[] = { 0x0, 0x80, 0x0800, 0x10000 };
+-
+-	const unsigned char *s = (const unsigned char *)s_in;
+-	int len = lens[*s >> 3];
+-	*u = UTF_INVALID;
+-	*err = 1;
+-	if (len == 0)
+-		return 1;
+-
+-	long cp = s[0] & leading_mask[len - 1];
+-	for (int i = 1; i < len; ++i) {
+-		if (s[i] == '\0' || (s[i] & 0xC0) != 0x80)
+-			return i;
+-		cp = (cp << 6) | (s[i] & 0x3F);
+-	}
+-	/* out of range, surrogate, overlong encoding */
+-	if (cp > 0x10FFFF || (cp >> 11) == 0x1B || cp < overlong[len - 1])
+-		return len;
+-
+-	*err = 0;
+-	*u = cp;
+-	return len;
+-}
+-
+ Drw *
+ drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h)
+ {
+@@ -229,7 +192,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
+ 	XftDraw *d = NULL;
+ 	Fnt *usedfont, *curfont, *nextfont;
+ 	int utf8strlen, utf8charlen, utf8err, render = x || y || w || h;
+-	long utf8codepoint = 0;
++	uint_least32_t utf8codepoint = 0;
+ 	const char *utf8str;
+ 	FcCharSet *fccharset;
+ 	FcPattern *fcpattern;
+@@ -267,7 +230,14 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
+ 		utf8str = text;
+ 		nextfont = NULL;
+ 		while (*text) {
+-			utf8charlen = utf8decode(text, &utf8codepoint, &utf8err);
++			utf8charlen = grapheme_next_character_break_utf8(text, SIZE_MAX);
++			if (!grapheme_decode_utf8(text, utf8charlen, &utf8codepoint)) {
++				/* Bail in the event the string ended unexpectedly in the middle of a multi-byte
++				 * sequence. */
++				utf8err = 1;
++				break;
++			}
++
+ 			for (curfont = drw->fonts; curfont; curfont = curfont->next) {
+ 				charexists = charexists || XftCharExists(drw->dpy, curfont->xfont, utf8codepoint);
+ 				if (charexists) {
+-- 
+2.50.1
+

@@ -1,0 +1,60 @@
+From 010347076e47dc6826aedc21e8375223a6dbd2f4 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:33:48 +0200
+Subject: [PATCH] Lose fullscreen on focus change
+
+---
+ dwm.c | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/dwm.c b/dwm.c
+index 1443802..96b1ba1 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -177,6 +177,7 @@ static void grabkeys(void);
+ static void incnmaster(const Arg *arg);
+ static void keypress(XEvent *e);
+ static void killclient(const Arg *arg);
++static void losefullscreen(Client *sel, Client *next);
+ static void manage(Window w, XWindowAttributes *wa);
+ static void mappingnotify(XEvent *e);
+ static void maprequest(XEvent *e);
+@@ -855,6 +856,7 @@ focusstack(const Arg *arg)
+ 					c = i;
+ 	}
+ 	if (c) {
++		losefullscreen(selmon->sel, c);
+ 		focus(c);
+ 		restack(selmon);
+ 	}
+@@ -1027,6 +1029,15 @@ killclient(const Arg *arg)
+ 	}
+ }
+ 
++void
++losefullscreen(Client *sel, Client *next)
++{
++	if (!sel || !next)
++		return;
++	if (sel->isfullscreen && ISVISIBLE(sel) && sel->mon == next->mon && !next->isfloating)
++		setfullscreen(sel, 0);
++}
++
+ void
+ manage(Window w, XWindowAttributes *wa)
+ {
+@@ -1079,8 +1090,10 @@ manage(Window w, XWindowAttributes *wa)
+ 		(unsigned char *) &(c->win), 1);
+ 	XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h); /* some windows require this */
+ 	setclientstate(c, NormalState);
+-	if (c->mon == selmon)
++	if (c->mon == selmon) {
++		losefullscreen(selmon->sel, c);
+ 		unfocus(selmon->sel, 0);
++	}
+ 	c->mon->sel = c;
+ 	arrange(c->mon);
+ 	XMapWindow(dpy, c->win);
+-- 
+2.50.1
+

@@ -1,0 +1,404 @@
+From 12fd121fa185a0732d8c97aecfd93e19ef6db627 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:35:58 +0200
+Subject: [PATCH] Master stacker patch
+
+---
+ config.def.h |  16 ++-
+ dwm.c        |   4 +
+ stacker.c    | 269 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ stacker.h    |  35 +++++++
+ 4 files changed, 322 insertions(+), 2 deletions(-)
+ create mode 100644 stacker.c
+ create mode 100644 stacker.h
+
+diff --git a/config.def.h b/config.def.h
+index 9efa774..206d691 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -52,6 +52,17 @@ static const Layout layouts[] = {
+ 	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
+ 	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
+ 
++#define STACKKEYS(MOD,ACTION) \
++	{ MOD, XK_j,                ACTION, {.i = INC(+1) } }, \
++	{ MOD, XK_k,                ACTION, {.i = INC(-1) } }, \
++	{ MOD, XK_semicolon,        ACTION, {.i = PREVSEL } }, \
++	{ MOD, XK_y,                ACTION, {.i = MASTER(1) } }, \
++	{ MOD, XK_u,                ACTION, {.i = MASTER(2) } }, \
++	{ MOD, XK_n,                ACTION, {.i = STACK(1) } }, \
++	{ MOD, XK_o,                ACTION, {.i = STACK(2) } }, \
++	{ MOD, XK_g,                ACTION, {.i = STACK(3) } }, \
++	{ MOD, XK_slash,            ACTION, {.i = LASTTILED } },
++
+ /* helper for spawning shell commands in the pre dwm-5.0 fashion */
+ #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+ 
+@@ -65,8 +76,6 @@ static const Key keys[] = {
+ 	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
+ 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+ 	{ MODKEY,                       XK_b,      togglebar,      {0} },
+-	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
+-	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
+ 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
+ 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
+ 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+@@ -85,6 +94,9 @@ static const Key keys[] = {
+ 	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
+ 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
+ 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
++	STACKKEYS(MODKEY,             stackfocus) // focus on the nth client in the stack
++	STACKKEYS(MODKEY|ControlMask, stackpush)  // move the currently focused client to the nth place in the stack
++	STACKKEYS(MODKEY|ShiftMask,   stackswap)  // swap the currently focused client with the nth client in the stack
+ 	TAGKEYS(                        XK_1,                      0)
+ 	TAGKEYS(                        XK_2,                      1)
+ 	TAGKEYS(                        XK_3,                      2)
+diff --git a/dwm.c b/dwm.c
+index 1443802..da8f497 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -268,7 +268,9 @@ static Monitor *mons, *selmon;
+ static Window root, wmcheckwin;
+ 
+ /* configuration, allows nested code to access above variables */
++#include "stacker.h"
+ #include "config.h"
++#include "stacker.c"
+ 
+ /* compile-time check if all tags fit into an unsigned int bit array. */
+ struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
+@@ -663,6 +665,7 @@ detach(Client *c)
+ 
+ 	for (tc = &c->mon->clients; *tc && *tc != c; tc = &(*tc)->next);
+ 	*tc = c->next;
++	c->next = NULL;
+ }
+ 
+ void
+@@ -672,6 +675,7 @@ detachstack(Client *c)
+ 
+ 	for (tc = &c->mon->stack; *tc && *tc != c; tc = &(*tc)->snext);
+ 	*tc = c->snext;
++	c->snext = NULL;
+ 
+ 	if (c == c->mon->sel) {
+ 		for (t = c->mon->stack; t && !ISVISIBLE(t); t = t->snext);
+diff --git a/stacker.c b/stacker.c
+new file mode 100644
+index 0000000..9019345
+--- /dev/null
++++ b/stacker.c
+@@ -0,0 +1,269 @@
++void
++attachabove(Client *c, Client *target)
++{
++	Client **tp;
++	Client *last;
++
++	if (target) {
++		last = lastclient(c);
++		last->next = target;
++		tp = clientptr(target);
++		*tp = c;
++		return;
++	}
++
++	attach(c);
++}
++
++Client **
++clientptr(Client *c)
++{
++	Client **tc;
++	for (tc = &c->mon->clients; *tc && *tc != c; tc = &(*tc)->next);
++	return tc;
++}
++
++int
++ismasterclient(Client *client)
++{
++	Monitor *m = client->mon;
++	Client *c;
++	int i;
++
++	for (i = 0, c = nexttiled(m->clients); c && i < m->nmaster; c = nexttiled(c->next), ++i)
++		if (c == client)
++			return 1;
++
++	return 0;
++}
++
++Client *
++lastclient(Client *c)
++{
++	Client *last;
++	for (last = c; last && last->next; last = last->next);
++
++	return last;
++}
++
++Client *
++lasttiled(Client *c)
++{
++	Client *last = NULL;
++	for (; c; c = c->next)
++		if (ISVISIBLE(c) && ISTILED(c))
++			last = c;
++
++	return last;
++}
++
++Client *
++nthmaster(Client *c, int n, int reduce)
++{
++	if (!c)
++		return NULL;
++
++	return nthtiled(c, MIN(n, c->mon->nmaster), 1);
++}
++
++Client *
++nthstack(Client *c, int n, int reduce)
++{
++	if (!c)
++		return NULL;
++
++	return nthtiled(c, n + c->mon->nmaster, 1);
++}
++
++Client *
++nthtiled(Client *c, int n, int reduce)
++{
++	Client *prev = NULL;
++	int i;
++	for (i = 1, c = nexttiled(c); c && (i++ < n); prev = c, c = nexttiled(c->next));
++
++	if (!c && reduce) {
++		c = prev;
++	}
++
++	return c;
++}
++
++Client *
++inctiled(Client *c, int n)
++{
++	Client *f;
++
++	if (!c)
++		return NULL;
++
++	if (n > 0) {
++		f = nexttiled(c->next);
++		if (!f) {
++			f = nexttiled(c->mon->clients);
++		}
++	} else {
++		f = prevtiled(c);
++		if (!f) {
++			f = lasttiled(c->mon->clients);
++		}
++	}
++	return f;
++}
++
++Client *
++prevtiled(Client *c)
++{
++	Client *p, *r;
++	for (p = nexttiled(c->mon->clients), r = NULL; p && p != c && (r = p); p = nexttiled(p->next));
++	return r;
++}
++
++Client *
++prevsel(void)
++{
++	Monitor *m = selmon;
++	Client *c;
++
++	if (!m->clients)
++		return NULL;
++
++	for (c = m->stack; c && (!ISVISIBLE(c) || c == m->sel); c = c->snext);
++	return c;
++}
++
++void
++swap(Client *a, Client *b)
++{
++	Client **ap = clientptr(a);
++	Client **bp = clientptr(b);
++	Client *an = a->next;
++	Client *bn = b->next;
++
++	if (bn == a) {
++		b->next = an;
++		a->next = b;
++		*bp = a;
++	} else if (an == b) {
++		b->next = a;
++		a->next = bn;
++		*ap = b;
++	} else {
++		b->next = an;
++		a->next = bn;
++		*ap = b;
++		*bp = a;
++	}
++}
++
++
++void
++stackfocus(const Arg *arg)
++{
++	Monitor *m = selmon;
++	Client *c = NULL;
++
++	if (ISINC(arg)) {
++		focusstack(&((Arg) { .i = GETINC(arg) }));
++		return;
++	}
++
++	if (!m->clients)
++		return;
++
++	c = stackposclient(arg);
++
++	if (!c)
++		return;
++
++	if (c == m->sel) {
++		if (arg->i != PREVSEL) {
++			stackfocus(&((Arg) { .i = PREVSEL }));
++		}
++		return;
++	}
++
++	focus(c);
++	arrange(m);
++}
++
++void
++stackpush(const Arg *arg)
++{
++	Monitor *m = selmon;
++	Client *c = NULL, *sel = m->sel;
++
++	if (!m->clients)
++		return;
++
++	if (ISINC(arg)) {
++		stackswap(arg);
++		return;
++	}
++
++	c = stackposclient(arg);
++
++	if (!c)
++		return;
++
++	if (c == sel)
++		return;
++
++	detach(sel);
++	attachabove(sel, c);
++
++	arrange(m);
++}
++
++void
++stackswap(const Arg *arg)
++{
++	Monitor *m = selmon;
++	Client *c = NULL, *sel = m->sel;
++
++	if (!m->clients)
++		return;
++
++	c = stackposclient(arg);
++
++	if (!c)
++		return;
++
++	if (c == sel)
++		return;
++
++	swap(sel, c);
++
++	if (!ISINC(arg) && ismasterclient(c)) {
++		focus(c);
++		sel = c;
++	}
++
++	arrange(m);
++}
++
++Client *
++stackposclient(const Arg *arg)
++{
++	Monitor *m = selmon;
++
++	if (!m->clients)
++		return NULL;
++
++	if (ISINC(arg))
++		return inctiled(m->sel, GETINC(arg));
++
++	if (ISMASTER(arg))
++		return nthmaster(m->clients, GETMASTER(arg), 1);
++
++	if (ISSTACK(arg))
++		return nthstack(m->clients, GETSTACK(arg), 1);
++
++	if (ISLAST(arg))
++		return lasttiled(m->clients);
++
++	if (ISPREVSEL(arg))
++		return prevsel();
++
++	return nthtiled(m->clients, arg->i, 1);
++}
+diff --git a/stacker.h b/stacker.h
+new file mode 100644
+index 0000000..0099db0
+--- /dev/null
++++ b/stacker.h
+@@ -0,0 +1,35 @@
++#define INC(X)                  ((X) + 2000)
++#define MASTER(X)               ((X) + 4000)
++#define STACK(X)                ((X) + 5000)
++#define PREVSEL                 3000
++#define LASTTILED               -1
++#define ISINC(X)                ((X)->i > 1000 && (X)->i < 3000)
++#define ISPREVSEL(X)            ((X)->i == 3000)
++#define ISLAST(X)               ((X)->i < 0)
++#define GETINC(X)               ((X)->i - 2000)
++#define GETMASTER(X)            ((X)->i - 4000)
++#define GETSTACK(X)             ((X)->i - 5000)
++#define ISMASTER(X)             ((X)->i >= 4000 && (X)->i < 5000)
++#define ISSTACK(X)              ((X)->i >= 5000 && (X)->i < 6000)
++#define MOD(N,M)                ((N)%(M) < 0 ? (N)%(M) + (M) : (N)%(M))
++#define TRUNC(X,A,B)            (MAX((A), MIN((X), (B))))
++#define ISTILED(C)              (C && C->win && !(C->isfloating))
++
++static void attachabove(Client *c, Client *target);
++static Client **clientptr(Client *c);
++static int ismasterclient(Client *c);
++static Client *lastclient(Client *c);
++static Client *lasttiled(Client *c);
++static Client *nexttiled(Client *c);
++static Client *nthmaster(Client *c, int n, int reduce);
++static Client *nthstack(Client *c, int n, int reduce);
++static Client *nthtiled(Client *c, int n, int reduce);
++static Client *inctiled(Client *c, int n);
++static Client *prevtiled(Client *c);
++static Client *prevsel(void);
++static void swap(Client *a, Client *b);
++
++static void stackfocus(const Arg *arg);
++static void stackpush(const Arg *arg);
++static void stackswap(const Arg *arg);
++static Client *stackposclient(const Arg *arg);
+-- 
+2.50.1
+

@@ -1,0 +1,173 @@
+From d06cefd6e1f8b5cd9bdfe694b7dc16da1f00d83e Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Mon, 1 Jul 2024 22:19:15 +0200
+Subject: [PATCH] Game rule patch
+
+This patch adds a rule identifying clients as a "game" such that
+if the client is in fullscreen and it loses focus (e.g. by moving
+to another tag) then it will automatically be minimized (set to
+IconicState and unmapped).
+
+When the client receives focus again (e.g. by going back to its
+tag) then it will automaticaly be unminimized (set to NormalState
+and mapped). This should address many of the black screen or window
+is tiny after having moved to another tag and back again.
+
+This may conflict with the awesomebar patch which skips hidden
+(iconic) windows when selecting which client to focus on, i.e. it
+would be there but minimized and will not automatically unminimize.
+
+The function names are minimize and unminimize compared to the same
+functions hide and show in the awesomebar patch. The name change is
+due to two reasons; 1) because hide and show do something very
+different compared to the showhide function and 2) because when
+minimizing and unminimizing we do not want to trigger arrange or
+a change in focus (which would affect the stacking order and thus
+prevent the window receiving focus when we move back to the previous
+tag).
+---
+ config.def.h |  4 +++-
+ dwm.c        | 47 +++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 50 insertions(+), 1 deletion(-)
+
+diff --git a/config.def.h b/config.def.h
+index 9efa774..9df3c97 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -26,9 +26,11 @@ static const Rule rules[] = {
+ 	 *	WM_CLASS(STRING) = instance, class
+ 	 *	WM_NAME(STRING) = title
+ 	 */
+-	/* class      instance    title       tags mask     isfloating   monitor */
++	/* class      instance    title       tags mask     isfloating   monitor  isgame */
+ 	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+ 	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
++	{ "Steam",    NULL,       NULL,       0,            0,           -1,      1 },
++	{ "steam_app",NULL,       NULL,       0,            0,           -1,      1 },
+ };
+ 
+ /* layout(s) */
+diff --git a/dwm.c b/dwm.c
+index 1443802..29de39a 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -50,6 +50,7 @@
+ #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
+                                * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
+ #define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
++#define MINIMIZED(C)            ((getstate(C->win) == IconicState))
+ #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
+ #define WIDTH(X)                ((X)->w + 2 * (X)->bw)
+ #define HEIGHT(X)               ((X)->h + 2 * (X)->bw)
+@@ -92,6 +93,7 @@ struct Client {
+ 	int bw, oldbw;
+ 	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
++	int isgame;
+ 	Client *next;
+ 	Client *snext;
+ 	Monitor *mon;
+@@ -138,6 +140,7 @@ typedef struct {
+ 	unsigned int tags;
+ 	int isfloating;
+ 	int monitor;
++	int isgame;
+ } Rule;
+ 
+ /* function declarations */
+@@ -180,6 +183,7 @@ static void killclient(const Arg *arg);
+ static void manage(Window w, XWindowAttributes *wa);
+ static void mappingnotify(XEvent *e);
+ static void maprequest(XEvent *e);
++static void minimize(Client *c);
+ static void monocle(Monitor *m);
+ static void motionnotify(XEvent *e);
+ static void movemouse(const Arg *arg);
+@@ -215,6 +219,7 @@ static void toggleview(const Arg *arg);
+ static void unfocus(Client *c, int setfocus);
+ static void unmanage(Client *c, int destroyed);
+ static void unmapnotify(XEvent *e);
++static void unminimize(Client *c);
+ static void updatebarpos(Monitor *m);
+ static void updatebars(void);
+ static void updateclientlist(void);
+@@ -298,6 +303,7 @@ applyrules(Client *c)
+ 		{
+ 			c->isfloating = r->isfloating;
+ 			c->tags |= r->tags;
++			c->isgame = r->isgame;
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+ 			if (m)
+ 				c->mon = m;
+@@ -1109,6 +1115,29 @@ maprequest(XEvent *e)
+ 		manage(ev->window, &wa);
+ }
+ 
++void
++minimize(Client *c)
++{
++	if (!c || MINIMIZED(c))
++		return;
++
++	Window w = c->win;
++	static XWindowAttributes ra, ca;
++
++	// more or less taken directly from blackbox's hide() function
++	XGrabServer(dpy);
++	XGetWindowAttributes(dpy, root, &ra);
++	XGetWindowAttributes(dpy, w, &ca);
++	// prevent UnmapNotify events
++	XSelectInput(dpy, root, ra.your_event_mask & ~SubstructureNotifyMask);
++	XSelectInput(dpy, w, ca.your_event_mask & ~StructureNotifyMask);
++	XUnmapWindow(dpy, w);
++	setclientstate(c, IconicState);
++	XSelectInput(dpy, root, ra.your_event_mask);
++	XSelectInput(dpy, w, ca.your_event_mask);
++	XUngrabServer(dpy);
++}
++
+ void
+ monocle(Monitor *m)
+ {
+@@ -1475,6 +1504,10 @@ setfocus(Client *c)
+ 			XA_WINDOW, 32, PropModeReplace,
+ 			(unsigned char *) &(c->win), 1);
+ 	}
++
++	if (c->isgame && c->isfullscreen)
++		unminimize(c);
++
+ 	sendevent(c, wmatom[WMTakeFocus]);
+ }
+ 
+@@ -1766,6 +1799,10 @@ unfocus(Client *c, int setfocus)
+ {
+ 	if (!c)
+ 		return;
++
++	if (c->isgame && c->isfullscreen)
++		minimize(c);
++
+ 	grabbuttons(c, 0);
+ 	XSetWindowBorder(dpy, c->win, scheme[SchemeNorm][ColBorder].pixel);
+ 	if (setfocus) {
+@@ -1814,6 +1851,16 @@ unmapnotify(XEvent *e)
+ 	}
+ }
+ 
++void
++unminimize(Client *c)
++{
++	if (!c || !MINIMIZED(c))
++		return;
++
++	XMapWindow(dpy, c->win);
++	setclientstate(c, NormalState);
++}
++
+ void
+ updatebars(void)
+ {
+-- 
+2.50.1
+
