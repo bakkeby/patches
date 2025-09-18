@@ -1,0 +1,429 @@
+From 6aafee64cace33c1afc02c087397593350194866 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Thu, 18 Sep 2025 22:29:40 +0200
+Subject: [PATCH] Winicon patch (without imlib2 dependency)
+
+---
+ config.def.h |   2 +
+ config.mk    |   4 +-
+ drw.c        |  11 +++
+ drw.h        |   3 +
+ dwm.c        | 198 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 5 files changed, 215 insertions(+), 3 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 9efa774..c2a6e47 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,6 +5,8 @@ static const unsigned int borderpx  = 1;        /* border pixel of windows */
+ static const unsigned int snap      = 32;       /* snap pixel */
+ static const int showbar            = 1;        /* 0 means no bar */
+ static const int topbar             = 1;        /* 0 means bottom bar */
++static int iconsize                 = 16;       /* icon size */
++static int iconspacing              = 5;        /* space between icon and title */
+ static const char *fonts[]          = { "monospace:size=10" };
+ static const char dmenufont[]       = "monospace:size=10";
+ static const char col_gray1[]       = "#222222";
+diff --git a/config.mk b/config.mk
+index b469a2b..bbea09f 100644
+--- a/config.mk
++++ b/config.mk
+@@ -10,6 +10,8 @@ MANPREFIX = ${PREFIX}/share/man
+ X11INC = /usr/X11R6/include
+ X11LIB = /usr/X11R6/lib
+ 
++XRENDER = -lXrender
++
+ # Xinerama, comment if you don't want it
+ XINERAMALIBS  = -lXinerama
+ XINERAMAFLAGS = -DXINERAMA
+@@ -23,7 +25,7 @@ FREETYPEINC = /usr/include/freetype2
+ 
+ # includes and libs
+ INCS = -I${X11INC} -I${FREETYPEINC}
+-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS}
++LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${XRENDER}
+ 
+ # flags
+ CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
+diff --git a/drw.c b/drw.c
+index c41e6af..cfa769f 100644
+--- a/drw.c
++++ b/drw.c
+@@ -57,6 +57,7 @@ drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h
+ 	drw->w = w;
+ 	drw->h = h;
+ 	drw->drawable = XCreatePixmap(dpy, root, w, h, DefaultDepth(dpy, screen));
++	drw->picture = XRenderCreatePicture(dpy, drw->drawable, XRenderFindVisualFormat(dpy, DefaultVisual(dpy, screen)), 0, NULL);
+ 	drw->gc = XCreateGC(dpy, root, 0, NULL);
+ 	XSetLineAttributes(dpy, drw->gc, 1, LineSolid, CapButt, JoinMiter);
+ 
+@@ -71,6 +72,8 @@ drw_resize(Drw *drw, unsigned int w, unsigned int h)
+ 
+ 	drw->w = w;
+ 	drw->h = h;
++	if (drw->picture)
++		XRenderFreePicture(drw->dpy, drw->picture);
+ 	if (drw->drawable)
+ 		XFreePixmap(drw->dpy, drw->drawable);
+ 	drw->drawable = XCreatePixmap(drw->dpy, drw->root, w, h, DefaultDepth(drw->dpy, drw->screen));
+@@ -392,6 +395,14 @@ drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h)
+ 	XSync(drw->dpy, False);
+ }
+ 
++void
++drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic)
++{
++	if (!drw)
++		return;
++	XRenderComposite(drw->dpy, PictOpOver, pic, None, drw->picture, 0, 0, 0, 0, x, y, w, h);
++}
++
+ unsigned int
+ drw_fontset_getwidth(Drw *drw, const char *text)
+ {
+diff --git a/drw.h b/drw.h
+index 6471431..ff75898 100644
+--- a/drw.h
++++ b/drw.h
+@@ -21,6 +21,7 @@ typedef struct {
+ 	int screen;
+ 	Window root;
+ 	Drawable drawable;
++	Picture picture;
+ 	GC gc;
+ 	Clr *scheme;
+ 	Fnt *fonts;
+@@ -56,3 +57,5 @@ int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned in
+ 
+ /* Map functions */
+ void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h);
++void drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic);
++
+diff --git a/dwm.c b/dwm.c
+index 1443802..62ea0e6 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -25,6 +25,7 @@
+ #include <signal.h>
+ #include <stdarg.h>
+ #include <stdio.h>
++#include <stdint.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
+@@ -59,7 +60,7 @@
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+ enum { SchemeNorm, SchemeSel }; /* color schemes */
+-enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
++enum { NetSupported, NetWMName, NetWMIcon, NetWMState, NetWMCheck,
+        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
+        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
+ enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
+@@ -92,6 +93,8 @@ struct Client {
+ 	int bw, oldbw;
+ 	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
++	unsigned int icw, ich;
++	Picture icon;
+ 	Client *next;
+ 	Client *snext;
+ 	Monitor *mon;
+@@ -147,6 +150,7 @@ static void arrange(Monitor *m);
+ static void arrangemon(Monitor *m);
+ static void attach(Client *c);
+ static void attachstack(Client *c);
++static uint32_t *bilinear_scale(const uint32_t *src, int sw, int sh, uint32_t dw, uint32_t dh);
+ static void buttonpress(XEvent *e);
+ static void checkotherwm(void);
+ static void cleanup(void);
+@@ -168,9 +172,11 @@ static void focus(Client *c);
+ static void focusin(XEvent *e);
+ static void focusmon(const Arg *arg);
+ static void focusstack(const Arg *arg);
++static void freeicon(Client *c);
+ static Atom getatomprop(Client *c, Atom prop);
+ static int getrootptr(int *x, int *y);
+ static long getstate(Window w);
++static Picture geticonprop(Display *dpy, Window w, int iconsize, unsigned int *icw, unsigned int *ich);
+ static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
+ static void grabbuttons(Client *c, int focused);
+ static void grabkeys(void);
+@@ -185,6 +191,7 @@ static void motionnotify(XEvent *e);
+ static void movemouse(const Arg *arg);
+ static Client *nexttiled(Client *c);
+ static void pop(Client *c);
++static uint32_t prealpha(uint32_t p);
+ static void propertynotify(XEvent *e);
+ static void quit(const Arg *arg);
+ static Monitor *recttomon(int x, int y, int w, int h);
+@@ -219,6 +226,7 @@ static void updatebarpos(Monitor *m);
+ static void updatebars(void);
+ static void updateclientlist(void);
+ static int updategeom(void);
++static void updateicon(Client *c);
+ static void updatenumlockmask(void);
+ static void updatesizehints(Client *c);
+ static void updatestatus(void);
+@@ -414,6 +422,57 @@ attachstack(Client *c)
+ 	c->mon->stack = c;
+ }
+ 
++uint32_t *
++bilinear_scale(const uint32_t *src, int sw, int sh, unsigned int dw, unsigned int dh)
++{
++	uint32_t *dst = calloc(dw * dh, sizeof(uint32_t));
++	if (!dst) return NULL;
++
++	for (int y = 0; y < dh; y++) {
++		/* Source position (in fixed-point) */
++		float sy = (y + 0.5f) * sh / (float)dh - 0.5f;
++		int y0 = (sy < 0) ? (int)(sy - 1) : (int)(sy);;
++		int y1 = y0 + 1;
++		float fy = sy - y0;
++		if (y0 < 0) { y0 = 0; y1 = 0; fy = 0; }
++		if (y1 >= sh) { y1 = sh-1; y0 = y1; fy = 0; }
++
++		for (int x = 0; x < dw; x++) {
++			float sx = (x + 0.5f) * sw / (float)dw - 0.5f;
++			int x0 = (sx < 0) ? (int)(sx - 1) : (int)(sx);
++			int x1 = x0 + 1;
++			float fx = sx - x0;
++			if (x0 < 0) { x0 = 0; x1 = 0; fx = 0; }
++			if (x1 >= sw) { x1 = sw-1; x0 = x1; fx = 0; }
++
++			uint32_t p00 = prealpha(src[y0*sw + x0]);
++			uint32_t p10 = prealpha(src[y0*sw + x1]);
++			uint32_t p01 = prealpha(src[y1*sw + x0]);
++			uint32_t p11 = prealpha(src[y1*sw + x1]);
++
++			/* Extract premultiplied channels */
++			int a00 = p00 >> 24, r00 = (p00 >> 16) & 0xFF, g00 = (p00 >> 8) & 0xFF, b00 = p00 & 0xFF;
++			int a10 = p10 >> 24, r10 = (p10 >> 16) & 0xFF, g10 = (p10 >> 8) & 0xFF, b10 = p10 & 0xFF;
++			int a01 = p01 >> 24, r01 = (p01 >> 16) & 0xFF, g01 = (p01 >> 8) & 0xFF, b01 = p01 & 0xFF;
++			int a11 = p11 >> 24, r11 = (p11 >> 16) & 0xFF, g11 = (p11 >> 8) & 0xFF, b11 = p11 & 0xFF;
++
++			/* Bilinear weights */
++			float w00 = (1.0f - fx) * (1.0f - fy);
++			float w10 = fx * (1.0f - fy);
++			float w01 = (1.0f - fx) * fy;
++			float w11 = fx * fy;
++
++			int a = (int)(a00*w00 + a10*w10 + a01*w01 + a11*w11 + 0.5f);
++			int r = (int)(r00*w00 + r10*w10 + r01*w01 + r11*w11 + 0.5f);
++			int g = (int)(g00*w00 + g10*w10 + g01*w01 + g11*w11 + 0.5f);
++			int b = (int)(b00*w00 + b10*w10 + b01*w01 + b11*w11 + 0.5f);
++
++			dst[y*dw + x] = (a << 24) | (r << 16) | (g << 8) | b;
++		}
++	}
++	return dst;
++}
++
+ void
+ buttonpress(XEvent *e)
+ {
+@@ -736,7 +795,12 @@ drawbar(Monitor *m)
+ 	if ((w = m->ww - tw - x) > bh) {
+ 		if (m->sel) {
+ 			drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
+-			drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
++			if (m->sel->icon) {
++				drw_text(drw, x, 0, w, bh, lrpad / 2 + m->sel->icw + iconspacing, m->sel->name, 0);
++				drw_pic(drw, x + lrpad / 2, (bh - m->sel->ich) / 2, m->sel->icw, m->sel->ich, m->sel->icon);
++			} else {
++				drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
++			}
+ 			if (m->sel->isfloating)
+ 				drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
+ 		} else {
+@@ -860,6 +924,15 @@ focusstack(const Arg *arg)
+ 	}
+ }
+ 
++void
++freeicon(Client *c)
++{
++	if (c->icon) {
++		XRenderFreePicture(dpy, c->icon);
++		c->icon = None;
++	}
++}
++
+ Atom
+ getatomprop(Client *c, Atom prop)
+ {
+@@ -904,6 +977,104 @@ getstate(Window w)
+ 	return result;
+ }
+ 
++/* geticonprop: read, scale, and return an XRender Picture */
++Picture
++geticonprop(Display *dpy, Window win, int iconsize, unsigned int *icw, unsigned int *ich) {
++	Atom net_wm_icon = XInternAtom(dpy, "_NET_WM_ICON", False);
++	Atom actual_type;
++	int actual_format;
++	unsigned long nitems, bytes_after;
++	unsigned char *data = NULL;
++	Picture pict = None;
++
++	if (XGetWindowProperty(dpy, win, net_wm_icon, 0, LONG_MAX, False, AnyPropertyType,
++			&actual_type, &actual_format, &nitems, &bytes_after, &data) != Success || !data) {
++		return None;
++	}
++
++	unsigned long *p = (unsigned long *)data;
++	unsigned long *end = p + nitems;
++
++	/* Pick icon closest to desired size */
++	unsigned long *best = NULL;
++	unsigned long best_w = 0, best_h = 0;
++	unsigned long best_diff = ~0UL;
++
++	while (p + 2 < end) {
++		unsigned long w0 = *p++;
++		unsigned long h0 = *p++;
++		if (w0 == 0 || h0 == 0 || p + w0*h0 > end) break;
++
++		unsigned long diff = (w0 > (unsigned long)iconsize ? w0 - iconsize : iconsize - w0)
++						   + (h0 > (unsigned long)iconsize ? h0 - iconsize : iconsize - h0);
++
++		if (diff < best_diff) {
++			best_diff = diff;
++			best_w = w0;
++			best_h = h0;
++			best = p;
++		}
++		p += w0 * h0;
++	}
++
++	if (!best) {
++		XFree(data);
++		return None;
++	}
++
++	/* Copy into fixed 32-bit array */
++	uint32_t *src = malloc(best_w * best_h * sizeof(uint32_t));
++	for (size_t i = 0; i < best_w * best_h; i++)
++		src[i] = (uint32_t)best[i];
++
++	/* Scale */
++	int dst_w, dst_h;
++	if (best_w > best_h) {
++		dst_w = iconsize;
++		dst_h = best_h * iconsize / best_w;
++	} else {
++		dst_h = iconsize;
++		dst_w = best_w * iconsize / best_h;
++	}
++
++	uint32_t *scaled = bilinear_scale(src, best_w, best_h, dst_w, dst_h);
++	free(src);
++	XFree(data);
++	if (!scaled) return None;
++
++	/* Create pixmap and upload pixels */
++	Pixmap pm = XCreatePixmap(dpy, root, dst_w, dst_h, 32);
++
++	XImage img;
++	memset(&img, 0, sizeof img);
++	img.width = dst_w;
++	img.height = dst_h;
++	img.format = ZPixmap;
++	img.data = (char*)scaled;
++	img.byte_order = LSBFirst;
++	img.bitmap_unit = 32;
++	img.bitmap_bit_order = LSBFirst;
++	img.bitmap_pad = 32;
++	img.depth = 32;
++	img.bits_per_pixel = 32;
++	img.bytes_per_line = dst_w * 4;
++
++	XInitImage(&img);
++	GC gc = XCreateGC(dpy, pm, 0, NULL);
++	XPutImage(dpy, pm, gc, &img, 0, 0, 0, 0, dst_w, dst_h);
++	XFreeGC(dpy, gc);
++
++	XRenderPictFormat *fmt = XRenderFindStandardFormat(dpy, PictStandardARGB32);
++	pict = XRenderCreatePicture(dpy, pm, fmt, 0, NULL);
++	XFreePixmap(dpy, pm);
++
++	free(scaled);
++
++	*icw = dst_w;
++	*ich = dst_h;
++	return pict;
++}
++
+ int
+ gettextprop(Window w, Atom atom, char *text, unsigned int size)
+ {
+@@ -1043,6 +1214,7 @@ manage(Window w, XWindowAttributes *wa)
+ 	c->h = c->oldh = wa->height;
+ 	c->oldbw = wa->border_width;
+ 
++	updateicon(c);
+ 	updatetitle(c);
+ 	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
+ 		c->mon = t->mon;
+@@ -1217,6 +1389,14 @@ pop(Client *c)
+ 	arrange(c->mon);
+ }
+ 
++uint32_t
++prealpha(uint32_t p) {
++	uint8_t a = p >> 24u;
++	uint32_t rb = (a * (p & 0xFF00FFu)) >> 8u;
++	uint32_t g = (a * (p & 0x00FF00u)) >> 8u;
++	return (rb & 0xFF00FFu) | (g & 0x00FF00u) | (a << 24u);
++}
++
+ void
+ propertynotify(XEvent *e)
+ {
+@@ -1249,6 +1429,11 @@ propertynotify(XEvent *e)
+ 			if (c == c->mon->sel)
+ 				drawbar(c->mon);
+ 		}
++		if (ev->atom == netatom[NetWMIcon]) {
++			updateicon(c);
++			if (c == c->mon->sel)
++				drawbar(c->mon);
++		}
+ 		if (ev->atom == netatom[NetWMWindowType])
+ 			updatewindowtype(c);
+ 	}
+@@ -1572,6 +1757,7 @@ setup(void)
+ 	netatom[NetActiveWindow] = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
+ 	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
+ 	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
++	netatom[NetWMIcon] = XInternAtom(dpy, "_NET_WM_ICON", False);
+ 	netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
+ 	netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
+ 	netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+@@ -1782,6 +1968,7 @@ unmanage(Client *c, int destroyed)
+ 
+ 	detach(c);
+ 	detachstack(c);
++	freeicon(c);
+ 	if (!destroyed) {
+ 		wc.border_width = c->oldbw;
+ 		XGrabServer(dpy); /* avoid race conditions */
+@@ -1863,6 +2050,13 @@ updateclientlist(void)
+ 				(unsigned char *) &(c->win), 1);
+ }
+ 
++void
++updateicon(Client *c)
++{
++	freeicon(c);
++	c->icon = geticonprop(dpy, c->win, iconsize, &c->icw, &c->ich);
++}
++
+ int
+ updategeom(void)
+ {
+-- 
+2.51.0
+
