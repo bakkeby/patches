@@ -1,0 +1,38 @@
+diff --git a/config.def.h b/config.def.h
+index 9efa774..8992e57 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -69,6 +69,7 @@ static const Key keys[] = {
+ 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
+ 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
+ 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
++	{ MODKEY|ControlMask,           XK_i,      setnmaster,     {.i = 1 } },
+ 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+ 	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
+ 	{ MODKEY,                       XK_Return, zoom,           {0} },
+diff --git a/dwm.c b/dwm.c
+index ab1edb6..77c40a8 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -178,6 +178,7 @@ static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
+ static void grabbuttons(Client *c, int focused);
+ static void grabkeys(void);
+ static void incnmaster(const Arg *arg);
++static void setnmaster(const Arg *arg);
+ static void keypress(XEvent *e);
+ static void killclient(const Arg *arg);
+ static void manage(Window w, XWindowAttributes *wa);
+@@ -1022,6 +1023,13 @@ incnmaster(const Arg *arg)
+ 	arrange(selmon);
+ }
+ 
++void
++setnmaster(const Arg *arg)
++{
++	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag] = MAX(arg->i, 0);
++	arrange(selmon);
++}
++
+ #ifdef XINERAMA
+ static int
+ isuniquegeom(XineramaScreenInfo *unique, size_t n, XineramaScreenInfo *info)
