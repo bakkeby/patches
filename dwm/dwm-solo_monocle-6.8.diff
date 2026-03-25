@@ -1,0 +1,78 @@
+From 14b912524dcba3f7c52d94d894eadb846a21a0c7 Mon Sep 17 00:00:00 2001
+From: Bakkeby <bakkeby@gmail.com>
+Date: Wed, 25 Mar 2026 22:53:50 +0100
+Subject: [PATCH] Solo monocle layout - avoids stacking windows on top of each
+ other in monocle layout
+
+---
+ dwm.c | 34 +++++++++++++++++++++++++++++++---
+ 1 file changed, 31 insertions(+), 3 deletions(-)
+
+diff --git a/dwm.c b/dwm.c
+index 53b393e..ac4fe55 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -799,6 +799,12 @@ focus(Client *c)
+ 			seturgent(c, 0);
+ 		detachstack(c);
+ 		attachstack(c);
++
++		/* Force an arrange if monocle layout is used */
++		if (c->mon->lt[c->mon->sellt]->arrange == monocle) {
++			arrangemon(c->mon);
++		}
++
+ 		grabbuttons(c, 1);
+ 		XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
+ 		setfocus(c);
+@@ -1114,15 +1120,33 @@ void
+ monocle(Monitor *m)
+ {
+ 	unsigned int n = 0;
+-	Client *c;
++	Client *c, *s;
++	XEvent ev;
++
++	/* Find the most recently focused client and bring it into view */
++	for (s = m->stack; s; s = s->snext) {
++		if (ISVISIBLE(s) && !s->isfloating) {
++			resize(s, m->wx, m->wy, m->ww - 2 * s->bw, m->wh - 2 * s->bw, 0);
++			XMoveWindow(dpy, s->win, s->x, s->y);
++			break;
++		}
++	}
+ 
+ 	for (c = m->clients; c; c = c->next)
+ 		if (ISVISIBLE(c))
+ 			n++;
+ 	if (n > 0) /* override layout symbol */
+ 		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
+-	for (c = nexttiled(m->clients); c; c = nexttiled(c->next))
+-		resize(c, m->wx, m->wy, m->ww - 2 * c->bw, m->wh - 2 * c->bw, 0);
++
++	/* Hide other windows after focused have been moved into view
++	 * (avoids background flickering). */
++	for (c = nexttiled(m->clients); c; c = nexttiled(c->next)) {
++		if (c == s)
++			continue;
++		XMoveWindow(dpy, c->win, WIDTH(c) * -2, c->y);
++	}
++
++	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)); // skip EnterNotify events
+ }
+ 
+ void
+@@ -1632,6 +1656,10 @@ showhide(Client *c)
+ 	if (!c)
+ 		return;
+ 	if (ISVISIBLE(c)) {
++		if (c->mon->lt[c->mon->sellt]->arrange == monocle && !c->isfloating) {
++			showhide(c->snext);
++			return;
++		}
+ 		/* show clients top down */
+ 		XMoveWindow(dpy, c->win, c->x, c->y);
+ 		if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
+-- 
+2.53.0
+
